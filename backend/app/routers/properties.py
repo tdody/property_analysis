@@ -21,7 +21,20 @@ def list_properties(db: Session = Depends(get_db)):
     summaries = []
     for prop in props:
         summary = PropertySummary.model_validate(prop)
-        # Metric computation deferred until compute router exists (Task 10)
+        # Compute cashflow for active scenario if available
+        active_scenario = db.query(MortgageScenario).filter(
+            MortgageScenario.property_id == prop.id,
+            MortgageScenario.is_active == True,
+        ).first()
+        assumptions = db.query(STRAssumptions).filter(STRAssumptions.property_id == prop.id).first()
+        if active_scenario and assumptions:
+            try:
+                from app.routers.compute import _compute_for_scenario
+                result = _compute_for_scenario(prop, active_scenario, assumptions)
+                summary.monthly_cashflow = result["metrics"].monthly_cashflow
+                summary.cash_on_cash_return = result["metrics"].cash_on_cash_return
+            except Exception:
+                pass
         summaries.append(summary)
     return summaries
 
