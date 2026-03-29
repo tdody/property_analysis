@@ -1,6 +1,7 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useProperty } from "../hooks/useProperty.ts";
 import { useScenarios } from "../hooks/useScenarios.ts";
+import { useAssumptions } from "../hooks/useAssumptions.ts";
 import { PropertyDetail } from "../components/PropertyDetail/PropertyDetail.tsx";
 
 export function PropertyPage() {
@@ -26,6 +27,11 @@ function PropertyPageInner({ id }: { id: string }) {
     duplicateScenario,
     activateScenario,
   } = useScenarios(id);
+  const {
+    assumptions,
+    loading: assumptionsLoading,
+    updateAssumptions,
+  } = useAssumptions(id);
 
   if (loading) {
     return (
@@ -54,6 +60,9 @@ function PropertyPageInner({ id }: { id: string }) {
       onDeleteScenario={removeScenario}
       onDuplicateScenario={duplicateScenario}
       onActivateScenario={activateScenario}
+      assumptions={assumptions}
+      assumptionsLoading={assumptionsLoading}
+      onUpdateAssumptions={updateAssumptions}
     />
   );
 }

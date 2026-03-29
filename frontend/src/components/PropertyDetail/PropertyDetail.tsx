@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { Property } from "../../types/index.ts";
-import type { MortgageScenario } from "../../types/index.ts";
+import type { MortgageScenario, STRAssumptions } from "../../types/index.ts";
 import { PropertyInfoTab } from "./PropertyInfoTab.tsx";
 import { FinancingTab } from "./FinancingTab.tsx";
+import { RevenueExpensesTab } from "./RevenueExpensesTab.tsx";
+import { ResultsTab } from "./ResultsTab.tsx";
 
 const TABS = ["Property Info", "Financing", "Revenue & Expenses", "Results"] as const;
 type TabName = (typeof TABS)[number];
@@ -18,6 +20,9 @@ interface PropertyDetailProps {
   onDeleteScenario: (id: string) => Promise<void>;
   onDuplicateScenario: (id: string) => Promise<MortgageScenario>;
   onActivateScenario: (id: string) => Promise<void>;
+  assumptions: STRAssumptions | null;
+  assumptionsLoading: boolean;
+  onUpdateAssumptions: (updates: Partial<STRAssumptions>) => Promise<STRAssumptions>;
 }
 
 export function PropertyDetail({
@@ -30,6 +35,9 @@ export function PropertyDetail({
   onDeleteScenario,
   onDuplicateScenario,
   onActivateScenario,
+  assumptions,
+  assumptionsLoading,
+  onUpdateAssumptions,
 }: PropertyDetailProps) {
   const [activeTab, setActiveTab] = useState<TabName>("Property Info");
   const navigate = useNavigate();
@@ -94,10 +102,16 @@ export function PropertyDetail({
           )
         )}
         {activeTab === "Revenue & Expenses" && (
-          <div className="text-center py-12 text-gray-500">Revenue & Expenses tab coming soon</div>
+          assumptionsLoading ? (
+            <div className="text-center py-12 text-gray-500">Loading assumptions...</div>
+          ) : assumptions ? (
+            <RevenueExpensesTab assumptions={assumptions} onUpdate={onUpdateAssumptions} />
+          ) : (
+            <div className="text-center py-12 text-gray-500">No assumptions data available</div>
+          )
         )}
         {activeTab === "Results" && (
-          <div className="text-center py-12 text-gray-500">Results tab coming soon</div>
+          <ResultsTab propertyId={property.id} scenarios={scenarios} />
         )}
       </div>
     </div>
