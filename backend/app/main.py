@@ -24,9 +24,10 @@ app.add_middleware(
 )
 
 
-from app.routers import properties
+from app.routers import properties, scenarios
 
 app.include_router(properties.router)
+app.include_router(scenarios.router)
 
 
 @app.get("/api/health")
