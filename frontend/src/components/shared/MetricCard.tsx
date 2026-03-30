@@ -6,7 +6,7 @@ interface MetricCardProps {
   large?: boolean;
 }
 
-export function MetricCard({ label, value, tooltip, variant = "neutral", large }: MetricCardProps) {
+export function MetricCard({ label, value, tooltip: _tooltip, variant = "neutral", large }: MetricCardProps) {
   const colorMap = {
     positive: "text-green-600",
     negative: "text-red-600",
