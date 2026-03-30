@@ -153,7 +153,7 @@ def scrape_redfin_property(url: str) -> ScraperResult:
 
         # Compute fields_found and fields_missing
         # Exclude property_type since it always gets a default from map_property_type
-        trackable_fields = [f for f in data.model_fields if f != "property_type"]
+        trackable_fields = [f for f in ScrapedPropertyData.model_fields if f != "property_type"]
         fields_found = [f for f in trackable_fields if getattr(data, f) is not None]
         fields_missing = [f for f in trackable_fields if getattr(data, f) is None]
 

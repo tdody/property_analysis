@@ -84,8 +84,8 @@ class TestScraperResult:
             hoa_monthly=None,
             annual_taxes=None,
         )
-        found = [f for f in data.model_fields if getattr(data, f) is not None]
-        missing = [f for f in data.model_fields if getattr(data, f) is None]
+        found = [f for f in ScrapedPropertyData.model_fields if getattr(data, f) is not None]
+        missing = [f for f in ScrapedPropertyData.model_fields if getattr(data, f) is None]
         assert "address" in found
         assert "listing_price" in found
         assert "lot_sqft" in missing
