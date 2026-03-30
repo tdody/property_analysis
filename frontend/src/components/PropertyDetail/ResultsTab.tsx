@@ -195,6 +195,33 @@ export function ResultsTab({ propertyId, scenarios }: ResultsTabProps) {
         />
       </div>
 
+      {/* DSCR Warning */}
+      {m.dscr_warning && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 flex items-start gap-3">
+          <span className="text-amber-500 text-lg mt-0.5">&#9888;</span>
+          <div>
+            <p className="text-sm font-medium text-amber-800">DSCR Lender Warning</p>
+            <p className="text-sm text-amber-700">{m.dscr_warning}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Rental Delay Notice */}
+      {results.rental_delay_months > 0 && (
+        <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 flex items-start gap-3">
+          <span className="text-blue-500 text-lg mt-0.5">&#128197;</span>
+          <div>
+            <p className="text-sm font-medium text-blue-800">
+              Year-1 Adjusted ({results.rental_delay_months}-month rental delay)
+            </p>
+            <p className="text-sm text-blue-700">
+              Metrics reflect {12 - results.rental_delay_months} months of rental income with 12 months of carrying costs.
+              Carrying costs during the delay period are added to total cash invested.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Revenue Waterfall */}
       <section>
         <h3 className="text-base font-semibold text-slate-900 mb-4">Revenue Breakdown</h3>
@@ -219,6 +246,23 @@ export function ResultsTab({ propertyId, scenarios }: ResultsTabProps) {
                 <td className="px-4 py-3 text-slate-500">Annual Turnovers</td>
                 <td className="px-4 py-3 text-right">{results.revenue.annual_turnovers}</td>
               </tr>
+              {results.tax_impact && (
+                <>
+                  <tr className="bg-amber-50/50">
+                    <td className="px-4 py-3 text-slate-700">
+                      Guest-Facing Tax Rate
+                      {results.tax_impact.platform_remits && (
+                        <span className="ml-2 text-xs text-slate-400">(platform remits)</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-right">{fmtPct(results.tax_impact.guest_facing_tax_pct)}</td>
+                  </tr>
+                  <tr className="bg-amber-50/50">
+                    <td className="px-4 py-3 text-slate-500 pl-8">Effective Nightly Rate (with tax)</td>
+                    <td className="px-4 py-3 text-right">{fmtCurrency(results.tax_impact.effective_nightly_rate_with_tax)}</td>
+                  </tr>
+                </>
+              )}
             </tbody>
           </table>
         </div>
