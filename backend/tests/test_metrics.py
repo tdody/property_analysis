@@ -3,6 +3,7 @@ from app.services.computation.metrics import (
     compute_noi, compute_cashflow, compute_cash_on_cash_return,
     compute_cap_rate, compute_dscr, compute_gross_yield,
     compute_break_even_occupancy, compute_total_roi_year1, compute_all_metrics,
+    compute_delay_carrying_costs,
 )
 
 class TestNOI:
@@ -57,6 +58,21 @@ class TestTotalROI:
         assert round(result, 2) == round((9_877 + 5_000) / 125_400 * 100, 2)
     def test_zero_invested(self):
         assert compute_total_roi_year1(9_877, 5_000, 0) == 0
+
+class TestRentalDelayMetrics:
+    def test_delay_carrying_costs(self):
+        result = compute_delay_carrying_costs(
+            total_monthly_housing=2500,
+            rental_delay_months=2,
+        )
+        assert result == 5000  # 2 months * $2500/mo
+
+    def test_zero_delay_no_carrying_costs(self):
+        result = compute_delay_carrying_costs(
+            total_monthly_housing=2500,
+            rental_delay_months=0,
+        )
+        assert result == 0
 
 class TestComputeAllMetrics:
     def test_integration(self):

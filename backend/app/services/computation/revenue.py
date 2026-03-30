@@ -30,3 +30,9 @@ def compute_gross_revenue(
 def compute_net_revenue(total_gross_revenue: float, platform_fee_pct: float) -> dict:
     fees = total_gross_revenue * (platform_fee_pct / 100)
     return {"platform_fees": fees, "net_revenue": total_gross_revenue - fees}
+
+
+def compute_year1_revenue(annual_revenue: float, rental_delay_months: int) -> float:
+    if rental_delay_months >= 12:
+        return 0
+    return annual_revenue * (12 - rental_delay_months) / 12

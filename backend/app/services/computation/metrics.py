@@ -48,6 +48,9 @@ def compute_total_roi_year1(annual_cashflow: float, year1_equity_buildup: float,
         return 0
     return ((annual_cashflow + year1_equity_buildup) / total_cash_invested) * 100
 
+def compute_delay_carrying_costs(total_monthly_housing: float, rental_delay_months: int) -> float:
+    return total_monthly_housing * rental_delay_months
+
 def compute_all_metrics(net_annual_revenue: float, total_annual_operating_exp: float, monthly_pi: float, total_cash_invested: float, purchase_price: float, gross_annual_revenue: float, year1_equity_buildup: float, avg_nightly_rate: float, cleaning_fee_per_stay: float, avg_stay_length_nights: float, platform_fee_pct: float, cleaning_cost_per_turn: float, property_mgmt_pct: float, maintenance_reserve_pct: float, capex_reserve_pct: float, fixed_opex_annual: float, total_monthly_housing: float) -> dict:
     noi = compute_noi(net_annual_revenue, total_annual_operating_exp)
     cashflow = compute_cashflow(noi, total_monthly_housing)

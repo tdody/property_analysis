@@ -1,6 +1,6 @@
 from app.services.computation.revenue import (
     compute_occupied_nights, compute_annual_turnovers,
-    compute_gross_revenue, compute_net_revenue,
+    compute_gross_revenue, compute_net_revenue, compute_year1_revenue,
 )
 
 class TestOccupiedNights:
@@ -32,6 +32,23 @@ class TestGrossRevenue:
         assert round(result["cleaning_fee_revenue"], 2) == round(expected_cleaning, 2)
         assert round(result["total_gross_revenue"], 2) == round(expected_nightly + expected_cleaning, 2)
         assert round(result["annual_turnovers"], 2) == round(turnovers, 2)
+
+class TestYear1Revenue:
+    def test_no_delay(self):
+        result = compute_year1_revenue(annual_revenue=60_000, rental_delay_months=0)
+        assert result == 60_000
+
+    def test_one_month_delay(self):
+        result = compute_year1_revenue(annual_revenue=60_000, rental_delay_months=1)
+        assert result == 55_000  # 11/12 * 60000
+
+    def test_three_month_delay(self):
+        result = compute_year1_revenue(annual_revenue=60_000, rental_delay_months=3)
+        assert result == 45_000  # 9/12 * 60000
+
+    def test_twelve_month_delay(self):
+        result = compute_year1_revenue(annual_revenue=60_000, rental_delay_months=12)
+        assert result == 0
 
 class TestNetRevenue:
     def test_3_percent_platform_fee(self):
