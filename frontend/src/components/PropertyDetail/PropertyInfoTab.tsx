@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { useLocation } from "react-router-dom";
 import type { Property } from "../../types/index.ts";
 import { CurrencyInput } from "../shared/CurrencyInput.tsx";
 import { PercentInput } from "../shared/PercentInput.tsx";
@@ -29,10 +30,60 @@ const TOOLTIPS = {
     "Monthly HOA or condo association fee. Common for condos and townhouses. Verify whether the HOA allows short-term rentals -- many don't.",
 };
 
+/** Derive which fields are "missing" (at default values) when no router state is available. */
+function deriveMissingFields(property: Property): string[] {
+  const missing: string[] = [];
+  if (!property.address) missing.push("address");
+  if (!property.city) missing.push("city");
+  if (!property.state) missing.push("state");
+  if (!property.zip_code) missing.push("zip_code");
+  if (!property.listing_price) missing.push("listing_price");
+  if (property.estimated_value == null) missing.push("estimated_value");
+  if (!property.beds) missing.push("beds");
+  if (!property.baths) missing.push("baths");
+  if (!property.sqft) missing.push("sqft");
+  if (property.lot_sqft == null) missing.push("lot_sqft");
+  if (property.year_built == null) missing.push("year_built");
+  if (!property.hoa_monthly) missing.push("hoa_monthly");
+  if (!property.annual_taxes) missing.push("annual_taxes");
+  return missing;
+}
+
 export function PropertyInfoTab({ property, onUpdate }: PropertyInfoTabProps) {
+  const location = useLocation();
+  const locationState = location.state as { fieldsMissing?: string[] } | null;
+
   const [form, setForm] = useState<Property>({ ...property });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [bannerDismissed, setBannerDismissed] = useState(false);
+
+  const isScraped = Boolean(property.source_url);
+
+  // Use router state if available, otherwise derive from defaults
+  const fieldsMissing: string[] = isScraped
+    ? (locationState?.fieldsMissing ?? deriveMissingFields(property))
+    : [];
+
+  const isMissing = (field: string) => fieldsMissing.includes(field);
+  const isFound = (field: string) => isScraped && !isMissing(field);
+
+  const fieldClass = (field: string) =>
+    `w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${
+      isMissing(field) ? "border-amber-300" : "border-slate-200"
+    }`;
+
+  const RedfinBadge = ({ field }: { field: string }) =>
+    isFound(field) ? (
+      <span className="ml-1.5 text-[10px] bg-indigo-50 text-indigo-500 px-1.5 py-0.5 rounded font-medium">
+        Redfin
+      </span>
+    ) : null;
+
+  const MissingHelper = ({ field }: { field: string }) =>
+    isMissing(field) ? (
+      <p className="text-xs text-amber-500 mt-1">Not found — enter manually</p>
+    ) : null;
 
   const updateField = useCallback(<K extends keyof Property>(key: K, value: Property[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -54,6 +105,27 @@ export function PropertyInfoTab({ property, onUpdate }: PropertyInfoTabProps) {
 
   return (
     <div className="space-y-8">
+      {/* Redfin scrape info banner */}
+      {isScraped && !bannerDismissed && (
+        <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4">
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex items-start gap-2">
+              <span className="text-indigo-500 text-lg leading-none mt-0.5">ℹ</span>
+              <p className="text-sm text-indigo-800 font-medium">
+                Property data populated from Redfin — review highlighted fields below
+              </p>
+            </div>
+            <button
+              onClick={() => setBannerDismissed(true)}
+              className="text-indigo-400 hover:text-indigo-600 transition-colors flex-shrink-0 text-lg leading-none"
+              aria-label="Dismiss"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Non-homestead tax warning */}
       {form.is_homestead_tax && !form.nonhomestead_annual_taxes && (
         <div className="bg-amber-50 border border-amber-300 rounded-xl p-4">
@@ -87,41 +159,53 @@ export function PropertyInfoTab({ property, onUpdate }: PropertyInfoTabProps) {
         <h3 className="text-base font-semibold text-slate-900 mb-4">Location</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Address</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Address<RedfinBadge field="address" />
+            </label>
             <input
               type="text"
               value={form.address}
               onChange={(e) => updateField("address", e.target.value)}
-              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              className={fieldClass("address")}
             />
+            <MissingHelper field="address" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">City</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              City<RedfinBadge field="city" />
+            </label>
             <input
               type="text"
               value={form.city}
               onChange={(e) => updateField("city", e.target.value)}
-              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              className={fieldClass("city")}
             />
+            <MissingHelper field="city" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">State</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              State<RedfinBadge field="state" />
+            </label>
             <input
               type="text"
               value={form.state}
               onChange={(e) => updateField("state", e.target.value)}
               maxLength={2}
-              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              className={fieldClass("state")}
             />
+            <MissingHelper field="state" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Zip Code</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Zip Code<RedfinBadge field="zip_code" />
+            </label>
             <input
               type="text"
               value={form.zip_code}
               onChange={(e) => updateField("zip_code", e.target.value)}
-              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              className={fieldClass("zip_code")}
             />
+            <MissingHelper field="zip_code" />
           </div>
         </div>
       </section>
@@ -131,50 +215,65 @@ export function PropertyInfoTab({ property, onUpdate }: PropertyInfoTabProps) {
         <h3 className="text-base font-semibold text-slate-900 mb-4">Details</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Bedrooms</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Bedrooms<RedfinBadge field="beds" />
+            </label>
             <input
               type="number"
               value={form.beds || ""}
               onChange={(e) => updateField("beds", parseInt(e.target.value) || 0)}
-              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              className={fieldClass("beds")}
             />
+            <MissingHelper field="beds" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Bathrooms</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Bathrooms<RedfinBadge field="baths" />
+            </label>
             <input
               type="number"
               step="0.5"
               value={form.baths || ""}
               onChange={(e) => updateField("baths", parseFloat(e.target.value) || 0)}
-              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              className={fieldClass("baths")}
             />
+            <MissingHelper field="baths" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Sqft</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Sqft<RedfinBadge field="sqft" />
+            </label>
             <input
               type="number"
               value={form.sqft || ""}
               onChange={(e) => updateField("sqft", parseInt(e.target.value) || 0)}
-              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              className={fieldClass("sqft")}
             />
+            <MissingHelper field="sqft" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Lot Sqft</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Lot Sqft<RedfinBadge field="lot_sqft" />
+            </label>
             <input
               type="number"
               value={form.lot_sqft ?? ""}
               onChange={(e) => updateField("lot_sqft", e.target.value ? parseInt(e.target.value) : null)}
-              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              className={fieldClass("lot_sqft")}
             />
+            <MissingHelper field="lot_sqft" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Year Built</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Year Built<RedfinBadge field="year_built" />
+            </label>
             <input
               type="number"
               value={form.year_built ?? ""}
               onChange={(e) => updateField("year_built", e.target.value ? parseInt(e.target.value) : null)}
-              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              className={fieldClass("year_built")}
             />
+            <MissingHelper field="year_built" />
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Property Type</label>
@@ -202,18 +301,24 @@ export function PropertyInfoTab({ property, onUpdate }: PropertyInfoTabProps) {
             value={form.listing_price}
             onChange={(v) => updateField("listing_price", v)}
             tooltip={TOOLTIPS.listing_price}
+            missing={isMissing("listing_price")}
+            scraped={isFound("listing_price")}
           />
           <CurrencyInput
             label="Estimated Value"
             value={form.estimated_value ?? 0}
             onChange={(v) => updateField("estimated_value", v || null)}
             tooltip={TOOLTIPS.estimated_value}
+            missing={isMissing("estimated_value")}
+            scraped={isFound("estimated_value")}
           />
           <CurrencyInput
             label="Annual Taxes (Listing)"
             value={form.annual_taxes}
             onChange={(v) => updateField("annual_taxes", v)}
             tooltip={TOOLTIPS.annual_taxes}
+            missing={isMissing("annual_taxes")}
+            scraped={isFound("annual_taxes")}
           />
           <CurrencyInput
             label="Non-Homestead Annual Taxes"
@@ -249,6 +354,8 @@ export function PropertyInfoTab({ property, onUpdate }: PropertyInfoTabProps) {
             value={form.hoa_monthly}
             onChange={(v) => updateField("hoa_monthly", v)}
             tooltip={TOOLTIPS.hoa_monthly}
+            missing={isMissing("hoa_monthly")}
+            scraped={isFound("hoa_monthly")}
           />
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Source URL</label>
