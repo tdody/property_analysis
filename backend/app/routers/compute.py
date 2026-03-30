@@ -15,6 +15,7 @@ from app.schemas.results import (
     AmortizationEntry,
     SensitivityResponse,
     ComparisonProperty,
+    TaxImpactInfo,
 )
 from app.services.computation.mortgage import (
     compute_loan_amount,
@@ -24,9 +25,9 @@ from app.services.computation.mortgage import (
     compute_total_cash_invested,
     compute_amortization_schedule,
 )
-from app.services.computation.revenue import compute_gross_revenue, compute_net_revenue
+from app.services.computation.revenue import compute_gross_revenue, compute_net_revenue, compute_year1_revenue
 from app.services.computation.expenses import compute_operating_expenses
-from app.services.computation.metrics import compute_all_metrics
+from app.services.computation.metrics import compute_all_metrics, compute_delay_carrying_costs
 from app.services.computation.sensitivity import compute_sensitivity
 
 router = APIRouter(tags=["compute"])
@@ -72,6 +73,7 @@ def _compute_for_scenario(prop: Property, scenario: MortgageScenario, assumption
         lawn_snow_monthly=float(assumptions.lawn_snow_monthly),
         other_monthly_expense=float(assumptions.other_monthly_expense),
         local_str_registration_fee=float(assumptions.local_str_registration_fee),
+        local_gross_receipts_tax_pct=float(assumptions.local_gross_receipts_tax_pct),
     )
 
     total_opex = expenses["total_annual_operating_exp"]
@@ -110,6 +112,47 @@ def _compute_for_scenario(prop: Property, scenario: MortgageScenario, assumption
         total_monthly_housing=total_monthly_housing,
     )
 
+    # Rental delay adjustments for Year-1
+    rental_delay = int(assumptions.rental_delay_months) if assumptions.rental_delay_months else 0
+    if rental_delay > 0:
+        year1_gross = compute_year1_revenue(gross["total_gross_revenue"], rental_delay)
+        year1_net = compute_year1_revenue(net["net_revenue"], rental_delay)
+        # Variable expenses scale with revenue; fixed expenses stay the same
+        year1_opex_variable = total_opex - fixed_opex
+        year1_opex = fixed_opex + year1_opex_variable * (12 - rental_delay) / 12
+        year1_noi = year1_net - year1_opex
+        year1_fixed_costs = total_monthly_housing * 12
+        year1_annual_cashflow = year1_noi - year1_fixed_costs
+        year1_monthly_cashflow = year1_annual_cashflow / 12
+        carrying_costs = compute_delay_carrying_costs(total_monthly_housing, rental_delay)
+        year1_total_cash = total_cash + carrying_costs
+        year1_coc = (year1_annual_cashflow / year1_total_cash * 100) if year1_total_cash > 0 else 0
+        year1_roi = ((year1_annual_cashflow + year1_equity) / year1_total_cash * 100) if year1_total_cash > 0 else 0
+        # Override metrics with Year-1 adjusted values
+        metrics["monthly_cashflow"] = year1_monthly_cashflow
+        metrics["annual_cashflow"] = year1_annual_cashflow
+        metrics["cash_on_cash_return"] = year1_coc
+        metrics["noi"] = year1_noi
+        metrics["total_roi_year1"] = year1_roi
+        total_cash = year1_total_cash
+
+    dscr_warning = None
+    if scenario.loan_type == "dscr" and metrics["dscr"] < 1.25:
+        dscr_warning = f"DSCR of {metrics['dscr']:.2f} is below the typical lender threshold of 1.25x"
+
+    total_tax_pct = (
+        float(assumptions.state_rooms_tax_pct)
+        + float(assumptions.str_surcharge_pct)
+        + float(assumptions.local_option_tax_pct)
+    )
+    tax_impact = None
+    if total_tax_pct > 0:
+        tax_impact = TaxImpactInfo(
+            guest_facing_tax_pct=total_tax_pct,
+            platform_remits=bool(assumptions.platform_remits_tax),
+            effective_nightly_rate_with_tax=round(float(assumptions.avg_nightly_rate) * (1 + total_tax_pct / 100), 2),
+        )
+
     return {
         "property_id": prop.id,
         "scenario_id": scenario.id,
@@ -139,6 +182,7 @@ def _compute_for_scenario(prop: Property, scenario: MortgageScenario, assumption
                 other_annual=round(expenses["other_annual"], 2),
                 registration_annual=round(expenses["registration_annual"], 2),
                 insurance_annual=float(assumptions.insurance_annual),
+                gross_receipts_tax=round(expenses["gross_receipts_tax"], 2),
             ),
         ),
         "metrics": MetricsResults(
@@ -151,7 +195,10 @@ def _compute_for_scenario(prop: Property, scenario: MortgageScenario, assumption
             dscr=round(metrics["dscr"], 2),
             gross_yield=round(metrics["gross_yield"], 2),
             total_roi_year1=round(metrics["total_roi_year1"], 2),
+            dscr_warning=dscr_warning,
         ),
+        "rental_delay_months": rental_delay,
+        "tax_impact": tax_impact,
     }
 
 

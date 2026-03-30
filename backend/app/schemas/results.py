@@ -26,6 +26,7 @@ class ExpenseBreakdown(BaseModel):
     other_annual: float
     registration_annual: float
     insurance_annual: float
+    gross_receipts_tax: float
 
 
 class ExpenseResults(BaseModel):
@@ -43,6 +44,13 @@ class MetricsResults(BaseModel):
     dscr: float
     gross_yield: float
     total_roi_year1: float
+    dscr_warning: str | None = None
+
+
+class TaxImpactInfo(BaseModel):
+    guest_facing_tax_pct: float
+    platform_remits: bool
+    effective_nightly_rate_with_tax: float
 
 
 class ComputedResultsResponse(BaseModel):
@@ -53,6 +61,8 @@ class ComputedResultsResponse(BaseModel):
     revenue: RevenueResults
     expenses: ExpenseResults
     metrics: MetricsResults
+    rental_delay_months: int = 0
+    tax_impact: TaxImpactInfo | None = None
 
 
 class SensitivityResponse(BaseModel):
