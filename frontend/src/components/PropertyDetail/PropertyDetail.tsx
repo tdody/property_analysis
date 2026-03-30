@@ -49,30 +49,30 @@ export function PropertyDetail({
         <div>
           <button
             onClick={() => navigate("/")}
-            className="text-sm text-blue-600 hover:text-blue-800 mb-2 inline-block"
+            className="text-sm text-indigo-600 hover:text-indigo-800 mb-2 inline-block"
           >
             &larr; Back to Dashboard
           </button>
-          <h2 className="text-2xl font-bold text-gray-900">{property.name}</h2>
+          <h2 className="text-2xl font-bold tracking-tight text-slate-900">{property.name}</h2>
           {property.address && (
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-slate-500">
               {property.address}, {property.city}, {property.state} {property.zip_code}
             </p>
           )}
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="border-b mb-6">
-        <nav className="flex gap-0 -mb-px">
+      {/* Tabs — pill/segment style */}
+      <div className="mb-6">
+        <nav className="bg-slate-100 rounded-xl p-1 inline-flex gap-1">
           {TABS.map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+              className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
                 activeTab === tab
-                  ? "border-blue-600 text-blue-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                  ? "bg-white shadow-sm text-slate-900 font-semibold"
+                  : "text-slate-500 hover:text-slate-700"
               }`}
             >
               {tab}
@@ -88,7 +88,7 @@ export function PropertyDetail({
         )}
         {activeTab === "Financing" && (
           scenariosLoading ? (
-            <div className="text-center py-12 text-gray-500">Loading scenarios...</div>
+            <div className="text-center py-12 text-slate-500">Loading scenarios...</div>
           ) : (
             <FinancingTab
               scenarios={scenarios}
@@ -103,11 +103,11 @@ export function PropertyDetail({
         )}
         {activeTab === "Revenue & Expenses" && (
           assumptionsLoading ? (
-            <div className="text-center py-12 text-gray-500">Loading assumptions...</div>
+            <div className="text-center py-12 text-slate-500">Loading assumptions...</div>
           ) : assumptions ? (
             <RevenueExpensesTab assumptions={assumptions} onUpdate={onUpdateAssumptions} />
           ) : (
-            <div className="text-center py-12 text-gray-500">No assumptions data available</div>
+            <div className="text-center py-12 text-slate-500">No assumptions data available</div>
           )
         )}
         {activeTab === "Results" && (

@@ -1,9 +1,15 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { listProperties, createProperty, deleteProperty } from "../../api/client.ts";
 import type { PropertySummary } from "../../types/index.ts";
 import { PropertyCard } from "./PropertyCard.tsx";
 import { ConfirmDialog } from "../shared/ConfirmDialog.tsx";
+
+function fmtCurrency(value: number): string {
+  const abs = Math.abs(value);
+  const formatted = `$${abs.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+  return value < 0 ? `-${formatted}` : formatted;
+}
 
 export function Dashboard() {
   const navigate = useNavigate();
@@ -99,10 +105,29 @@ export function Dashboard() {
     }
   }, [deleteTarget, fetchProperties]);
 
+  const portfolioStats = useMemo(() => {
+    if (properties.length === 0) return null;
+    const cashflows = properties
+      .map((p) => p.monthly_cashflow)
+      .filter((v): v is number => v !== null);
+    const cocReturns = properties
+      .map((p) => p.cash_on_cash_return)
+      .filter((v): v is number => v !== null);
+    const totalInvested = properties.reduce((sum, p) => sum + (p.listing_price || 0), 0);
+    const avgCashflow = cashflows.length > 0 ? cashflows.reduce((a, b) => a + b, 0) / cashflows.length : 0;
+    const bestCoC = cocReturns.length > 0 ? Math.max(...cocReturns) : 0;
+    return {
+      count: properties.length,
+      avgCashflow,
+      bestCoC,
+      totalInvested,
+    };
+  }, [properties]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="text-gray-500 text-lg">Loading properties...</div>
+        <div className="text-slate-500 text-lg">Loading properties...</div>
       </div>
     );
   }
@@ -113,7 +138,7 @@ export function Dashboard() {
         <p className="text-red-600 mb-4">{error}</p>
         <button
           onClick={() => void fetchProperties()}
-          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-indigo-500 shadow-md shadow-indigo-200 text-white rounded-lg hover:from-indigo-700 hover:to-indigo-600"
         >
           Retry
         </button>
@@ -125,8 +150,8 @@ export function Dashboard() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Properties</h2>
-          <p className="text-sm text-gray-500 mt-1">
+          <h2 className="text-2xl font-bold tracking-tight text-slate-900">Properties</h2>
+          <p className="text-sm text-slate-500 mt-1">
             {properties.length} {properties.length === 1 ? "property" : "properties"}
           </p>
         </div>
@@ -134,26 +159,50 @@ export function Dashboard() {
           {selectedIds.size >= 2 && (
             <button
               onClick={handleCompare}
-              className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors text-sm font-medium"
+              className="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition-colors text-sm font-medium"
             >
               Compare Selected ({selectedIds.size})
             </button>
           )}
           <button
             onClick={() => setShowNewForm(true)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm font-medium"
+            className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-indigo-500 shadow-md shadow-indigo-200 text-white rounded-lg hover:from-indigo-700 hover:to-indigo-600 transition-colors text-sm font-medium"
           >
             + New Property
           </button>
         </div>
       </div>
 
+      {/* Portfolio Summary Stats */}
+      {portfolioStats && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <div className="bg-white rounded-2xl shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.03)] p-4">
+            <div className="text-xs uppercase tracking-wider text-slate-400 font-medium mb-1">Properties</div>
+            <div className="text-2xl font-bold tracking-tight text-slate-900">{portfolioStats.count}</div>
+          </div>
+          <div className="bg-white rounded-2xl shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.03)] p-4">
+            <div className="text-xs uppercase tracking-wider text-slate-400 font-medium mb-1">Avg Cashflow</div>
+            <div className={`text-2xl font-bold tracking-tight ${portfolioStats.avgCashflow >= 0 ? "text-emerald-600" : "text-red-500"}`}>
+              {fmtCurrency(Math.round(portfolioStats.avgCashflow))}/mo
+            </div>
+          </div>
+          <div className="bg-white rounded-2xl shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.03)] p-4">
+            <div className="text-xs uppercase tracking-wider text-slate-400 font-medium mb-1">Best CoC</div>
+            <div className="text-2xl font-bold tracking-tight text-indigo-600">{portfolioStats.bestCoC.toFixed(1)}%</div>
+          </div>
+          <div className="bg-white rounded-2xl shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.03)] p-4">
+            <div className="text-xs uppercase tracking-wider text-slate-400 font-medium mb-1">Total Invested</div>
+            <div className="text-2xl font-bold tracking-tight text-slate-900">{fmtCurrency(portfolioStats.totalInvested)}</div>
+          </div>
+        </div>
+      )}
+
       {showNewForm && (
-        <div className="bg-white border rounded-lg p-6 mb-6 shadow-sm">
-          <h3 className="text-lg font-semibold mb-4">New Property</h3>
+        <div className="bg-white rounded-2xl p-6 mb-6 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.03)]">
+          <h3 className="text-lg font-semibold tracking-tight mb-4">New Property</h3>
           <div className="flex gap-4 items-end">
             <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-slate-700 mb-1">
                 Property Name
               </label>
               <input
@@ -161,35 +210,35 @@ export function Dashboard() {
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
                 placeholder='e.g., "Lake House"'
-                className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 autoFocus
               />
             </div>
             <div className="w-48">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-slate-700 mb-1">
                 Listing Price
               </label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">$</span>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">$</span>
                 <input
                   type="number"
                   value={newPrice}
                   onChange={(e) => setNewPrice(e.target.value)}
                   placeholder="0"
-                  className="w-full pl-7 pr-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full pl-7 pr-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 />
               </div>
             </div>
             <button
               onClick={() => void handleCreate()}
               disabled={creating || !newName.trim()}
-              className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium"
+              className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-indigo-500 shadow-md shadow-indigo-200 text-white rounded-lg hover:from-indigo-700 hover:to-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium"
             >
               {creating ? "Creating..." : "Create"}
             </button>
             <button
               onClick={() => { setShowNewForm(false); setNewName(""); setNewPrice(""); }}
-              className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-md transition-colors text-sm font-medium"
+              className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors text-sm font-medium"
             >
               Cancel
             </button>
@@ -198,12 +247,12 @@ export function Dashboard() {
       )}
 
       {properties.length === 0 ? (
-        <div className="text-center py-20 bg-white rounded-lg border">
-          <p className="text-gray-500 text-lg mb-2">No properties yet</p>
-          <p className="text-gray-400 text-sm mb-6">Create your first property to get started</p>
+        <div className="text-center py-20 bg-white rounded-2xl shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.03)]">
+          <p className="text-slate-500 text-lg mb-2">No properties yet</p>
+          <p className="text-slate-400 text-sm mb-6">Create your first property to get started</p>
           <button
             onClick={() => setShowNewForm(true)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm font-medium"
+            className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-indigo-500 shadow-md shadow-indigo-200 text-white rounded-lg hover:from-indigo-700 hover:to-indigo-600 transition-colors text-sm font-medium"
           >
             + New Property
           </button>

@@ -105,21 +105,21 @@ export function ScenarioCard({ scenario, onUpdate, onDelete, onDuplicate, onActi
     form.down_payment_amt + form.closing_cost_amt + form.renovation_cost + form.furniture_cost + form.other_upfront_costs;
 
   return (
-    <div className={`border rounded-lg ${scenario.is_active ? "border-blue-500 ring-2 ring-blue-200" : "border-gray-200"} bg-white`}>
+    <div className={`rounded-2xl shadow-sm bg-white ${scenario.is_active ? "border-l-4 border-indigo-500" : ""}`}>
       {/* Header */}
       <div className="flex items-center justify-between p-4 cursor-pointer" onClick={() => setExpanded(!expanded)}>
         <div className="flex items-center gap-3">
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); onActivate(scenario.id); }}
-            className={`text-xl ${scenario.is_active ? "text-yellow-500" : "text-gray-300 hover:text-yellow-400"}`}
+            className={`text-xl ${scenario.is_active ? "text-yellow-500" : "text-slate-300 hover:text-yellow-400"}`}
             title={scenario.is_active ? "Active scenario" : "Set as active"}
           >
             {scenario.is_active ? "\u2605" : "\u2606"}
           </button>
           <div>
-            <h4 className="font-semibold text-gray-900">{form.name || "Untitled Scenario"}</h4>
-            <p className="text-sm text-gray-500">
+            <h4 className="font-semibold text-slate-900">{form.name || "Untitled Scenario"}</h4>
+            <p className="text-sm text-slate-500">
               {LOAN_TYPES.find((t) => t.value === form.loan_type)?.label ?? form.loan_type}
               {!isCash && ` | ${form.loan_term_years}yr | ${form.interest_rate}%`}
             </p>
@@ -127,38 +127,38 @@ export function ScenarioCard({ scenario, onUpdate, onDelete, onDuplicate, onActi
         </div>
         <div className="flex items-center gap-4">
           <div className="text-right mr-4">
-            <p className="text-sm text-gray-500">{isCash ? "Total Investment" : "Monthly P&I"}</p>
-            <p className="font-semibold text-gray-900">
+            <p className="text-sm text-slate-500">{isCash ? "Total Investment" : "Monthly P&I"}</p>
+            <p className="font-semibold text-slate-900">
               ${isCash ? totalCashToClose.toLocaleString() : Math.round(monthlyPI).toLocaleString()}
             </p>
           </div>
-          <span className="text-gray-400">{expanded ? "\u25B2" : "\u25BC"}</span>
+          <span className="text-slate-400">{expanded ? "\u25B2" : "\u25BC"}</span>
         </div>
       </div>
 
       {/* Expanded content */}
       {expanded && (
-        <div className="border-t p-4 space-y-6">
+        <div className="border-t border-slate-100 p-4 space-y-6">
           {/* Name and loan type */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Scenario Name</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Scenario Name</label>
               <input
                 type="text"
                 value={form.name}
                 onChange={(e) => updateField("name", e.target.value)}
-                className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-slate-700 mb-1">
                 Loan Type
                 <TooltipIcon text={TOOLTIPS.loan_type} />
               </label>
               <select
                 value={form.loan_type}
                 onChange={(e) => updateField("loan_type", e.target.value)}
-                className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
               >
                 {LOAN_TYPES.map((lt) => (
                   <option key={lt.value} value={lt.value}>
@@ -201,14 +201,14 @@ export function ScenarioCard({ scenario, onUpdate, onDelete, onDuplicate, onActi
                 tooltip={TOOLTIPS.interest_rate}
               />
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-slate-700 mb-1">
                   Loan Term
                   <TooltipIcon text={TOOLTIPS.loan_term} />
                 </label>
                 <select
                   value={form.loan_term_years}
                   onChange={(e) => updateField("loan_term_years", parseInt(e.target.value))}
-                  className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 >
                   {LOAN_TERMS.map((t) => (
                     <option key={t} value={t}>
@@ -269,42 +269,42 @@ export function ScenarioCard({ scenario, onUpdate, onDelete, onDuplicate, onActi
           )}
 
           {/* Summary */}
-          <div className="bg-gray-50 rounded-lg p-4">
-            <h5 className="text-sm font-semibold text-gray-700 mb-3">Summary</h5>
+          <div className="bg-slate-50 rounded-xl p-4">
+            <h5 className="text-xs uppercase tracking-wider text-slate-400 font-medium mb-3">Summary</h5>
             <div className="grid grid-cols-3 gap-4 text-sm">
               <div>
-                <p className="text-gray-500">Loan Amount</p>
+                <p className="text-slate-500">Loan Amount</p>
                 <p className="font-semibold">${isCash ? 0 : loanAmount.toLocaleString()}</p>
               </div>
               <div>
-                <p className="text-gray-500">Monthly P&I</p>
+                <p className="text-slate-500">Monthly P&I</p>
                 <p className="font-semibold">${isCash ? 0 : Math.round(monthlyPI).toLocaleString()}</p>
               </div>
               <div>
-                <p className="text-gray-500">Total Cash to Close</p>
+                <p className="text-slate-500">Total Cash to Close</p>
                 <p className="font-semibold">${totalCashToClose.toLocaleString()}</p>
               </div>
             </div>
           </div>
 
           {/* Actions */}
-          <div className="flex items-center gap-3 pt-2 border-t">
+          <div className="flex items-center gap-3 pt-2 border-t border-slate-100">
             <button
               onClick={() => void handleSave()}
               disabled={saving}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 text-sm font-medium"
+              className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-indigo-500 shadow-md shadow-indigo-200 text-white rounded-lg hover:from-indigo-700 hover:to-indigo-600 disabled:opacity-50 text-sm font-medium"
             >
               {saving ? "Saving..." : "Save"}
             </button>
             <button
               onClick={() => onDuplicate(scenario.id)}
-              className="px-4 py-2 text-blue-600 bg-blue-50 rounded-md hover:bg-blue-100 text-sm font-medium"
+              className="px-4 py-2 text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 text-sm font-medium"
             >
               Duplicate
             </button>
             <button
               onClick={() => onDelete(scenario.id)}
-              className="px-4 py-2 text-red-600 bg-red-50 rounded-md hover:bg-red-100 text-sm font-medium"
+              className="px-4 py-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg text-sm font-medium"
             >
               Delete
             </button>

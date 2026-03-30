@@ -56,7 +56,7 @@ export function PropertyInfoTab({ property, onUpdate }: PropertyInfoTabProps) {
     <div className="space-y-8">
       {/* Non-homestead tax warning */}
       {form.is_homestead_tax && !form.nonhomestead_annual_taxes && (
-        <div className="bg-amber-50 border border-amber-300 rounded-lg p-4">
+        <div className="bg-amber-50 border border-amber-300 rounded-xl p-4">
           <div className="flex items-start gap-2">
             <span className="text-amber-600 text-lg">!</span>
             <div>
@@ -84,43 +84,43 @@ export function PropertyInfoTab({ property, onUpdate }: PropertyInfoTabProps) {
 
       {/* Location */}
       <section>
-        <h3 className="text-lg font-semibold text-gray-900 mb-4 border-b pb-2">Location</h3>
+        <h3 className="text-base font-semibold text-slate-900 mb-4">Location</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Address</label>
             <input
               type="text"
               value={form.address}
               onChange={(e) => updateField("address", e.target.value)}
-              className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">City</label>
             <input
               type="text"
               value={form.city}
               onChange={(e) => updateField("city", e.target.value)}
-              className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">State</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">State</label>
             <input
               type="text"
               value={form.state}
               onChange={(e) => updateField("state", e.target.value)}
               maxLength={2}
-              className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Zip Code</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Zip Code</label>
             <input
               type="text"
               value={form.zip_code}
               onChange={(e) => updateField("zip_code", e.target.value)}
-              className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             />
           </div>
         </div>
@@ -128,60 +128,60 @@ export function PropertyInfoTab({ property, onUpdate }: PropertyInfoTabProps) {
 
       {/* Details */}
       <section>
-        <h3 className="text-lg font-semibold text-gray-900 mb-4 border-b pb-2">Details</h3>
+        <h3 className="text-base font-semibold text-slate-900 mb-4">Details</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Bedrooms</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Bedrooms</label>
             <input
               type="number"
               value={form.beds || ""}
               onChange={(e) => updateField("beds", parseInt(e.target.value) || 0)}
-              className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Bathrooms</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Bathrooms</label>
             <input
               type="number"
               step="0.5"
               value={form.baths || ""}
               onChange={(e) => updateField("baths", parseFloat(e.target.value) || 0)}
-              className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Sqft</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Sqft</label>
             <input
               type="number"
               value={form.sqft || ""}
               onChange={(e) => updateField("sqft", parseInt(e.target.value) || 0)}
-              className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Lot Sqft</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Lot Sqft</label>
             <input
               type="number"
               value={form.lot_sqft ?? ""}
               onChange={(e) => updateField("lot_sqft", e.target.value ? parseInt(e.target.value) : null)}
-              className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Year Built</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Year Built</label>
             <input
               type="number"
               value={form.year_built ?? ""}
               onChange={(e) => updateField("year_built", e.target.value ? parseInt(e.target.value) : null)}
-              className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Property Type</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Property Type</label>
             <select
               value={form.property_type}
               onChange={(e) => updateField("property_type", e.target.value)}
-              className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             >
               {PROPERTY_TYPES.map((pt) => (
                 <option key={pt.value} value={pt.value}>
@@ -195,7 +195,7 @@ export function PropertyInfoTab({ property, onUpdate }: PropertyInfoTabProps) {
 
       {/* Financials */}
       <section>
-        <h3 className="text-lg font-semibold text-gray-900 mb-4 border-b pb-2">Financials</h3>
+        <h3 className="text-base font-semibold text-slate-900 mb-4">Financials</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <CurrencyInput
             label="Listing Price"
@@ -222,7 +222,7 @@ export function PropertyInfoTab({ property, onUpdate }: PropertyInfoTabProps) {
             tooltip={TOOLTIPS.nonhomestead_annual_taxes}
           />
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-slate-700 mb-1">
               Is Homestead Tax
               <TooltipIcon text="If checked, the listing taxes shown are at the homestead rate. STR properties pay the higher nonhomestead rate." />
             </label>
@@ -231,9 +231,9 @@ export function PropertyInfoTab({ property, onUpdate }: PropertyInfoTabProps) {
                 type="checkbox"
                 checked={form.is_homestead_tax}
                 onChange={(e) => updateField("is_homestead_tax", e.target.checked)}
-                className="h-4 w-4 text-blue-600 rounded border-gray-300"
+                className="h-4 w-4 text-indigo-600 rounded border-slate-300"
               />
-              <span className="ml-2 text-sm text-gray-600">
+              <span className="ml-2 text-sm text-slate-600">
                 Listing taxes are at homestead rate
               </span>
             </div>
@@ -251,13 +251,13 @@ export function PropertyInfoTab({ property, onUpdate }: PropertyInfoTabProps) {
             tooltip={TOOLTIPS.hoa_monthly}
           />
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Source URL</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Source URL</label>
             <input
               type="url"
               value={form.source_url ?? ""}
               onChange={(e) => updateField("source_url", e.target.value || null)}
               placeholder="https://www.zillow.com/..."
-              className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             />
           </div>
         </div>
@@ -265,26 +265,26 @@ export function PropertyInfoTab({ property, onUpdate }: PropertyInfoTabProps) {
 
       {/* Notes */}
       <section>
-        <h3 className="text-lg font-semibold text-gray-900 mb-4 border-b pb-2">Notes</h3>
+        <h3 className="text-base font-semibold text-slate-900 mb-4">Notes</h3>
         <textarea
           value={form.notes}
           onChange={(e) => updateField("notes", e.target.value)}
           rows={4}
-          className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
           placeholder="Free-form notes about this property..."
         />
       </section>
 
       {/* Save */}
-      <div className="flex items-center gap-4 pt-4 border-t">
+      <div className="flex items-center gap-4 pt-4 border-t border-slate-100">
         <button
           onClick={() => void handleSave()}
           disabled={saving}
-          className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors font-medium"
+          className="px-6 py-2 bg-gradient-to-r from-indigo-600 to-indigo-500 shadow-md shadow-indigo-200 text-white rounded-lg hover:from-indigo-700 hover:to-indigo-600 disabled:opacity-50 transition-colors font-medium"
         >
           {saving ? "Saving..." : "Save Changes"}
         </button>
-        {saved && <span className="text-green-600 text-sm font-medium">Saved successfully</span>}
+        {saved && <span className="text-emerald-600 text-sm font-medium">Saved successfully</span>}
       </div>
     </div>
   );

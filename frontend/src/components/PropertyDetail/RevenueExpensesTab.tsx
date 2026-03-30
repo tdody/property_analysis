@@ -79,8 +79,8 @@ export function RevenueExpensesTab({ assumptions, onUpdate }: RevenueExpensesTab
     <div className="space-y-8">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Left column: Revenue */}
-        <div className="space-y-6">
-          <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Revenue</h3>
+        <div className="bg-white rounded-2xl shadow-sm p-6 space-y-6">
+          <h3 className="text-base font-semibold text-slate-900">Revenue</h3>
           <CurrencyInput
             label="Avg Nightly Rate"
             value={form.avg_nightly_rate}
@@ -100,7 +100,7 @@ export function RevenueExpensesTab({ assumptions, onUpdate }: RevenueExpensesTab
             tooltip={TOOLTIPS.cleaning_fee_per_stay}
           />
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-slate-700 mb-1">
               Avg Stay Length (nights)
               <TooltipIcon text={TOOLTIPS.avg_stay_length_nights} />
             </label>
@@ -109,18 +109,18 @@ export function RevenueExpensesTab({ assumptions, onUpdate }: RevenueExpensesTab
               step="0.5"
               value={form.avg_stay_length_nights || ""}
               onChange={(e) => updateField("avg_stay_length_nights", parseFloat(e.target.value) || 0)}
-              className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             />
           </div>
         </div>
 
         {/* Right column: Expenses */}
-        <div className="space-y-6">
-          <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Expenses</h3>
+        <div className="bg-white rounded-2xl shadow-sm p-6 space-y-6">
+          <h3 className="text-base font-semibold text-slate-900">Expenses</h3>
 
           {/* Platform & Management */}
           <div>
-            <h4 className="text-sm font-semibold text-gray-600 mb-3 uppercase tracking-wide">Platform & Management</h4>
+            <h4 className="text-xs uppercase tracking-wider text-slate-400 font-medium mb-3">Platform & Management</h4>
             <div className="space-y-4">
               <PercentInput
                 label="Platform Fee %"
@@ -139,7 +139,7 @@ export function RevenueExpensesTab({ assumptions, onUpdate }: RevenueExpensesTab
 
           {/* Turnover Costs */}
           <div>
-            <h4 className="text-sm font-semibold text-gray-600 mb-3 uppercase tracking-wide">Turnover Costs</h4>
+            <h4 className="text-xs uppercase tracking-wider text-slate-400 font-medium mb-3">Turnover Costs</h4>
             <CurrencyInput
               label="Cleaning Cost per Turnover"
               value={form.cleaning_cost_per_turn}
@@ -150,7 +150,7 @@ export function RevenueExpensesTab({ assumptions, onUpdate }: RevenueExpensesTab
 
           {/* Monthly Fixed */}
           <div>
-            <h4 className="text-sm font-semibold text-gray-600 mb-3 uppercase tracking-wide">Monthly Fixed</h4>
+            <h4 className="text-xs uppercase tracking-wider text-slate-400 font-medium mb-3">Monthly Fixed</h4>
             <div className="space-y-4">
               <CurrencyInput
                 label="Utilities (Monthly)"
@@ -181,7 +181,7 @@ export function RevenueExpensesTab({ assumptions, onUpdate }: RevenueExpensesTab
 
           {/* Annual */}
           <div>
-            <h4 className="text-sm font-semibold text-gray-600 mb-3 uppercase tracking-wide">Annual</h4>
+            <h4 className="text-xs uppercase tracking-wider text-slate-400 font-medium mb-3">Annual</h4>
             <CurrencyInput
               label="Insurance (Annual)"
               value={form.insurance_annual}
@@ -192,7 +192,7 @@ export function RevenueExpensesTab({ assumptions, onUpdate }: RevenueExpensesTab
 
           {/* Reserves */}
           <div>
-            <h4 className="text-sm font-semibold text-gray-600 mb-3 uppercase tracking-wide">Reserves</h4>
+            <h4 className="text-xs uppercase tracking-wider text-slate-400 font-medium mb-3">Reserves</h4>
             <div className="space-y-4">
               <PercentInput
                 label="Maintenance Reserve %"
@@ -218,8 +218,8 @@ export function RevenueExpensesTab({ assumptions, onUpdate }: RevenueExpensesTab
       </div>
 
       {/* Vermont / State Taxes */}
-      <section>
-        <h3 className="text-lg font-semibold text-gray-900 border-b pb-2 mb-4">Vermont / State Taxes</h3>
+      <section className="bg-white rounded-2xl shadow-sm p-6">
+        <h3 className="text-base font-semibold text-slate-900 mb-4">Vermont / State Taxes</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <PercentInput
             label="VT Rooms Tax %"
@@ -246,7 +246,7 @@ export function RevenueExpensesTab({ assumptions, onUpdate }: RevenueExpensesTab
             tooltip={TOOLTIPS.local_str_registration_fee}
           />
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-slate-700 mb-1">
               Platform Remits Tax
               <TooltipIcon text={TOOLTIPS.platform_remits_tax} />
             </label>
@@ -255,9 +255,9 @@ export function RevenueExpensesTab({ assumptions, onUpdate }: RevenueExpensesTab
                 type="checkbox"
                 checked={form.platform_remits_tax}
                 onChange={(e) => updateField("platform_remits_tax", e.target.checked)}
-                className="h-4 w-4 text-blue-600 rounded border-gray-300"
+                className="h-4 w-4 text-indigo-600 rounded border-slate-300"
               />
-              <span className="ml-2 text-sm text-gray-600">
+              <span className="ml-2 text-sm text-slate-600">
                 Platform collects and remits taxes
               </span>
             </div>
@@ -266,15 +266,15 @@ export function RevenueExpensesTab({ assumptions, onUpdate }: RevenueExpensesTab
       </section>
 
       {/* Save */}
-      <div className="flex items-center gap-4 pt-4 border-t">
+      <div className="flex items-center gap-4 pt-4 border-t border-slate-100">
         <button
           onClick={() => void handleSave()}
           disabled={saving}
-          className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors font-medium"
+          className="px-6 py-2 bg-gradient-to-r from-indigo-600 to-indigo-500 shadow-md shadow-indigo-200 text-white rounded-lg hover:from-indigo-700 hover:to-indigo-600 disabled:opacity-50 transition-colors font-medium"
         >
           {saving ? "Saving..." : "Save Changes"}
         </button>
-        {saved && <span className="text-green-600 text-sm font-medium">Saved successfully</span>}
+        {saved && <span className="text-emerald-600 text-sm font-medium">Saved successfully</span>}
       </div>
     </div>
   );

@@ -41,12 +41,12 @@ const METRIC_ROWS: MetricRow[] = [
 
 function getVerdict(p: ComparisonProperty): { label: string; color: string } {
   if (p.monthly_cashflow > 200 && p.cash_on_cash_return >= 8) {
-    return { label: "Strong", color: "text-green-600" };
+    return { label: "Strong", color: "text-emerald-600" };
   }
   if (p.monthly_cashflow > 0) {
     return { label: "Marginal", color: "text-yellow-600" };
   }
-  return { label: "Negative", color: "text-red-600" };
+  return { label: "Negative", color: "text-red-500" };
 }
 
 function getValue(p: ComparisonProperty, key: string): number {
@@ -90,7 +90,7 @@ export function ComparisonView({ propertyIds }: ComparisonViewProps) {
   }, [propertyIds]);
 
   if (loading) {
-    return <div className="text-center py-12 text-gray-500">Loading comparison...</div>;
+    return <div className="text-center py-12 text-slate-500">Loading comparison...</div>;
   }
 
   if (error) {
@@ -99,7 +99,7 @@ export function ComparisonView({ propertyIds }: ComparisonViewProps) {
         <p className="text-red-600 mb-4">{error}</p>
         <button
           onClick={() => navigate("/")}
-          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-indigo-500 shadow-md shadow-indigo-200 text-white rounded-lg hover:from-indigo-700 hover:to-indigo-600"
         >
           Back to Dashboard
         </button>
@@ -110,36 +110,36 @@ export function ComparisonView({ propertyIds }: ComparisonViewProps) {
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-gray-900">Compare Properties</h2>
+        <h2 className="text-2xl font-bold tracking-tight text-slate-900">Compare Properties</h2>
         <button
           onClick={() => navigate("/")}
-          className="px-4 py-2 text-blue-600 bg-blue-50 rounded-md hover:bg-blue-100 text-sm font-medium"
+          className="px-4 py-2 text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 text-sm font-medium"
         >
           &larr; Back to Dashboard
         </button>
       </div>
 
-      <div className="bg-white border rounded-lg overflow-auto">
+      <div className="bg-white rounded-2xl shadow-sm overflow-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b bg-gray-50">
-              <th className="px-4 py-3 text-left text-gray-600 font-semibold w-48"></th>
+            <tr className="bg-slate-50">
+              <th className="px-4 py-3 text-left text-slate-600 font-semibold w-48"></th>
               {properties.map((p) => (
                 <th key={p.property_id} className="px-4 py-3 text-center min-w-40">
-                  <div className="font-semibold text-gray-900">{p.property_name}</div>
-                  <div className="text-xs text-gray-500 mt-1">
+                  <div className="font-semibold text-slate-900">{p.property_name}</div>
+                  <div className="text-xs text-slate-500 mt-1">
                     {p.city} | {p.scenario_name}
                   </div>
                 </th>
               ))}
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-slate-100">
             {METRIC_ROWS.map((row) => {
               const bestIdx = getBestIndex(properties, row.key, row.higherIsBetter);
               return (
-                <tr key={row.key} className="border-b hover:bg-gray-50">
-                  <td className="px-4 py-3 font-medium text-gray-700">{row.label}</td>
+                <tr key={row.key} className="hover:bg-slate-50/50">
+                  <td className="px-4 py-3 font-medium text-slate-700">{row.label}</td>
                   {properties.map((p, i) => {
                     const val = getValue(p, row.key);
                     const isBest = i === bestIdx && properties.length > 1;
@@ -149,7 +149,7 @@ export function ComparisonView({ propertyIds }: ComparisonViewProps) {
                     return (
                       <td
                         key={p.property_id}
-                        className={`px-4 py-3 text-center ${isBest ? "font-bold text-green-700 bg-green-50" : ""}`}
+                        className={`px-4 py-3 text-center ${isBest ? "font-bold text-emerald-700 bg-emerald-50" : ""}`}
                       >
                         {displayValue}
                       </td>
@@ -160,8 +160,8 @@ export function ComparisonView({ propertyIds }: ComparisonViewProps) {
             })}
 
             {/* Verdict row */}
-            <tr className="bg-gray-50 border-t-2">
-              <td className="px-4 py-3 font-semibold text-gray-700">Verdict</td>
+            <tr className="bg-slate-50 border-t-2 border-slate-200">
+              <td className="px-4 py-3 font-semibold text-slate-700">Verdict</td>
               {properties.map((p) => {
                 const verdict = getVerdict(p);
                 return (

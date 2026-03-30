@@ -91,7 +91,7 @@ export function ResultsTab({ propertyId, scenarios }: ResultsTabProps) {
 
   if (scenarios.length === 0) {
     return (
-      <div className="text-center py-12 text-gray-500">
+      <div className="text-center py-12 text-slate-500">
         <p className="text-lg mb-2">No scenarios configured</p>
         <p className="text-sm">Add a financing scenario in the Financing tab to see results.</p>
       </div>
@@ -99,7 +99,7 @@ export function ResultsTab({ propertyId, scenarios }: ResultsTabProps) {
   }
 
   if (loading) {
-    return <div className="text-center py-12 text-gray-500">Loading results...</div>;
+    return <div className="text-center py-12 text-slate-500">Loading results...</div>;
   }
 
   if (error || !results) {
@@ -108,7 +108,7 @@ export function ResultsTab({ propertyId, scenarios }: ResultsTabProps) {
         <p className="text-red-600 mb-4">{error || "No results available"}</p>
         <button
           onClick={() => void fetchResults()}
-          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-indigo-500 shadow-md shadow-indigo-200 text-white rounded-lg hover:from-indigo-700 hover:to-indigo-600"
         >
           Retry
         </button>
@@ -122,11 +122,11 @@ export function ResultsTab({ propertyId, scenarios }: ResultsTabProps) {
     <div className="space-y-8">
       {/* Scenario selector */}
       <div className="flex items-center gap-4">
-        <label className="text-sm font-medium text-gray-700">Scenario:</label>
+        <label className="text-sm font-medium text-slate-700">Scenario:</label>
         <select
           value={selectedScenarioId}
           onChange={(e) => setSelectedScenarioId(e.target.value)}
-          className="px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          className="px-3 py-2 bg-slate-100 border-0 rounded-lg focus:ring-2 focus:ring-indigo-500"
         >
           {scenarios.map((s) => (
             <option key={s.id} value={s.id}>
@@ -197,26 +197,26 @@ export function ResultsTab({ propertyId, scenarios }: ResultsTabProps) {
 
       {/* Revenue Waterfall */}
       <section>
-        <h3 className="text-lg font-semibold text-gray-900 mb-4 border-b pb-2">Revenue Breakdown</h3>
-        <div className="bg-white border rounded-lg overflow-hidden">
+        <h3 className="text-base font-semibold text-slate-900 mb-4">Revenue Breakdown</h3>
+        <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
           <table className="w-full text-sm">
-            <tbody>
-              <tr className="border-b">
-                <td className="px-4 py-3 text-gray-700">Gross Annual Revenue</td>
+            <tbody className="divide-y divide-slate-100">
+              <tr>
+                <td className="px-4 py-3 text-slate-700">Gross Annual Revenue</td>
                 <td className="px-4 py-3 text-right font-semibold">{fmtCurrency(results.revenue.gross_annual)}</td>
               </tr>
-              <tr className="border-b">
-                <td className="px-4 py-3 text-gray-500 pl-8">Less: Platform Fees</td>
-                <td className="px-4 py-3 text-right text-red-600">
+              <tr>
+                <td className="px-4 py-3 text-slate-500 pl-8">Less: Platform Fees</td>
+                <td className="px-4 py-3 text-right text-red-500">
                   -{fmtCurrency(results.revenue.gross_annual - results.revenue.net_annual)}
                 </td>
               </tr>
-              <tr className="bg-gray-50">
-                <td className="px-4 py-3 font-semibold text-gray-900">Net Annual Revenue</td>
+              <tr className="bg-slate-50">
+                <td className="px-4 py-3 font-semibold text-slate-900">Net Annual Revenue</td>
                 <td className="px-4 py-3 text-right font-semibold">{fmtCurrency(results.revenue.net_annual)}</td>
               </tr>
-              <tr className="border-t">
-                <td className="px-4 py-3 text-gray-500">Annual Turnovers</td>
+              <tr>
+                <td className="px-4 py-3 text-slate-500">Annual Turnovers</td>
                 <td className="px-4 py-3 text-right">{results.revenue.annual_turnovers}</td>
               </tr>
             </tbody>
@@ -226,20 +226,20 @@ export function ResultsTab({ propertyId, scenarios }: ResultsTabProps) {
 
       {/* Expense Breakdown */}
       <section>
-        <h3 className="text-lg font-semibold text-gray-900 mb-4 border-b pb-2">Expense Breakdown</h3>
+        <h3 className="text-base font-semibold text-slate-900 mb-4">Expense Breakdown</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Operating expenses */}
-          <div className="bg-white border rounded-lg overflow-hidden">
-            <div className="px-4 py-3 bg-gray-50 border-b font-semibold text-gray-700">Operating Expenses</div>
+          <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+            <div className="px-4 py-3 bg-slate-50 font-semibold text-slate-700">Operating Expenses</div>
             <table className="w-full text-sm">
-              <tbody>
+              <tbody className="divide-y divide-slate-100">
                 {Object.entries(results.expenses.breakdown).map(([key, val]) => (
-                  <tr key={key} className="border-b last:border-0">
-                    <td className="px-4 py-2 text-gray-600 capitalize">{key.replace(/_/g, " ")}</td>
+                  <tr key={key}>
+                    <td className="px-4 py-2 text-slate-600 capitalize">{key.replace(/_/g, " ")}</td>
                     <td className="px-4 py-2 text-right">{fmtCurrency(val)}</td>
                   </tr>
                 ))}
-                <tr className="bg-gray-50 font-semibold">
+                <tr className="bg-slate-50 font-semibold">
                   <td className="px-4 py-3">Total Operating</td>
                   <td className="px-4 py-3 text-right">{fmtCurrency(results.expenses.total_annual_operating)}</td>
                 </tr>
@@ -248,26 +248,26 @@ export function ResultsTab({ propertyId, scenarios }: ResultsTabProps) {
           </div>
 
           {/* Housing costs */}
-          <div className="bg-white border rounded-lg overflow-hidden">
-            <div className="px-4 py-3 bg-gray-50 border-b font-semibold text-gray-700">Housing Costs (Monthly)</div>
+          <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+            <div className="px-4 py-3 bg-slate-50 font-semibold text-slate-700">Housing Costs (Monthly)</div>
             <table className="w-full text-sm">
-              <tbody>
-                <tr className="border-b">
-                  <td className="px-4 py-2 text-gray-600">Principal & Interest</td>
+              <tbody className="divide-y divide-slate-100">
+                <tr>
+                  <td className="px-4 py-2 text-slate-600">Principal & Interest</td>
                   <td className="px-4 py-2 text-right">{fmtCurrency(results.mortgage.monthly_pi)}</td>
                 </tr>
                 {results.mortgage.monthly_pmi > 0 && (
-                  <tr className="border-b">
-                    <td className="px-4 py-2 text-gray-600">PMI</td>
+                  <tr>
+                    <td className="px-4 py-2 text-slate-600">PMI</td>
                     <td className="px-4 py-2 text-right">{fmtCurrency(results.mortgage.monthly_pmi)}</td>
                   </tr>
                 )}
-                <tr className="bg-gray-50 font-semibold">
+                <tr className="bg-slate-50 font-semibold">
                   <td className="px-4 py-3">Total Monthly Housing</td>
                   <td className="px-4 py-3 text-right">{fmtCurrency(results.mortgage.total_monthly_housing)}</td>
                 </tr>
-                <tr className="border-t">
-                  <td className="px-4 py-2 text-gray-600">Total Cash Invested</td>
+                <tr>
+                  <td className="px-4 py-2 text-slate-600">Total Cash Invested</td>
                   <td className="px-4 py-2 text-right font-semibold">{fmtCurrency(results.mortgage.total_cash_invested)}</td>
                 </tr>
               </tbody>
@@ -279,11 +279,11 @@ export function ResultsTab({ propertyId, scenarios }: ResultsTabProps) {
       {/* Sensitivity Analysis */}
       {sensitivity && (
         <section>
-          <h3 className="text-lg font-semibold text-gray-900 mb-4 border-b pb-2">Sensitivity Analysis</h3>
+          <h3 className="text-base font-semibold text-slate-900 mb-4">Sensitivity Analysis</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Occupancy sweep */}
-            <div className="bg-white border rounded-lg overflow-hidden">
-              <div className="px-4 py-3 bg-gray-50 border-b font-semibold text-gray-700">
+            <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+              <div className="px-4 py-3 bg-slate-50 font-semibold text-slate-700">
                 Occupancy % vs Monthly Cashflow
               </div>
               <div className="p-4">
@@ -297,8 +297,8 @@ export function ResultsTab({ propertyId, scenarios }: ResultsTabProps) {
             </div>
 
             {/* Rate sweep */}
-            <div className="bg-white border rounded-lg overflow-hidden">
-              <div className="px-4 py-3 bg-gray-50 border-b font-semibold text-gray-700">
+            <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+              <div className="px-4 py-3 bg-slate-50 font-semibold text-slate-700">
                 Nightly Rate vs Monthly Cashflow
               </div>
               <div className="p-4">
@@ -319,25 +319,25 @@ export function ResultsTab({ propertyId, scenarios }: ResultsTabProps) {
         <section>
           <button
             onClick={() => setShowAmortization(!showAmortization)}
-            className="flex items-center gap-2 text-lg font-semibold text-gray-900 mb-4 border-b pb-2 w-full text-left"
+            className="flex items-center gap-2 text-base font-semibold text-slate-900 mb-4 w-full text-left"
           >
             <span>{showAmortization ? "\u25BC" : "\u25B6"}</span>
             Amortization Schedule (First 5 Years)
           </button>
           {showAmortization && (
-            <div className="bg-white border rounded-lg overflow-auto max-h-96">
+            <div className="bg-white rounded-2xl shadow-sm overflow-auto max-h-96">
               <table className="w-full text-sm">
-                <thead className="bg-gray-50 sticky top-0">
+                <thead className="bg-slate-50 sticky top-0">
                   <tr>
-                    <th className="px-4 py-3 text-left text-gray-600">Month</th>
-                    <th className="px-4 py-3 text-right text-gray-600">Principal</th>
-                    <th className="px-4 py-3 text-right text-gray-600">Interest</th>
-                    <th className="px-4 py-3 text-right text-gray-600">Remaining Balance</th>
+                    <th className="px-4 py-3 text-left text-slate-600">Month</th>
+                    <th className="px-4 py-3 text-right text-slate-600">Principal</th>
+                    <th className="px-4 py-3 text-right text-slate-600">Interest</th>
+                    <th className="px-4 py-3 text-right text-slate-600">Remaining Balance</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-slate-100">
                   {amortization.map((entry) => (
-                    <tr key={entry.month} className="border-t">
+                    <tr key={entry.month}>
                       <td className="px-4 py-2">{entry.month}</td>
                       <td className="px-4 py-2 text-right">{fmtCurrency(entry.principal)}</td>
                       <td className="px-4 py-2 text-right">{fmtCurrency(entry.interest)}</td>
@@ -402,11 +402,11 @@ function SensitivityChart({ data }: { data: Array<{ label: string; value: number
       )}
 
       {/* Line */}
-      <path d={pathD} fill="none" stroke="#3b82f6" strokeWidth={2} />
+      <path d={pathD} fill="none" stroke="#6366f1" strokeWidth={2} />
 
       {/* Points */}
       {points.map((p, i) => (
-        <circle key={i} cx={p.x} cy={p.y} r={3} fill="#3b82f6" />
+        <circle key={i} cx={p.x} cy={p.y} r={3} fill="#6366f1" />
       ))}
 
       {/* X labels */}
@@ -418,7 +418,7 @@ function SensitivityChart({ data }: { data: Array<{ label: string; value: number
             x={points[i].x}
             y={height - 5}
             textAnchor="middle"
-            className="text-xs fill-gray-500"
+            className="text-xs fill-slate-500"
             fontSize={10}
           >
             {d.label}
@@ -435,7 +435,7 @@ function SensitivityChart({ data }: { data: Array<{ label: string; value: number
             x={padding.left - 5}
             y={y + 4}
             textAnchor="end"
-            className="text-xs fill-gray-500"
+            className="text-xs fill-slate-500"
             fontSize={10}
           >
             ${Math.round(val).toLocaleString()}

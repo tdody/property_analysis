@@ -29,16 +29,10 @@ function getCashflowVariant(cashflow: number | null): "positive" | "negative" | 
   return "marginal";
 }
 
-const borderColorMap = {
-  positive: "border-green-400",
-  negative: "border-red-400",
-  marginal: "border-yellow-400",
-};
-
-const bgColorMap = {
-  positive: "bg-green-50",
-  negative: "bg-red-50",
-  marginal: "bg-yellow-50",
+const gradientBarMap = {
+  positive: "bg-gradient-to-r from-emerald-500 to-emerald-400",
+  negative: "bg-gradient-to-r from-red-500 to-red-400",
+  marginal: "bg-gradient-to-r from-amber-400 to-yellow-400",
 };
 
 export function PropertyCard({ property, selected, onToggleSelect, onDelete }: PropertyCardProps) {
@@ -46,60 +40,65 @@ export function PropertyCard({ property, selected, onToggleSelect, onDelete }: P
   const variant = getCashflowVariant(property.monthly_cashflow);
 
   return (
-    <div className={`rounded-lg border-2 ${borderColorMap[variant]} ${bgColorMap[variant]} p-5 flex flex-col gap-3 transition-shadow hover:shadow-md`}>
-      <div className="flex items-start justify-between">
-        <div className="flex-1 min-w-0">
-          <h3 className="text-lg font-semibold text-gray-900 truncate">{property.name}</h3>
-          <p className="text-sm text-gray-500 truncate">
-            {property.city}, {property.state}
-          </p>
+    <div className="bg-white rounded-2xl overflow-hidden shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.03)] hover:shadow-md transition-all flex flex-col">
+      {/* Gradient top bar */}
+      <div className={`h-1 ${gradientBarMap[variant]}`} />
+
+      <div className="p-5 flex flex-col gap-3 flex-1">
+        <div className="flex items-start justify-between">
+          <div className="flex-1 min-w-0">
+            <h3 className="text-lg font-semibold tracking-tight text-slate-900 truncate">{property.name}</h3>
+            <p className="text-sm text-slate-500 truncate">
+              {property.city}, {property.state}
+            </p>
+          </div>
+          <input
+            type="checkbox"
+            checked={selected}
+            onChange={() => onToggleSelect(property.id)}
+            className="mt-1 h-4 w-4 text-indigo-600 rounded border-slate-300 cursor-pointer"
+            title="Select for comparison"
+          />
         </div>
-        <input
-          type="checkbox"
-          checked={selected}
-          onChange={() => onToggleSelect(property.id)}
-          className="mt-1 h-4 w-4 text-blue-600 rounded border-gray-300 cursor-pointer"
-          title="Select for comparison"
-        />
-      </div>
 
-      <div className="text-xl font-bold text-gray-900">
-        {formatCurrency(property.listing_price)}
-      </div>
-
-      <div className="text-sm text-gray-600">
-        {property.beds} bd / {property.baths} ba
-        {property.sqft > 0 && <span className="ml-2">{property.sqft.toLocaleString()} sqft</span>}
-      </div>
-
-      <div className="border-t border-gray-200 pt-3 space-y-1">
-        <div className="flex justify-between text-sm">
-          <span className="text-gray-500">Cashflow</span>
-          <span className={`font-semibold ${property.monthly_cashflow !== null && property.monthly_cashflow >= 0 ? "text-green-600" : "text-red-600"}`}>
-            {property.monthly_cashflow !== null ? `${formatCurrency(property.monthly_cashflow)}/mo` : "N/A"}
-          </span>
+        <div className="text-xl font-bold tracking-tight text-slate-900">
+          {formatCurrency(property.listing_price)}
         </div>
-        <div className="flex justify-between text-sm">
-          <span className="text-gray-500">CoC Return</span>
-          <span className={`font-semibold ${property.cash_on_cash_return !== null && property.cash_on_cash_return >= 0 ? "text-green-600" : "text-red-600"}`}>
-            {formatPercent(property.cash_on_cash_return)}
-          </span>
-        </div>
-      </div>
 
-      <div className="flex gap-2 mt-auto pt-2">
-        <button
-          onClick={() => navigate(`/property/${property.id}`)}
-          className="flex-1 px-3 py-2 text-sm font-medium text-blue-700 bg-blue-100 rounded-md hover:bg-blue-200 transition-colors"
-        >
-          View
-        </button>
-        <button
-          onClick={() => onDelete(property.id)}
-          className="px-3 py-2 text-sm font-medium text-red-700 bg-red-100 rounded-md hover:bg-red-200 transition-colors"
-        >
-          Delete
-        </button>
+        <div className="text-sm text-slate-600">
+          {property.beds} bd / {property.baths} ba
+          {property.sqft > 0 && <span className="ml-2">{property.sqft.toLocaleString()} sqft</span>}
+        </div>
+
+        <div className="pt-3 space-y-2">
+          <div className={`${property.monthly_cashflow !== null && property.monthly_cashflow >= 0 ? "bg-emerald-50" : "bg-red-50"} rounded-xl p-3 flex justify-between items-center`}>
+            <span className="text-xs uppercase tracking-wider text-slate-400 font-medium">Cashflow</span>
+            <span className={`font-bold ${property.monthly_cashflow !== null && property.monthly_cashflow >= 0 ? "text-emerald-600" : "text-red-500"}`}>
+              {property.monthly_cashflow !== null ? `${formatCurrency(property.monthly_cashflow)}/mo` : "N/A"}
+            </span>
+          </div>
+          <div className="bg-indigo-50 rounded-xl p-3 flex justify-between items-center">
+            <span className="text-xs uppercase tracking-wider text-slate-400 font-medium">CoC Return</span>
+            <span className={`font-bold text-indigo-600`}>
+              {formatPercent(property.cash_on_cash_return)}
+            </span>
+          </div>
+        </div>
+
+        <div className="flex gap-2 mt-auto pt-2">
+          <button
+            onClick={() => navigate(`/property/${property.id}`)}
+            className="flex-1 px-3 py-2 text-sm font-semibold text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors"
+          >
+            View
+          </button>
+          <button
+            onClick={() => onDelete(property.id)}
+            className="px-3 py-2 text-sm font-medium text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+          >
+            Delete
+          </button>
+        </div>
       </div>
     </div>
   );
