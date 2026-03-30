@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -10,7 +11,11 @@ from app.schemas.property import (
     PropertyUpdate,
     PropertyResponse,
     PropertySummary,
+    ScrapeRequest,
+    ScrapeResponse,
+    ScraperResultSchema,
 )
+from app.services.scraper.redfin import scrape_redfin_property, parse_redfin_url
 
 router = APIRouter(prefix="/api/properties", tags=["properties"])
 
@@ -50,6 +55,72 @@ def create_property(data: PropertyCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(prop)
     return prop
+
+
+@router.post("/scrape", response_model=ScrapeResponse, status_code=201)
+def scrape_property_endpoint(data: ScrapeRequest, db: Session = Depends(get_db)):
+    # Validate URL format before calling scraper
+    try:
+        parse_redfin_url(data.url)
+    except ValueError:
+        raise HTTPException(status_code=422, detail="Not a valid Redfin property URL")
+
+    result = scrape_redfin_property(data.url)
+
+    if not result.scrape_succeeded:
+        return JSONResponse(
+            status_code=200,
+            content=ScrapeResponse(
+                property_id=None,
+                scraper_result=ScraperResultSchema(**result.model_dump(exclude={"data"})),
+            ).model_dump(),
+        )
+
+    # Create property from scraped data
+    scraped = result.data
+    prop = Property(
+        name=scraped.address or "Untitled Property",
+        source_url=result.source_url,
+        address=scraped.address or "",
+        city=scraped.city or "",
+        state=scraped.state or "",
+        zip_code=scraped.zip_code or "",
+        listing_price=scraped.listing_price or 0,
+        estimated_value=scraped.estimated_value,
+        beds=scraped.beds or 0,
+        baths=scraped.baths or 0,
+        sqft=scraped.sqft or 0,
+        lot_sqft=scraped.lot_sqft,
+        year_built=scraped.year_built,
+        property_type=scraped.property_type or "single_family",
+        hoa_monthly=scraped.hoa_monthly or 0,
+        annual_taxes=scraped.annual_taxes or 0,
+    )
+    db.add(prop)
+    db.flush()
+
+    # Create default assumptions
+    assumptions = STRAssumptions(property_id=prop.id)
+    db.add(assumptions)
+
+    # Create default scenario with listing price as purchase price
+    scenario = MortgageScenario(
+        property_id=prop.id,
+        name="Default Scenario",
+        purchase_price=scraped.listing_price or 0,
+        down_payment_amt=(scraped.listing_price or 0) * 0.25,
+        closing_cost_amt=(scraped.listing_price or 0) * 0.03,
+        is_active=True,
+    )
+    db.add(scenario)
+
+    db.commit()
+    db.refresh(prop)
+
+    return ScrapeResponse(
+        property_id=prop.id,
+        scraper_result=ScraperResultSchema(**result.model_dump(exclude={"data"})),
+    )
 
 
 @router.get("/{property_id}", response_model=PropertyResponse)

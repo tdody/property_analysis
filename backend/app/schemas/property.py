@@ -93,3 +93,21 @@ class PropertyResponse(BaseModel):
     is_archived: bool
 
     model_config = {"from_attributes": True}
+
+
+class ScrapeRequest(BaseModel):
+    url: str
+
+
+class ScraperResultSchema(BaseModel):
+    source: str
+    source_url: str
+    fields_found: list[str]
+    fields_missing: list[str]
+    scrape_succeeded: bool
+    error_message: str | None
+
+
+class ScrapeResponse(BaseModel):
+    property_id: str | None
+    scraper_result: ScraperResultSchema
