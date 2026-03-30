@@ -11,6 +11,7 @@ def compute_operating_expenses(
     lawn_snow_monthly: float,
     other_monthly_expense: float,
     local_str_registration_fee: float,
+    local_gross_receipts_tax_pct: float = 0,
 ) -> dict:
     annual_cleaning_cost = annual_turnovers * cleaning_cost_per_turn
     property_mgmt_cost = net_annual_revenue * (property_mgmt_pct / 100)
@@ -21,6 +22,7 @@ def compute_operating_expenses(
     lawn_snow_annual = lawn_snow_monthly * 12
     other_annual = other_monthly_expense * 12
     registration_annual = local_str_registration_fee
+    gross_receipts_tax = gross_annual_revenue * (local_gross_receipts_tax_pct / 100)
     total = (
         annual_cleaning_cost
         + property_mgmt_cost
@@ -31,6 +33,7 @@ def compute_operating_expenses(
         + lawn_snow_annual
         + other_annual
         + registration_annual
+        + gross_receipts_tax
     )
     return {
         "annual_cleaning_cost": annual_cleaning_cost,
@@ -42,5 +45,6 @@ def compute_operating_expenses(
         "lawn_snow_annual": lawn_snow_annual,
         "other_annual": other_annual,
         "registration_annual": registration_annual,
+        "gross_receipts_tax": gross_receipts_tax,
         "total_annual_operating_exp": total,
     }

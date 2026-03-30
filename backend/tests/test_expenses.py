@@ -60,3 +60,32 @@ class TestOperatingExpenses:
             local_str_registration_fee=0,
         )
         assert result["total_annual_operating_exp"] == 0
+
+
+class TestGrossReceiptsTax:
+    def test_zero_tax(self):
+        result = compute_operating_expenses(
+            annual_turnovers=79, cleaning_cost_per_turn=120,
+            net_annual_revenue=56_648, gross_annual_revenue=58_400,
+            property_mgmt_pct=0, maintenance_reserve_pct=5,
+            capex_reserve_pct=5, utilities_monthly=250,
+            supplies_monthly=100, lawn_snow_monthly=0,
+            other_monthly_expense=0, local_str_registration_fee=0,
+            local_gross_receipts_tax_pct=0,
+        )
+        assert result.get("gross_receipts_tax", 0) == 0
+
+    def test_burlington_nine_pct(self):
+        result = compute_operating_expenses(
+            annual_turnovers=79, cleaning_cost_per_turn=120,
+            net_annual_revenue=56_648, gross_annual_revenue=58_400,
+            property_mgmt_pct=0, maintenance_reserve_pct=5,
+            capex_reserve_pct=5, utilities_monthly=250,
+            supplies_monthly=100, lawn_snow_monthly=0,
+            other_monthly_expense=0, local_str_registration_fee=0,
+            local_gross_receipts_tax_pct=9.0,
+        )
+        expected_tax = 58_400 * 0.09
+        assert abs(result["gross_receipts_tax"] - expected_tax) < 0.01
+        # Verify the total includes the tax
+        assert result["total_annual_operating_exp"] >= expected_tax

@@ -17,10 +17,12 @@ class AssumptionsUpdate(BaseModel):
     lawn_snow_monthly: float | None = None
     other_monthly_expense: float | None = None
     vacancy_reserve_pct: float | None = None
+    rental_delay_months: int | None = None
     state_rooms_tax_pct: float | None = None
     str_surcharge_pct: float | None = None
     local_option_tax_pct: float | None = None
     local_str_registration_fee: float | None = None
+    local_gross_receipts_tax_pct: float | None = None
     platform_remits_tax: bool | None = None
 
 
@@ -42,10 +44,12 @@ class AssumptionsResponse(BaseModel):
     lawn_snow_monthly: float
     other_monthly_expense: float
     vacancy_reserve_pct: float
+    rental_delay_months: int
     state_rooms_tax_pct: float
     str_surcharge_pct: float
     local_option_tax_pct: float
     local_str_registration_fee: float
+    local_gross_receipts_tax_pct: float
     platform_remits_tax: bool
 
     model_config = {"from_attributes": True}
