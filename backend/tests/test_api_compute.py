@@ -95,3 +95,71 @@ class TestComparison:
         assert resp.status_code == 200
         data = resp.json()
         assert len(data) == 2
+
+
+class TestComputeWithTier1Fields:
+    def test_results_include_rental_delay(self, client):
+        # Create property with assumptions that have rental delay
+        resp = client.post("/api/properties", json={"name": "Delay Test", "listing_price": 400000, "annual_taxes": 6000})
+        pid = resp.json()["id"]
+        # Update assumptions with rental delay
+        client.put(f"/api/properties/{pid}/assumptions", json={"rental_delay_months": 2})
+        # Create scenario
+        client.post(f"/api/properties/{pid}/scenarios", json={
+            "name": "Test", "purchase_price": 400000, "down_payment_pct": 25,
+            "down_payment_amt": 100000, "interest_rate": 7.25, "loan_term_years": 30,
+            "closing_cost_pct": 3, "closing_cost_amt": 12000,
+        })
+        # Get results
+        resp = client.get(f"/api/properties/{pid}/results")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["rental_delay_months"] == 2
+
+    def test_dscr_warning_when_low(self, client):
+        # Create property with DSCR loan and poor metrics
+        resp = client.post("/api/properties", json={"name": "DSCR Test", "listing_price": 600000, "annual_taxes": 10000})
+        pid = resp.json()["id"]
+        client.put(f"/api/properties/{pid}/assumptions", json={"avg_nightly_rate": 100, "occupancy_pct": 40})
+        client.post(f"/api/properties/{pid}/scenarios", json={
+            "name": "DSCR Loan", "loan_type": "dscr", "purchase_price": 600000,
+            "down_payment_pct": 25, "down_payment_amt": 150000,
+            "interest_rate": 8.0, "loan_term_years": 30,
+            "closing_cost_pct": 3, "closing_cost_amt": 18000,
+        })
+        resp = client.get(f"/api/properties/{pid}/results")
+        assert resp.status_code == 200
+        data = resp.json()
+        if data["metrics"]["dscr"] < 1.25:
+            assert data["metrics"]["dscr_warning"] is not None
+            assert "1.25" in data["metrics"]["dscr_warning"]
+
+    def test_gross_receipts_tax_in_expenses(self, client):
+        resp = client.post("/api/properties", json={"name": "Burlington", "listing_price": 400000, "annual_taxes": 6000})
+        pid = resp.json()["id"]
+        client.put(f"/api/properties/{pid}/assumptions", json={"local_gross_receipts_tax_pct": 9.0})
+        client.post(f"/api/properties/{pid}/scenarios", json={
+            "name": "Test", "purchase_price": 400000, "down_payment_pct": 25,
+            "down_payment_amt": 100000, "interest_rate": 7.25, "loan_term_years": 30,
+            "closing_cost_pct": 3, "closing_cost_amt": 12000,
+        })
+        resp = client.get(f"/api/properties/{pid}/results")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["expenses"]["breakdown"]["gross_receipts_tax"] > 0
+
+    def test_tax_impact_display(self, client):
+        resp = client.post("/api/properties", json={"name": "VT Tax", "listing_price": 400000, "annual_taxes": 6000})
+        pid = resp.json()["id"]
+        # Default assumptions have VT taxes (9% + 3% + 1% = 13%)
+        client.post(f"/api/properties/{pid}/scenarios", json={
+            "name": "Test", "purchase_price": 400000, "down_payment_pct": 25,
+            "down_payment_amt": 100000, "interest_rate": 7.25, "loan_term_years": 30,
+            "closing_cost_pct": 3, "closing_cost_amt": 12000,
+        })
+        resp = client.get(f"/api/properties/{pid}/results")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["tax_impact"] is not None
+        assert data["tax_impact"]["guest_facing_tax_pct"] == 13.0
+        assert data["tax_impact"]["platform_remits"] is True
