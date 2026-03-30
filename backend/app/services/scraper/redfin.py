@@ -1,6 +1,5 @@
 import json
 import re
-import time
 
 import httpx
 
@@ -8,12 +7,9 @@ from app.services.scraper.models import ScrapedPropertyData, ScraperResult
 
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
-    "Accept": "*/*",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
     "Accept-Language": "en-US,en;q=0.9",
-    "Referer": "https://www.redfin.com/",
 }
-
-BASE_URL = "https://www.redfin.com"
 
 
 def parse_redfin_url(url: str) -> tuple[str, str]:
@@ -37,7 +33,7 @@ def map_property_type(redfin_type: str | None) -> str:
     if not redfin_type:
         return "single_family"
     lower = redfin_type.lower()
-    if "condo" in lower or "co-op" in lower:
+    if "condo" in lower or "co-op" in lower or "apartment" in lower:
         return "condo"
     if "townhouse" in lower:
         return "townhouse"
@@ -59,41 +55,106 @@ def _safe_get(d: dict, *keys):
     return d
 
 
-def _extract_property_data(above: dict, below: dict) -> ScrapedPropertyData:
-    """Extract property fields from stingray API responses."""
-    above_payload = above.get("payload", {})
-    below_payload = below.get("payload", {})
+def _extract_from_jsonld(html: str) -> dict:
+    """Extract property data from JSON-LD RealEstateListing block."""
+    ld_matches = re.findall(
+        r'<script type="application/ld\+json">(.*?)</script>', html, re.DOTALL
+    )
+    for m in ld_matches:
+        try:
+            data = json.loads(m)
+            types = data.get("@type", [])
+            if isinstance(types, list) and "RealEstateListing" in types:
+                return data
+            if types == "RealEstateListing":
+                return data
+        except (json.JSONDecodeError, AttributeError):
+            continue
+    return {}
 
-    # Handle sqFt which can be a dict with "value" key or None
-    sqft_raw = _safe_get(above_payload, "sqFt")
-    sqft = sqft_raw.get("value") if isinstance(sqft_raw, dict) else sqft_raw
+
+def _extract_from_html_embedded(html: str) -> dict:
+    """Extract tax and HOA data from embedded JSON in the HTML page.
+
+    Redfin embeds JSON data in the page in various forms — sometimes with
+    regular quotes, sometimes with escaped quotes (\\"). We handle both.
+    """
+    result = {}
+
+    # Extract taxesDue (handles both "taxesDue": and \"taxesDue\":)
+    tax_match = re.search(r'\\?"taxesDue\\?"\s*:\s*([\d.]+)', html)
+    if tax_match:
+        try:
+            result["annual_taxes"] = float(tax_match.group(1))
+        except ValueError:
+            pass
+
+    # Extract hoaDues
+    hoa_match = re.search(r'\\?"hoaDues\\?"\s*:\s*([\d.]+)', html)
+    if hoa_match:
+        try:
+            result["hoa_monthly"] = float(hoa_match.group(1))
+        except ValueError:
+            pass
+
+    # Extract lotSqFt or lotSize.value
+    lot_match = re.search(r'\\?"lotSqFt\\?"\s*:\s*(\d+)', html)
+    if not lot_match:
+        lot_match = re.search(r'\\?"lotSize\\?"\s*:\s*\{\\?"value\\?"\s*:\s*(\d+)', html)
+    if lot_match:
+        try:
+            result["lot_sqft"] = int(lot_match.group(1))
+        except ValueError:
+            pass
+
+    return result
+
+
+def _extract_property_data(jsonld: dict, html_extras: dict) -> ScrapedPropertyData:
+    """Extract property fields from JSON-LD and embedded HTML data."""
+    main_entity = jsonld.get("mainEntity", {})
+    address_info = main_entity.get("address", {})
+    offers = jsonld.get("offers", {})
+
+    # Property type from mainEntity @type or accommodationCategory
+    raw_type = main_entity.get("accommodationCategory") or main_entity.get("@type")
+
+    # sqft from floorSize
+    floor_size = main_entity.get("floorSize", {})
+    sqft = None
+    if isinstance(floor_size, dict) and floor_size.get("value"):
+        try:
+            sqft = int(floor_size["value"])
+        except (ValueError, TypeError):
+            pass
 
     return ScrapedPropertyData(
-        address=_safe_get(above_payload, "addressInfo", "formattedStreetLine"),
-        city=_safe_get(above_payload, "addressInfo", "city"),
-        state=_safe_get(above_payload, "addressInfo", "state"),
-        zip_code=_safe_get(above_payload, "addressInfo", "zip"),
-        listing_price=(
-            _safe_get(above_payload, "listPrice")
-            or _safe_get(above_payload, "listingMinMaxPrices", "listPrice")
-            or _safe_get(above_payload, "addressInfo", "listingPrice")
-        ),
-        estimated_value=_safe_get(above_payload, "avm", "predictedValue"),
-        beds=_safe_get(above_payload, "beds"),
-        baths=_safe_get(above_payload, "baths"),
-        sqft=int(sqft) if sqft else None,
-        lot_sqft=_safe_get(below_payload, "publicRecordsInfo", "basicInfo", "lotSqFt"),
-        year_built=_safe_get(below_payload, "publicRecordsInfo", "basicInfo", "yearBuilt"),
-        property_type=map_property_type(_safe_get(above_payload, "propertyTypeName")),
-        hoa_monthly=_safe_get(below_payload, "amenitiesInfo", "hoaDues"),
-        annual_taxes=_safe_get(below_payload, "publicRecordsInfo", "taxInfo", "taxesDue"),
+        address=address_info.get("streetAddress"),
+        city=address_info.get("addressLocality"),
+        state=address_info.get("addressRegion"),
+        zip_code=address_info.get("postalCode"),
+        listing_price=offers.get("price"),
+        estimated_value=None,  # Not in JSON-LD
+        beds=main_entity.get("numberOfBedrooms"),
+        baths=main_entity.get("numberOfBathroomsTotal"),
+        sqft=sqft,
+        lot_sqft=html_extras.get("lot_sqft"),
+        year_built=main_entity.get("yearBuilt"),
+        property_type=map_property_type(raw_type),
+        hoa_monthly=html_extras.get("hoa_monthly"),
+        annual_taxes=html_extras.get("annual_taxes"),
     )
 
 
 def scrape_redfin_property(url: str) -> ScraperResult:
-    """Scrape property data from a Redfin listing URL."""
+    """Scrape property data from a Redfin listing URL.
+
+    Fetches the property page HTML and extracts data from:
+    1. JSON-LD structured data (address, price, beds, baths, sqft, year built)
+    2. Embedded JSON in the page (taxes, HOA, lot size)
+    """
     try:
-        property_id, url_path = parse_redfin_url(url)
+        parse_redfin_url(url)  # Validate URL format
     except ValueError as e:
         return ScraperResult(
             data=ScrapedPropertyData(),
@@ -106,13 +167,7 @@ def scrape_redfin_property(url: str) -> ScraperResult:
         )
 
     try:
-        # Step 1: Get listing ID from initialInfo
-        resp = httpx.get(
-            f"{BASE_URL}/stingray/api/home/details/initialInfo",
-            params={"path": url_path},
-            headers=HEADERS,
-            timeout=15,
-        )
+        resp = httpx.get(url, headers=HEADERS, follow_redirects=True, timeout=20)
         if resp.status_code != 200:
             return ScraperResult(
                 data=ScrapedPropertyData(),
@@ -121,38 +176,22 @@ def scrape_redfin_property(url: str) -> ScraperResult:
                 fields_found=[],
                 fields_missing=list(ScrapedPropertyData.model_fields.keys()),
                 scrape_succeeded=False,
-                error_message=f"initialInfo request failed: {resp.status_code}",
+                error_message=f"Page request failed: {resp.status_code}",
             )
-        initial_data = parse_redfin_json(resp.text)
-        listing_id = _safe_get(initial_data, "payload", "listingId") or ""
 
-        time.sleep(2)  # Rate limiting
+        html = resp.text
 
-        # Step 2: Get above-the-fold data
-        resp = httpx.get(
-            f"{BASE_URL}/stingray/api/home/details/aboveTheFold",
-            params={"propertyId": property_id, "listingId": listing_id, "accessLevel": "1"},
-            headers=HEADERS,
-            timeout=15,
-        )
-        above_data = parse_redfin_json(resp.text) if resp.status_code == 200 else {}
+        # Extract from JSON-LD
+        jsonld = _extract_from_jsonld(html)
 
-        time.sleep(2)  # Rate limiting
+        # Extract tax/HOA/lot from embedded JSON in HTML
+        html_extras = _extract_from_html_embedded(html)
 
-        # Step 3: Get below-the-fold data
-        resp = httpx.get(
-            f"{BASE_URL}/stingray/api/home/details/belowTheFold",
-            params={"propertyId": property_id, "listingId": listing_id, "accessLevel": "1"},
-            headers=HEADERS,
-            timeout=15,
-        )
-        below_data = parse_redfin_json(resp.text) if resp.status_code == 200 else {}
-
-        # Extract property data
-        data = _extract_property_data(above_data, below_data)
+        # Build property data
+        data = _extract_property_data(jsonld, html_extras)
 
         # Compute fields_found and fields_missing
-        # Exclude property_type since it always gets a default from map_property_type
+        # Exclude property_type since it always gets a default
         trackable_fields = [f for f in ScrapedPropertyData.model_fields if f != "property_type"]
         fields_found = [f for f in trackable_fields if getattr(data, f) is not None]
         fields_missing = [f for f in trackable_fields if getattr(data, f) is None]

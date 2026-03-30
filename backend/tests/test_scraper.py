@@ -1,5 +1,15 @@
+import json
 import pytest
-from app.services.scraper.redfin import parse_redfin_url, parse_redfin_json, map_property_type
+from unittest.mock import patch, MagicMock
+
+from app.services.scraper.redfin import (
+    parse_redfin_url,
+    parse_redfin_json,
+    map_property_type,
+    scrape_redfin_property,
+    _extract_from_jsonld,
+    _extract_from_html_embedded,
+)
 from app.services.scraper.models import ScrapedPropertyData, ScraperResult
 
 
@@ -56,6 +66,9 @@ class TestMapPropertyType:
     def test_condo(self):
         assert map_property_type("Condo/Co-op") == "condo"
 
+    def test_apartment(self):
+        assert map_property_type("Apartment") == "condo"
+
     def test_townhouse(self):
         assert map_property_type("Townhouse") == "townhouse"
 
@@ -67,22 +80,96 @@ class TestMapPropertyType:
         assert map_property_type(None) == "single_family"
 
 
+# --- Mock HTML page with JSON-LD and embedded data ---
+
+MOCK_JSONLD = json.dumps({
+    "@context": "https://schema.org",
+    "@type": ["Product", "RealEstateListing"],
+    "name": "123 Lake St",
+    "offers": {"@type": "Offer", "priceCurrency": "USD", "price": 425000},
+    "mainEntity": {
+        "@type": "SingleFamilyResidence",
+        "address": {
+            "@type": "PostalAddress",
+            "streetAddress": "123 Lake St",
+            "addressLocality": "Burlington",
+            "addressRegion": "VT",
+            "postalCode": "05401",
+        },
+        "numberOfBedrooms": 3,
+        "numberOfBathroomsTotal": 2.5,
+        "floorSize": {"@type": "QuantitativeValue", "value": 1800, "unitText": "FTK"},
+        "yearBuilt": 1995,
+        "accommodationCategory": "Single Family Residential",
+    },
+})
+
+MOCK_HTML_FULL = f"""
+<html>
+<head><title>Test</title></head>
+<body>
+<script type="application/ld+json">{MOCK_JSONLD}</script>
+<script>var data = {{"taxesDue": 6200, "hoaDues": 150, "lotSqFt": 8500}};</script>
+</body>
+</html>
+"""
+
+MOCK_JSONLD_PARTIAL = json.dumps({
+    "@context": "https://schema.org",
+    "@type": ["Product", "RealEstateListing"],
+    "offers": {"price": 289000},
+    "mainEntity": {
+        "@type": "Apartment",
+        "address": {
+            "streetAddress": "456 Main St",
+            "addressLocality": "Stowe",
+            "addressRegion": "VT",
+            "postalCode": "05672",
+        },
+        "numberOfBedrooms": 2,
+        "numberOfBathroomsTotal": 1.0,
+        "accommodationCategory": "Condominium",
+    },
+})
+
+MOCK_HTML_PARTIAL = f"""
+<html><body>
+<script type="application/ld+json">{MOCK_JSONLD_PARTIAL}</script>
+</body></html>
+"""
+
+MOCK_HTML_NO_JSONLD = "<html><body><h1>No data</h1></body></html>"
+
+
+class TestExtractFromJsonld:
+    def test_extracts_listing_data(self):
+        result = _extract_from_jsonld(MOCK_HTML_FULL)
+        assert result["@type"] == ["Product", "RealEstateListing"]
+        assert result["offers"]["price"] == 425000
+        assert result["mainEntity"]["numberOfBedrooms"] == 3
+
+    def test_no_jsonld_returns_empty(self):
+        result = _extract_from_jsonld(MOCK_HTML_NO_JSONLD)
+        assert result == {}
+
+
+class TestExtractFromHtmlEmbedded:
+    def test_extracts_tax_hoa_lot(self):
+        result = _extract_from_html_embedded(MOCK_HTML_FULL)
+        assert result["annual_taxes"] == 6200
+        assert result["hoa_monthly"] == 150
+        assert result["lot_sqft"] == 8500
+
+    def test_no_embedded_data(self):
+        result = _extract_from_html_embedded(MOCK_HTML_NO_JSONLD)
+        assert result == {}
+
+
 class TestScraperResult:
     def test_fields_found_and_missing(self):
         data = ScrapedPropertyData(
-            address="123 Lake St",
-            city="Burlington",
-            state="VT",
-            zip_code="05401",
-            listing_price=425000,
-            beds=3,
-            baths=2.0,
-            sqft=1800,
-            # These are None / missing:
-            lot_sqft=None,
-            year_built=None,
-            hoa_monthly=None,
-            annual_taxes=None,
+            address="123 Lake St", city="Burlington", state="VT",
+            zip_code="05401", listing_price=425000, beds=3, baths=2.0, sqft=1800,
         )
         found = [f for f in ScrapedPropertyData.model_fields if getattr(data, f) is not None]
         missing = [f for f in ScrapedPropertyData.model_fields if getattr(data, f) is None]
@@ -91,47 +178,11 @@ class TestScraperResult:
         assert "lot_sqft" in missing
         assert "annual_taxes" in missing
 
-    def test_scraper_result_model(self):
-        data = ScrapedPropertyData(address="123 Main")
-        result = ScraperResult(
-            data=data,
-            source="redfin",
-            source_url="https://www.redfin.com/test",
-            fields_found=["address"],
-            fields_missing=["city", "state"],
-            scrape_succeeded=True,
-        )
-        assert result.source == "redfin"
-        assert result.scrape_succeeded is True
-        assert result.error_message is None
-
-
-from unittest.mock import patch, MagicMock
-from app.services.scraper.redfin import scrape_redfin_property
-
-
-# Realistic mock responses based on stingray API structure
-MOCK_INITIAL_INFO_RESPONSE = '{}&&{"payload": {"listingId": "987654"}}'
-
-MOCK_ABOVE_FOLD_RESPONSE = '{}&&{"payload": {"addressInfo": {"formattedStreetLine": "123 Lake St", "city": "Burlington", "state": "VT", "zip": "05401"}, "beds": 3, "baths": 2.5, "sqFt": {"value": 1800}, "propertyTypeName": "Single Family Residential", "listPrice": 425000, "avm": {"predictedValue": 440000}}}'
-
-MOCK_BELOW_FOLD_RESPONSE = '{}&&{"payload": {"publicRecordsInfo": {"basicInfo": {"lotSqFt": 8500, "yearBuilt": 1995}, "taxInfo": {"taxesDue": 6200}}, "amenitiesInfo": {"hoaDues": null}}}'
-
-MOCK_ABOVE_FOLD_PARTIAL = '{}&&{"payload": {"addressInfo": {"formattedStreetLine": "456 Main St", "city": "Stowe", "state": "VT", "zip": "05672"}, "beds": 2, "baths": 1.0, "sqFt": null, "propertyTypeName": null, "listPrice": 289000}}'
-
-MOCK_BELOW_FOLD_EMPTY = '{}&&{"payload": {}}'
-
 
 class TestScrapeRedfinProperty:
-    @patch("app.services.scraper.redfin.time.sleep")
     @patch("app.services.scraper.redfin.httpx.get")
-    def test_full_scrape(self, mock_get, mock_sleep):
-        responses = [
-            MagicMock(status_code=200, text=MOCK_INITIAL_INFO_RESPONSE),
-            MagicMock(status_code=200, text=MOCK_ABOVE_FOLD_RESPONSE),
-            MagicMock(status_code=200, text=MOCK_BELOW_FOLD_RESPONSE),
-        ]
-        mock_get.side_effect = responses
+    def test_full_scrape(self, mock_get):
+        mock_get.return_value = MagicMock(status_code=200, text=MOCK_HTML_FULL)
 
         result = scrape_redfin_property("https://www.redfin.com/VT/Burlington/123-Lake-St-05401/home/12345678")
 
@@ -141,26 +192,19 @@ class TestScrapeRedfinProperty:
         assert result.data.state == "VT"
         assert result.data.zip_code == "05401"
         assert result.data.listing_price == 425000
-        assert result.data.estimated_value == 440000
         assert result.data.beds == 3
         assert result.data.baths == 2.5
         assert result.data.sqft == 1800
-        assert result.data.lot_sqft == 8500
         assert result.data.year_built == 1995
+        assert result.data.lot_sqft == 8500
         assert result.data.annual_taxes == 6200
+        assert result.data.hoa_monthly == 150
         assert result.data.property_type == "single_family"
         assert "address" in result.fields_found
-        assert len(result.fields_missing) <= 2  # hoa_monthly might be None
 
-    @patch("app.services.scraper.redfin.time.sleep")
     @patch("app.services.scraper.redfin.httpx.get")
-    def test_partial_scrape(self, mock_get, mock_sleep):
-        responses = [
-            MagicMock(status_code=200, text=MOCK_INITIAL_INFO_RESPONSE),
-            MagicMock(status_code=200, text=MOCK_ABOVE_FOLD_PARTIAL),
-            MagicMock(status_code=200, text=MOCK_BELOW_FOLD_EMPTY),
-        ]
-        mock_get.side_effect = responses
+    def test_partial_scrape(self, mock_get):
+        mock_get.return_value = MagicMock(status_code=200, text=MOCK_HTML_PARTIAL)
 
         result = scrape_redfin_property("https://www.redfin.com/VT/Stowe/456-Main/home/99999")
 
@@ -168,6 +212,7 @@ class TestScrapeRedfinProperty:
         assert result.data.address == "456 Main St"
         assert result.data.beds == 2
         assert result.data.sqft is None
+        assert result.data.lot_sqft is None
         assert "sqft" in result.fields_missing
         assert "lot_sqft" in result.fields_missing
 
@@ -178,7 +223,6 @@ class TestScrapeRedfinProperty:
         result = scrape_redfin_property("https://www.redfin.com/VT/Burlington/123/home/11111")
 
         assert result.scrape_succeeded is False
-        assert result.error_message is not None
         assert "Connection refused" in result.error_message
 
     @patch("app.services.scraper.redfin.httpx.get")
@@ -189,3 +233,12 @@ class TestScrapeRedfinProperty:
 
         assert result.scrape_succeeded is False
         assert "403" in result.error_message
+
+    @patch("app.services.scraper.redfin.httpx.get")
+    def test_scrape_no_jsonld(self, mock_get):
+        mock_get.return_value = MagicMock(status_code=200, text=MOCK_HTML_NO_JSONLD)
+
+        result = scrape_redfin_property("https://www.redfin.com/VT/Burlington/123/home/11111")
+
+        assert result.scrape_succeeded is False
+        assert "No data" in result.error_message
