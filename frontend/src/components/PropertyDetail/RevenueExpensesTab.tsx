@@ -50,6 +50,10 @@ const TOOLTIPS = {
     "Annual municipal registration fee. Not all towns require it. Examples: Stowe $100/unit/yr, Dover $125/yr. Check your specific town's requirements.",
   platform_remits_tax:
     "If Yes (Airbnb, VRBO), the platform collects all VT rooms/meals taxes from guests and remits to the state on your behalf. These taxes are pass-through, not your expense.",
+  rental_delay_months:
+    "Months between property acquisition and first guest booking. Covers renovation, furnishing, permits, and listing setup. During this period you pay all carrying costs with zero revenue. Default: 1 month.",
+  local_gross_receipts_tax_pct:
+    "Burlington, VT levies a 9% gross receipts tax on STR revenue. Unlike rooms tax, this is an operator expense that directly reduces your cashflow. Set to 0% outside Burlington.",
 };
 
 export function RevenueExpensesTab({ assumptions, onUpdate }: RevenueExpensesTabProps) {
@@ -109,6 +113,21 @@ export function RevenueExpensesTab({ assumptions, onUpdate }: RevenueExpensesTab
               step="0.5"
               value={form.avg_stay_length_nights || ""}
               onChange={(e) => updateField("avg_stay_length_nights", parseFloat(e.target.value) || 0)}
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Rental Delay (months)
+              <TooltipIcon text={TOOLTIPS.rental_delay_months} />
+            </label>
+            <input
+              type="number"
+              min="0"
+              max="12"
+              step="1"
+              value={form.rental_delay_months ?? 1}
+              onChange={(e) => updateField("rental_delay_months", parseInt(e.target.value) || 0)}
               className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             />
           </div>
@@ -238,6 +257,12 @@ export function RevenueExpensesTab({ assumptions, onUpdate }: RevenueExpensesTab
             value={form.local_option_tax_pct}
             onChange={(v) => updateField("local_option_tax_pct", v)}
             tooltip={TOOLTIPS.local_option_tax_pct}
+          />
+          <PercentInput
+            label="Local Gross Receipts Tax %"
+            value={form.local_gross_receipts_tax_pct}
+            onChange={(v) => updateField("local_gross_receipts_tax_pct", v)}
+            tooltip={TOOLTIPS.local_gross_receipts_tax_pct}
           />
           <CurrencyInput
             label="STR Registration Fee"

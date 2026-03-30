@@ -78,10 +78,12 @@ export interface STRAssumptions {
   lawn_snow_monthly: number;
   other_monthly_expense: number;
   vacancy_reserve_pct: number;
+  rental_delay_months: number;
   state_rooms_tax_pct: number;
   str_surcharge_pct: number;
   local_option_tax_pct: number;
   local_str_registration_fee: number;
+  local_gross_receipts_tax_pct: number;
   platform_remits_tax: boolean;
 }
 
@@ -115,7 +117,14 @@ export interface ComputedResults {
     dscr: number;
     gross_yield: number;
     total_roi_year1: number;
+    dscr_warning: string | null;
   };
+  rental_delay_months: number;
+  tax_impact: {
+    guest_facing_tax_pct: number;
+    platform_remits: boolean;
+    effective_nightly_rate_with_tax: number;
+  } | null;
 }
 
 export interface SensitivityData {
