@@ -107,6 +107,11 @@ def _extract_from_html_embedded(html: str) -> dict:
         except ValueError:
             pass
 
+    # Extract first property photo from CDN URLs
+    photo_match = re.search(r'(https?://ssl\.cdn-redfin\.com/photo/[^\"\\\s,\)]+\.(?:jpg|jpeg|png|webp))', html)
+    if photo_match:
+        result["image_url"] = photo_match.group(1)
+
     return result
 
 
@@ -128,13 +133,13 @@ def _extract_property_data(jsonld: dict, html_extras: dict) -> ScrapedPropertyDa
         except (ValueError, TypeError):
             pass
 
-    # Image URL from JSON-LD photo field
-    photo = jsonld.get("photo")
+    # Image URL: try JSON-LD photo field (top-level and mainEntity), then og:image
+    photo = jsonld.get("photo") or main_entity.get("photo") or main_entity.get("image")
     if isinstance(photo, list) and photo:
         photo = photo[0]
     if isinstance(photo, dict):
         photo = photo.get("contentUrl") or photo.get("url")
-    image_url = photo if isinstance(photo, str) else None
+    image_url = photo if isinstance(photo, str) else html_extras.get("image_url")
 
     return ScrapedPropertyData(
         address=address_info.get("streetAddress"),
