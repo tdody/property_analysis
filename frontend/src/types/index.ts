@@ -57,6 +57,8 @@ export interface MortgageScenario {
   furniture_cost: number;
   other_upfront_costs: number;
   pmi_monthly: number;
+  origination_points_pct: number;
+  io_period_years: number;
   is_active: boolean;
 }
 
@@ -74,10 +76,15 @@ export interface STRAssumptions {
   insurance_annual: number;
   maintenance_reserve_pct: number;
   capex_reserve_pct: number;
+  damage_reserve_pct: number;
   supplies_monthly: number;
   lawn_snow_monthly: number;
   other_monthly_expense: number;
   vacancy_reserve_pct: number;
+  marketing_monthly: number;
+  software_monthly: number;
+  accounting_annual: number;
+  legal_annual: number;
   rental_delay_months: number;
   state_rooms_tax_pct: number;
   str_surcharge_pct: number;
@@ -85,6 +92,15 @@ export interface STRAssumptions {
   local_str_registration_fee: number;
   local_gross_receipts_tax_pct: number;
   platform_remits_tax: boolean;
+  land_value_pct: number;
+  property_appreciation_pct_annual: number;
+  revenue_growth_pct: number;
+  expense_growth_pct: number;
+  marginal_tax_rate_pct: number;
+  use_seasonal_occupancy: boolean;
+  peak_months: number;
+  peak_occupancy_pct: number;
+  off_peak_occupancy_pct: number;
 }
 
 export interface ComputedResults {
@@ -97,6 +113,7 @@ export interface ComputedResults {
     monthly_pmi: number;
     total_monthly_housing: number;
     total_cash_invested: number;
+    origination_fee: number;
   };
   revenue: {
     gross_annual: number;
@@ -118,6 +135,14 @@ export interface ComputedResults {
     gross_yield: number;
     total_roi_year1: number;
     dscr_warning: string | null;
+    occupancy_rate_warning: string | null;
+    guest_cost_per_night: number;
+    appreciation_year1: number;
+    total_roi_year1_with_appreciation: number;
+    taxable_income: number;
+    tax_liability: number;
+    after_tax_annual_cashflow: number;
+    after_tax_monthly_cashflow: number;
   };
   rental_delay_months: number;
   tax_impact: {
@@ -125,6 +150,45 @@ export interface ComputedResults {
     platform_remits: boolean;
     effective_nightly_rate_with_tax: number;
   } | null;
+  depreciation: {
+    building_value: number;
+    building_depreciation_annual: number;
+    furniture_depreciation_annual: number;
+    total_depreciation_annual: number;
+  } | null;
+}
+
+export interface MonthlyDetail {
+  month: number;
+  is_peak: boolean;
+  gross_revenue: number;
+  total_expenses: number;
+  noi: number;
+  cashflow: number;
+}
+
+export interface ProjectionYear {
+  year: number;
+  gross_revenue: number;
+  net_revenue: number;
+  total_opex: number;
+  noi: number;
+  annual_housing_cost: number;
+  annual_cashflow: number;
+  cumulative_cashflow: number;
+  property_value: number;
+  loan_balance: number;
+  equity: number;
+  cash_on_cash_return: number;
+  after_tax_cashflow: number;
+}
+
+export interface ProjectionSummary {
+  property_id: string;
+  scenario_id: string;
+  years: ProjectionYear[];
+  irr: number | null;
+  equity_multiple: number;
 }
 
 export interface SensitivityData {

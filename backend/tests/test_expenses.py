@@ -89,3 +89,54 @@ class TestGrossReceiptsTax:
         assert abs(result["gross_receipts_tax"] - expected_tax) < 0.01
         # Verify the total includes the tax
         assert result["total_annual_operating_exp"] >= expected_tax
+
+
+class TestDamageReserve:
+    def test_default_two_pct(self):
+        result = compute_operating_expenses(
+            annual_turnovers=79, cleaning_cost_per_turn=120,
+            net_annual_revenue=56_648, gross_annual_revenue=58_400,
+            property_mgmt_pct=0, maintenance_reserve_pct=5,
+            capex_reserve_pct=5, utilities_monthly=250,
+            supplies_monthly=100, lawn_snow_monthly=0,
+            other_monthly_expense=0, local_str_registration_fee=0,
+            damage_reserve_pct=2.0,
+        )
+        expected = 58_400 * 0.02
+        assert abs(result["damage_reserve"] - expected) < 0.01
+        assert result["total_annual_operating_exp"] >= expected
+
+    def test_zero_damage_reserve(self):
+        result = compute_operating_expenses(
+            annual_turnovers=79, cleaning_cost_per_turn=120,
+            net_annual_revenue=56_648, gross_annual_revenue=58_400,
+            property_mgmt_pct=0, maintenance_reserve_pct=5,
+            capex_reserve_pct=5, utilities_monthly=250,
+            supplies_monthly=100, lawn_snow_monthly=0,
+            other_monthly_expense=0, local_str_registration_fee=0,
+            damage_reserve_pct=0,
+        )
+        assert result["damage_reserve"] == 0
+
+    def test_damage_reserve_included_in_total(self):
+        without = compute_operating_expenses(
+            annual_turnovers=50, cleaning_cost_per_turn=100,
+            net_annual_revenue=50_000, gross_annual_revenue=52_000,
+            property_mgmt_pct=0, maintenance_reserve_pct=0,
+            capex_reserve_pct=0, utilities_monthly=0,
+            supplies_monthly=0, lawn_snow_monthly=0,
+            other_monthly_expense=0, local_str_registration_fee=0,
+            damage_reserve_pct=0,
+        )
+        with_damage = compute_operating_expenses(
+            annual_turnovers=50, cleaning_cost_per_turn=100,
+            net_annual_revenue=50_000, gross_annual_revenue=52_000,
+            property_mgmt_pct=0, maintenance_reserve_pct=0,
+            capex_reserve_pct=0, utilities_monthly=0,
+            supplies_monthly=0, lawn_snow_monthly=0,
+            other_monthly_expense=0, local_str_registration_fee=0,
+            damage_reserve_pct=5.0,
+        )
+        expected_diff = 52_000 * 0.05
+        actual_diff = with_damage["total_annual_operating_exp"] - without["total_annual_operating_exp"]
+        assert abs(actual_diff - expected_diff) < 0.01

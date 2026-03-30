@@ -37,9 +37,15 @@ const TOOLTIPS = {
   lawn_snow_monthly:
     "Landscaping, mowing, leaf cleanup, snow removal. Highly seasonal in Vermont. Enter a monthly average across the year, e.g., $100-$150. Set to $0 for condos.",
   other_monthly_expense:
-    "Catch-all for anything not covered above: pest control, pool/hot tub maintenance, security monitoring, bookkeeping software, dynamic pricing tools, channel manager fees, etc.",
-  vacancy_reserve_pct:
-    "Additional buffer beyond occupancy for unexpected vacancies. Default 0% since occupancy % already accounts for this.",
+    "Catch-all for anything not covered above: pest control, pool/hot tub maintenance, security monitoring, etc.",
+  marketing_monthly:
+    "Photography, listing optimization, social media, direct booking website. Initial setup $200-$500, ongoing $50-$200/mo. Set to $0 if relying solely on platform traffic.",
+  software_monthly:
+    "PMS (Hospitable, Guesty), dynamic pricing (PriceLabs, Beyond), channel manager, smart lock software. Typical total: $30-$80/mo.",
+  accounting_annual:
+    "Tax preparation, bookkeeping, financial reporting. STR taxes are more complex than W-2. Typical range: $1,000-$3,000/yr for a CPA familiar with rental properties.",
+  legal_annual:
+    "Legal counsel, compliance reviews, lease/contract templates, permit applications. Typical: $500-$1,500/yr. Higher in heavily regulated markets.",
   state_rooms_tax_pct:
     "Vermont Meals & Rooms Tax applied to all STR bookings of < 30 nights. Collected from the guest. If you use Airbnb or VRBO, the platform collects and remits this for you automatically.",
   str_surcharge_pct:
@@ -54,6 +60,26 @@ const TOOLTIPS = {
     "Months between property acquisition and first guest booking. Covers renovation, furnishing, permits, and listing setup. During this period you pay all carrying costs with zero revenue. Default: 1 month.",
   local_gross_receipts_tax_pct:
     "Burlington, VT levies a 9% gross receipts tax on STR revenue. Unlike rooms tax, this is an operator expense that directly reduces your cashflow. Set to 0% outside Burlington.",
+  damage_reserve_pct:
+    "Percentage of gross revenue set aside for guest damage repairs (broken furniture, stains, wall holes). 2% is typical. Airbnb's Host Guarantee covers some damage but not everything.",
+  land_value_pct:
+    "Percentage of the purchase price attributable to land (non-depreciable). Typical range: 15-30%. Check your county tax assessment for the land/building split. Used for depreciation calculations.",
+  property_appreciation_pct_annual:
+    "Expected annual property value appreciation. US historical average is ~3-4%. Conservative: 2%. Set to 0% to exclude appreciation from ROI calculations.",
+  use_seasonal_occupancy:
+    "Enable peak/off-peak occupancy modeling. When on, occupancy varies by season. A weighted effective occupancy is computed for all annual metrics.",
+  peak_months:
+    "Number of peak-season months per year. For Vermont: June-November (summer + foliage) = 6 months. Adjust based on your market's high season.",
+  peak_occupancy_pct:
+    "Expected occupancy during peak months. Top STR markets see 75-90% during peak season.",
+  off_peak_occupancy_pct:
+    "Expected occupancy during off-peak months. Winter/shoulder months in non-ski markets typically see 30-50%.",
+  marginal_tax_rate_pct:
+    "Your combined marginal income tax rate (federal + state). Used to estimate after-tax cashflow. Common ranges: 22-37% federal + 0-13% state. Set to 0 to hide tax analysis.",
+  revenue_growth_pct:
+    "Expected annual revenue growth rate for multi-year projections. Accounts for nightly rate increases, market growth, and improved occupancy over time. US STR average: 3-5%.",
+  expense_growth_pct:
+    "Expected annual expense growth rate for multi-year projections. Covers inflation on operating costs (cleaning, utilities, supplies, maintenance). General inflation: 2-4%.",
 };
 
 export function RevenueExpensesTab({ assumptions, onUpdate }: RevenueExpensesTabProps) {
@@ -91,12 +117,64 @@ export function RevenueExpensesTab({ assumptions, onUpdate }: RevenueExpensesTab
             onChange={(v) => updateField("avg_nightly_rate", v)}
             tooltip={TOOLTIPS.avg_nightly_rate}
           />
-          <PercentInput
-            label="Occupancy %"
-            value={form.occupancy_pct}
-            onChange={(v) => updateField("occupancy_pct", v)}
-            tooltip={TOOLTIPS.occupancy_pct}
-          />
+          {/* Occupancy: single or seasonal */}
+          <div>
+            <div className="flex items-center mb-3">
+              <input
+                type="checkbox"
+                checked={form.use_seasonal_occupancy}
+                onChange={(e) => updateField("use_seasonal_occupancy", e.target.checked)}
+                className="h-4 w-4 text-indigo-600 rounded border-slate-300"
+              />
+              <span className="ml-2 text-sm font-medium text-slate-700">
+                Use Seasonal Occupancy
+                <TooltipIcon text={TOOLTIPS.use_seasonal_occupancy} />
+              </span>
+            </div>
+            {form.use_seasonal_occupancy ? (
+              <div className="space-y-4 pl-6 border-l-2 border-indigo-100">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Peak Months
+                    <TooltipIcon text={TOOLTIPS.peak_months} />
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="11"
+                    step="1"
+                    value={form.peak_months}
+                    onChange={(e) => updateField("peak_months", parseInt(e.target.value) || 6)}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  />
+                </div>
+                <PercentInput
+                  label="Peak Occupancy %"
+                  value={form.peak_occupancy_pct}
+                  onChange={(v) => updateField("peak_occupancy_pct", v)}
+                  tooltip={TOOLTIPS.peak_occupancy_pct}
+                />
+                <PercentInput
+                  label="Off-Peak Occupancy %"
+                  value={form.off_peak_occupancy_pct}
+                  onChange={(v) => updateField("off_peak_occupancy_pct", v)}
+                  tooltip={TOOLTIPS.off_peak_occupancy_pct}
+                />
+                <div className="text-sm text-slate-500">
+                  Effective Occupancy: <span className="font-semibold text-slate-700">
+                    {((form.peak_months * form.peak_occupancy_pct + (12 - form.peak_months) * form.off_peak_occupancy_pct) / 12).toFixed(1)}%
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <PercentInput
+                label="Occupancy %"
+                value={form.occupancy_pct}
+                onChange={(v) => updateField("occupancy_pct", v)}
+                tooltip={TOOLTIPS.occupancy_pct}
+              />
+            )}
+          </div>
           <CurrencyInput
             label="Cleaning Fee per Stay"
             value={form.cleaning_fee_per_stay}
@@ -131,6 +209,36 @@ export function RevenueExpensesTab({ assumptions, onUpdate }: RevenueExpensesTab
               className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             />
           </div>
+          <PercentInput
+            label="Land Value %"
+            value={form.land_value_pct}
+            onChange={(v) => updateField("land_value_pct", v)}
+            tooltip={TOOLTIPS.land_value_pct}
+          />
+          <PercentInput
+            label="Annual Appreciation %"
+            value={form.property_appreciation_pct_annual}
+            onChange={(v) => updateField("property_appreciation_pct_annual", v)}
+            tooltip={TOOLTIPS.property_appreciation_pct_annual}
+          />
+          <PercentInput
+            label="Marginal Tax Rate %"
+            value={form.marginal_tax_rate_pct}
+            onChange={(v) => updateField("marginal_tax_rate_pct", v)}
+            tooltip={TOOLTIPS.marginal_tax_rate_pct}
+          />
+          <PercentInput
+            label="Revenue Growth % / yr"
+            value={form.revenue_growth_pct}
+            onChange={(v) => updateField("revenue_growth_pct", v)}
+            tooltip={TOOLTIPS.revenue_growth_pct}
+          />
+          <PercentInput
+            label="Expense Growth % / yr"
+            value={form.expense_growth_pct}
+            onChange={(v) => updateField("expense_growth_pct", v)}
+            tooltip={TOOLTIPS.expense_growth_pct}
+          />
         </div>
 
         {/* Right column: Expenses */}
@@ -195,18 +303,44 @@ export function RevenueExpensesTab({ assumptions, onUpdate }: RevenueExpensesTab
                 onChange={(v) => updateField("other_monthly_expense", v)}
                 tooltip={TOOLTIPS.other_monthly_expense}
               />
+              <CurrencyInput
+                label="Marketing (Monthly)"
+                value={form.marketing_monthly}
+                onChange={(v) => updateField("marketing_monthly", v)}
+                tooltip={TOOLTIPS.marketing_monthly}
+              />
+              <CurrencyInput
+                label="Software / PMS (Monthly)"
+                value={form.software_monthly}
+                onChange={(v) => updateField("software_monthly", v)}
+                tooltip={TOOLTIPS.software_monthly}
+              />
             </div>
           </div>
 
           {/* Annual */}
           <div>
             <h4 className="text-xs uppercase tracking-wider text-slate-400 font-medium mb-3">Annual</h4>
-            <CurrencyInput
-              label="Insurance (Annual)"
-              value={form.insurance_annual}
-              onChange={(v) => updateField("insurance_annual", v)}
-              tooltip={TOOLTIPS.insurance_annual}
-            />
+            <div className="space-y-4">
+              <CurrencyInput
+                label="Insurance (Annual)"
+                value={form.insurance_annual}
+                onChange={(v) => updateField("insurance_annual", v)}
+                tooltip={TOOLTIPS.insurance_annual}
+              />
+              <CurrencyInput
+                label="Accounting / Tax Prep (Annual)"
+                value={form.accounting_annual}
+                onChange={(v) => updateField("accounting_annual", v)}
+                tooltip={TOOLTIPS.accounting_annual}
+              />
+              <CurrencyInput
+                label="Legal / Compliance (Annual)"
+                value={form.legal_annual}
+                onChange={(v) => updateField("legal_annual", v)}
+                tooltip={TOOLTIPS.legal_annual}
+              />
+            </div>
           </div>
 
           {/* Reserves */}
@@ -226,10 +360,10 @@ export function RevenueExpensesTab({ assumptions, onUpdate }: RevenueExpensesTab
                 tooltip={TOOLTIPS.capex_reserve_pct}
               />
               <PercentInput
-                label="Vacancy Reserve %"
-                value={form.vacancy_reserve_pct}
-                onChange={(v) => updateField("vacancy_reserve_pct", v)}
-                tooltip={TOOLTIPS.vacancy_reserve_pct}
+                label="Damage Reserve %"
+                value={form.damage_reserve_pct}
+                onChange={(v) => updateField("damage_reserve_pct", v)}
+                tooltip={TOOLTIPS.damage_reserve_pct}
               />
             </div>
           </div>

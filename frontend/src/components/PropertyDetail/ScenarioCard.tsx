@@ -46,6 +46,10 @@ const TOOLTIPS = {
     "Private Mortgage Insurance, required for conventional loans with < 20% down. Typically 0.5-1.0% of loan amount per year. Not applicable for DSCR or cash.",
   loan_type:
     "Conventional: Best rates, 15/20/30yr, PMI if < 20% down. DSCR: Qualifies on property income, rates ~1-2% higher. FHA: 3.5% down, requires owner-occupancy. Cash: No loan.",
+  origination_points_pct:
+    "Loan origination points charged by the lender at closing. Each point = 1% of the loan amount. DSCR and portfolio loans often charge 1-3 points. Conventional loans typically charge 0-1 points.",
+  io_period_years:
+    "Interest-only period in years. During IO, you pay only interest (no principal), resulting in a lower monthly payment. Common for DSCR loans: 1-5 years. After IO ends, payments increase to fully amortize the remaining balance over the remaining term.",
 };
 
 export function ScenarioCard({ scenario, onUpdate, onDelete, onDuplicate, onActivate }: ScenarioCardProps) {
@@ -101,8 +105,9 @@ export function ScenarioCard({ scenario, onUpdate, onDelete, onDuplicate, onActi
     monthlyPI = loanAmount * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
   }
 
+  const originationFee = loanAmount * (form.origination_points_pct / 100);
   const totalCashToClose =
-    form.down_payment_amt + form.closing_cost_amt + form.renovation_cost + form.furniture_cost + form.other_upfront_costs;
+    form.down_payment_amt + form.closing_cost_amt + form.renovation_cost + form.furniture_cost + form.other_upfront_costs + originationFee;
 
   return (
     <div className={`rounded-2xl shadow-sm bg-white ${scenario.is_active ? "border-l-4 border-indigo-500" : ""}`}>
@@ -266,6 +271,33 @@ export function ScenarioCard({ scenario, onUpdate, onDelete, onDuplicate, onActi
               onChange={(v) => updateField("pmi_monthly", v)}
               tooltip={TOOLTIPS.pmi_monthly}
             />
+          )}
+
+          {/* Origination Points & IO Period (dscr/portfolio loans) */}
+          {(form.loan_type === "dscr" || form.loan_type === "portfolio") && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <PercentInput
+                label="Origination Points %"
+                value={form.origination_points_pct}
+                onChange={(v) => updateField("origination_points_pct", v)}
+                tooltip={TOOLTIPS.origination_points_pct}
+              />
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  IO Period (years)
+                  <TooltipIcon text={TOOLTIPS.io_period_years} />
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  max="10"
+                  step="1"
+                  value={form.io_period_years}
+                  onChange={(e) => updateField("io_period_years", parseInt(e.target.value) || 0)}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                />
+              </div>
+            </div>
           )}
 
           {/* Summary */}

@@ -18,6 +18,8 @@ class ScenarioCreate(BaseModel):
     furniture_cost: float = 0
     other_upfront_costs: float = 0
     pmi_monthly: float = 0
+    origination_points_pct: float = 0
+    io_period_years: int = 0
     is_active: bool = True
 
     @field_validator("interest_rate")
@@ -48,6 +50,20 @@ class ScenarioCreate(BaseModel):
             raise ValueError(f"loan_type must be one of: {', '.join(sorted(_ALLOWED_LOAN_TYPES))}")
         return v
 
+    @field_validator("origination_points_pct")
+    @classmethod
+    def origination_points_in_range(cls, v: float) -> float:
+        if v < 0 or v > 10:
+            raise ValueError("origination_points_pct must be between 0 and 10")
+        return v
+
+    @field_validator("io_period_years")
+    @classmethod
+    def io_period_in_range(cls, v: int) -> int:
+        if v < 0 or v > 10:
+            raise ValueError("io_period_years must be between 0 and 10")
+        return v
+
 
 class ScenarioUpdate(BaseModel):
     name: str | None = None
@@ -63,6 +79,8 @@ class ScenarioUpdate(BaseModel):
     furniture_cost: float | None = None
     other_upfront_costs: float | None = None
     pmi_monthly: float | None = None
+    origination_points_pct: float | None = None
+    io_period_years: int | None = None
     is_active: bool | None = None
 
     @field_validator("interest_rate")
@@ -93,6 +111,20 @@ class ScenarioUpdate(BaseModel):
             raise ValueError(f"loan_type must be one of: {', '.join(sorted(_ALLOWED_LOAN_TYPES))}")
         return v
 
+    @field_validator("origination_points_pct")
+    @classmethod
+    def origination_points_in_range(cls, v: float | None) -> float | None:
+        if v is not None and (v < 0 or v > 10):
+            raise ValueError("origination_points_pct must be between 0 and 10")
+        return v
+
+    @field_validator("io_period_years")
+    @classmethod
+    def io_period_in_range(cls, v: int | None) -> int | None:
+        if v is not None and (v < 0 or v > 10):
+            raise ValueError("io_period_years must be between 0 and 10")
+        return v
+
 
 class ScenarioResponse(BaseModel):
     id: str
@@ -110,6 +142,8 @@ class ScenarioResponse(BaseModel):
     furniture_cost: float
     other_upfront_costs: float
     pmi_monthly: float
+    origination_points_pct: float
+    io_period_years: int
     is_active: bool
 
     model_config = {"from_attributes": True}

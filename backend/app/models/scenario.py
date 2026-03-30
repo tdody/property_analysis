@@ -23,6 +23,8 @@ class MortgageScenario(Base):
     furniture_cost: Mapped[float] = mapped_column(Numeric(12, 2), default=0)
     other_upfront_costs: Mapped[float] = mapped_column(Numeric(12, 2), default=0)
     pmi_monthly: Mapped[float] = mapped_column(Numeric(10, 2), default=0)
+    origination_points_pct: Mapped[float] = mapped_column(Numeric(6, 2), default=0)
+    io_period_years: Mapped[int] = mapped_column(Integer, default=0)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
     property: Mapped["Property"] = relationship(back_populates="scenarios")

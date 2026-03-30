@@ -48,6 +48,31 @@ def compute_total_roi_year1(annual_cashflow: float, year1_equity_buildup: float,
         return 0
     return ((annual_cashflow + year1_equity_buildup) / total_cash_invested) * 100
 
+def compute_appreciation_year1(purchase_price: float, appreciation_pct: float) -> float:
+    return purchase_price * (appreciation_pct / 100)
+
+def compute_total_roi_year1_with_appreciation(annual_cashflow: float, year1_equity: float, year1_appreciation: float, total_cash: float) -> float:
+    if total_cash <= 0:
+        return 0
+    return ((annual_cashflow + year1_equity + year1_appreciation) / total_cash) * 100
+
+def compute_tax_analysis(
+    noi: float,
+    annual_mortgage_interest: float,
+    total_depreciation_annual: float,
+    marginal_tax_rate_pct: float,
+    pre_tax_annual_cashflow: float,
+) -> dict:
+    taxable_income = noi - annual_mortgage_interest - total_depreciation_annual
+    tax = taxable_income * (marginal_tax_rate_pct / 100)
+    after_tax_annual = pre_tax_annual_cashflow - tax
+    return {
+        "taxable_income": taxable_income,
+        "tax_liability": tax,
+        "after_tax_annual_cashflow": after_tax_annual,
+        "after_tax_monthly_cashflow": after_tax_annual / 12,
+    }
+
 def compute_delay_carrying_costs(total_monthly_housing: float, rental_delay_months: int) -> float:
     return total_monthly_housing * rental_delay_months
 

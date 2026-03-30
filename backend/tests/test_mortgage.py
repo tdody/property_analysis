@@ -1,11 +1,13 @@
 import pytest
 from app.services.computation.mortgage import (
     compute_monthly_pi,
+    compute_io_monthly_payment,
     compute_loan_amount,
     compute_pmi,
     compute_total_monthly_housing,
     compute_total_cash_invested,
     compute_amortization_schedule,
+    compute_origination_fee,
 )
 
 
@@ -92,6 +94,51 @@ class TestTotalCashInvested:
         )
         assert result == 150_000
 
+    def test_with_origination_fee(self):
+        result = compute_total_cash_invested(
+            down_payment_amt=100_000, closing_cost_amt=12_000,
+            renovation_cost=20_000, furniture_cost=15_000, other_upfront_costs=3_000,
+            origination_fee=6_000,
+        )
+        assert result == 156_000
+
+
+class TestOriginationFee:
+    def test_two_points_on_300k(self):
+        result = compute_origination_fee(300_000, 2.0)
+        assert result == 6_000
+
+    def test_zero_points(self):
+        result = compute_origination_fee(300_000, 0)
+        assert result == 0
+
+    def test_one_point(self):
+        result = compute_origination_fee(250_000, 1.0)
+        assert result == 2_500
+
+    def test_added_to_total_cash_invested(self):
+        fee = compute_origination_fee(300_000, 2.0)
+        total = compute_total_cash_invested(100_000, 12_000, 0, 0, 0, origination_fee=fee)
+        assert total == 100_000 + 12_000 + 6_000
+
+
+class TestIOMonthlyPayment:
+    def test_io_payment(self):
+        result = compute_io_monthly_payment(300_000, 7.25)
+        expected = 300_000 * 7.25 / 100 / 12
+        assert round(result, 2) == round(expected, 2)
+
+    def test_io_lower_than_amortizing(self):
+        io = compute_io_monthly_payment(300_000, 7.25)
+        pi = compute_monthly_pi(300_000, 7.25, 30)
+        assert io < pi
+
+    def test_zero_rate(self):
+        assert compute_io_monthly_payment(300_000, 0) == 0
+
+    def test_zero_loan(self):
+        assert compute_io_monthly_payment(0, 7.25) == 0
+
 
 class TestAmortizationSchedule:
     def test_schedule_length(self):
@@ -119,3 +166,37 @@ class TestAmortizationSchedule:
     def test_cash_purchase_empty_schedule(self):
         schedule = compute_amortization_schedule(0, 0, 0)
         assert schedule == []
+
+
+class TestAmortizationWithIO:
+    def test_io_period_no_principal(self):
+        schedule = compute_amortization_schedule(300_000, 7.25, 30, io_period_years=3)
+        # First 36 months should have 0 principal
+        for entry in schedule[:36]:
+            assert entry["principal"] == 0
+            assert entry["remaining_balance"] == 300_000
+
+    def test_io_period_interest_only(self):
+        schedule = compute_amortization_schedule(300_000, 7.25, 30, io_period_years=1)
+        monthly_rate = 7.25 / 100 / 12
+        expected_interest = 300_000 * monthly_rate
+        assert round(schedule[0]["interest"], 2) == round(expected_interest, 2)
+
+    def test_amortizing_starts_after_io(self):
+        schedule = compute_amortization_schedule(300_000, 7.25, 30, io_period_years=3)
+        # Month 37 should start amortizing
+        assert schedule[36]["principal"] > 0
+
+    def test_schedule_length_unchanged(self):
+        schedule = compute_amortization_schedule(300_000, 7.25, 30, io_period_years=5)
+        assert len(schedule) == 360
+
+    def test_final_balance_zero(self):
+        schedule = compute_amortization_schedule(300_000, 7.25, 30, io_period_years=5)
+        assert round(schedule[-1]["remaining_balance"], 2) == 0
+
+    def test_no_io_same_as_default(self):
+        schedule_default = compute_amortization_schedule(300_000, 7.25, 30)
+        schedule_zero = compute_amortization_schedule(300_000, 7.25, 30, io_period_years=0)
+        assert len(schedule_default) == len(schedule_zero)
+        assert round(schedule_default[0]["principal"], 2) == round(schedule_zero[0]["principal"], 2)

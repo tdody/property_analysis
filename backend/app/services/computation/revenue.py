@@ -32,6 +32,10 @@ def compute_net_revenue(total_gross_revenue: float, platform_fee_pct: float) -> 
     return {"platform_fees": fees, "net_revenue": total_gross_revenue - fees}
 
 
+def compute_effective_occupancy(peak_months: int, peak_occupancy_pct: float, off_peak_occupancy_pct: float) -> float:
+    return (peak_months * peak_occupancy_pct + (12 - peak_months) * off_peak_occupancy_pct) / 12
+
+
 def compute_year1_revenue(annual_revenue: float, rental_delay_months: int) -> float:
     if rental_delay_months >= 12:
         return 0

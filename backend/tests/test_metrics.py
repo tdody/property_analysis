@@ -4,6 +4,8 @@ from app.services.computation.metrics import (
     compute_cap_rate, compute_dscr, compute_gross_yield,
     compute_break_even_occupancy, compute_total_roi_year1, compute_all_metrics,
     compute_delay_carrying_costs,
+    compute_appreciation_year1, compute_total_roi_year1_with_appreciation,
+    compute_tax_analysis,
 )
 
 class TestNOI:
@@ -73,6 +75,92 @@ class TestRentalDelayMetrics:
             rental_delay_months=0,
         )
         assert result == 0
+
+class TestAppreciation:
+    def test_standard_appreciation(self):
+        result = compute_appreciation_year1(425_000, 2.5)
+        assert result == 10_625
+
+    def test_zero_appreciation(self):
+        result = compute_appreciation_year1(425_000, 0)
+        assert result == 0
+
+    def test_high_appreciation(self):
+        result = compute_appreciation_year1(400_000, 5.0)
+        assert result == 20_000
+
+class TestROIWithAppreciation:
+    def test_with_appreciation(self):
+        result = compute_total_roi_year1_with_appreciation(
+            annual_cashflow=9_877, year1_equity=5_000,
+            year1_appreciation=10_625, total_cash=125_400,
+        )
+        expected = (9_877 + 5_000 + 10_625) / 125_400 * 100
+        assert round(result, 2) == round(expected, 2)
+
+    def test_zero_cash_invested(self):
+        result = compute_total_roi_year1_with_appreciation(9_877, 5_000, 10_625, 0)
+        assert result == 0
+
+    def test_zero_appreciation(self):
+        result = compute_total_roi_year1_with_appreciation(
+            annual_cashflow=9_877, year1_equity=5_000,
+            year1_appreciation=0, total_cash=125_400,
+        )
+        # Should match regular ROI when appreciation is 0
+        expected = (9_877 + 5_000) / 125_400 * 100
+        assert round(result, 2) == round(expected, 2)
+
+class TestTaxAnalysis:
+    def test_positive_taxable_income(self):
+        result = compute_tax_analysis(
+            noi=30_000, annual_mortgage_interest=20_000,
+            total_depreciation_annual=5_000, marginal_tax_rate_pct=32.0,
+            pre_tax_annual_cashflow=10_000,
+        )
+        assert result["taxable_income"] == 5_000
+        assert abs(result["tax_liability"] - 1_600) < 0.01
+        assert abs(result["after_tax_annual_cashflow"] - 8_400) < 0.01
+
+    def test_paper_loss_tax_savings(self):
+        result = compute_tax_analysis(
+            noi=20_000, annual_mortgage_interest=20_000,
+            total_depreciation_annual=15_000, marginal_tax_rate_pct=32.0,
+            pre_tax_annual_cashflow=5_000,
+        )
+        assert result["taxable_income"] == -15_000
+        assert result["tax_liability"] < 0  # tax savings
+        assert abs(result["tax_liability"] - (-4_800)) < 0.01
+        # After-tax exceeds pre-tax due to paper loss
+        assert result["after_tax_annual_cashflow"] > 5_000
+        assert abs(result["after_tax_annual_cashflow"] - 9_800) < 0.01
+
+    def test_zero_tax_rate(self):
+        result = compute_tax_analysis(
+            noi=30_000, annual_mortgage_interest=20_000,
+            total_depreciation_annual=5_000, marginal_tax_rate_pct=0,
+            pre_tax_annual_cashflow=10_000,
+        )
+        assert result["tax_liability"] == 0
+        assert result["after_tax_annual_cashflow"] == 10_000
+
+    def test_cash_purchase_no_interest(self):
+        result = compute_tax_analysis(
+            noi=30_000, annual_mortgage_interest=0,
+            total_depreciation_annual=12_000, marginal_tax_rate_pct=25.0,
+            pre_tax_annual_cashflow=30_000,
+        )
+        assert result["taxable_income"] == 18_000
+        assert abs(result["tax_liability"] - 4_500) < 0.01
+
+    def test_after_tax_monthly_is_annual_div_12(self):
+        result = compute_tax_analysis(
+            noi=30_000, annual_mortgage_interest=20_000,
+            total_depreciation_annual=5_000, marginal_tax_rate_pct=32.0,
+            pre_tax_annual_cashflow=10_000,
+        )
+        assert abs(result["after_tax_monthly_cashflow"] - result["after_tax_annual_cashflow"] / 12) < 0.01
+
 
 class TestComputeAllMetrics:
     def test_integration(self):

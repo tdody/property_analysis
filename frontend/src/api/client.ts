@@ -8,6 +8,8 @@ import type {
   SensitivityData,
   AmortizationEntry,
   ComparisonProperty,
+  ProjectionSummary,
+  MonthlyDetail,
 } from "../types";
 
 const api = axios.create({ baseURL: "/api" });
@@ -37,6 +39,8 @@ export const getResultsForScenario = (propertyId: string, scenarioId: string) =>
 export const getAmortization = (propertyId: string, scenarioId: string) => api.get<AmortizationEntry[]>(`/properties/${propertyId}/amortization/${scenarioId}`).then((r) => r.data);
 export const getSensitivity = (propertyId: string) => api.get<SensitivityData>(`/properties/${propertyId}/sensitivity`).then((r) => r.data);
 export const compareProperties = (ids: string[]) => api.get<ComparisonProperty[]>(`/compare?ids=${ids.join(",")}`).then((r) => r.data);
+export const getProjections = (propertyId: string, scenarioId: string) => api.get<ProjectionSummary>(`/properties/${propertyId}/projections/${scenarioId}`).then((r) => r.data);
+export const getMonthlyBreakdown = (propertyId: string, scenarioId: string) => api.get<{ property_id: string; scenario_id: string; use_seasonal: boolean; months: MonthlyDetail[] }>(`/properties/${propertyId}/monthly/${scenarioId}`).then((r) => r.data);
 
 // Scraper
 export interface ScrapeResponse {
