@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 class PropertyCreate(BaseModel):
     name: str
     source_url: str | None = None
+    image_url: str | None = None
     address: str = ""
     city: str = ""
     state: str = ""
@@ -28,6 +29,7 @@ class PropertyCreate(BaseModel):
 class PropertyUpdate(BaseModel):
     name: str | None = None
     source_url: str | None = None
+    image_url: str | None = None
     address: str | None = None
     city: str | None = None
     state: str | None = None
@@ -60,6 +62,7 @@ class PropertySummary(BaseModel):
     sqft: int
     property_type: str
     is_archived: bool
+    image_url: str | None = None
     monthly_cashflow: float | None = None
     cash_on_cash_return: float | None = None
 
@@ -72,6 +75,7 @@ class PropertyResponse(BaseModel):
     updated_at: datetime
     name: str
     source_url: str | None
+    image_url: str | None
     address: str
     city: str
     state: str

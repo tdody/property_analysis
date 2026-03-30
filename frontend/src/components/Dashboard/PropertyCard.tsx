@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { PropertySummary } from "../../types/index.ts";
+import { PropertyTypeIcon } from "../shared/PropertyTypeIcon.tsx";
 
 interface PropertyCardProps {
   property: PropertySummary;
@@ -38,10 +40,23 @@ const gradientBarMap = {
 export function PropertyCard({ property, selected, onToggleSelect, onDelete }: PropertyCardProps) {
   const navigate = useNavigate();
   const variant = getCashflowVariant(property.monthly_cashflow);
+  const [imgError, setImgError] = useState(false);
 
   return (
     <div className="bg-white rounded-2xl overflow-hidden shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.03)] hover:shadow-md transition-all flex flex-col">
-      {/* Gradient top bar */}
+      {/* Property image or type icon */}
+      {property.image_url && !imgError ? (
+        <img
+          src={property.image_url}
+          alt={property.name}
+          className="w-full h-40 object-cover"
+          onError={() => setImgError(true)}
+        />
+      ) : (
+        <PropertyTypeIcon propertyType={property.property_type} className="w-full h-40 rounded-t-2xl" />
+      )}
+
+      {/* Gradient bar */}
       <div className={`h-1 ${gradientBarMap[variant]}`} />
 
       <div className="p-5 flex flex-col gap-3 flex-1">

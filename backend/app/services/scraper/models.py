@@ -16,6 +16,7 @@ class ScrapedPropertyData(BaseModel):
     property_type: str | None = None
     hoa_monthly: float | None = None
     annual_taxes: float | None = None
+    image_url: str | None = None
 
 
 class ScraperResult(BaseModel):

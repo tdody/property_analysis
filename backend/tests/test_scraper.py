@@ -86,6 +86,7 @@ MOCK_JSONLD = json.dumps({
     "@context": "https://schema.org",
     "@type": ["Product", "RealEstateListing"],
     "name": "123 Lake St",
+    "photo": "https://ssl.cdn-redfin.com/photo/123/bigphoto/456/photo.jpg",
     "offers": {"@type": "Offer", "priceCurrency": "USD", "price": 425000},
     "mainEntity": {
         "@type": "SingleFamilyResidence",
@@ -200,6 +201,7 @@ class TestScrapeRedfinProperty:
         assert result.data.annual_taxes == 6200
         assert result.data.hoa_monthly == 150
         assert result.data.property_type == "single_family"
+        assert result.data.image_url == "https://ssl.cdn-redfin.com/photo/123/bigphoto/456/photo.jpg"
         assert "address" in result.fields_found
 
     @patch("app.services.scraper.redfin.httpx.get")
@@ -215,6 +217,7 @@ class TestScrapeRedfinProperty:
         assert result.data.lot_sqft is None
         assert "sqft" in result.fields_missing
         assert "lot_sqft" in result.fields_missing
+        assert result.data.image_url is None
 
     @patch("app.services.scraper.redfin.httpx.get")
     def test_scrape_http_error(self, mock_get):

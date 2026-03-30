@@ -10,6 +10,7 @@ export interface PropertySummary {
   sqft: number;
   property_type: string;
   is_archived: boolean;
+  image_url: string | null;
   monthly_cashflow: number | null;
   cash_on_cash_return: number | null;
 }
@@ -20,6 +21,7 @@ export interface Property {
   updated_at: string;
   name: string;
   source_url: string | null;
+  image_url: string | null;
   address: string;
   city: string;
   state: string;

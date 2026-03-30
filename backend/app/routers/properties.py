@@ -81,6 +81,7 @@ def scrape_property_endpoint(data: ScrapeRequest, db: Session = Depends(get_db))
     prop = Property(
         name=scraped.address or "Untitled Property",
         source_url=result.source_url,
+        image_url=scraped.image_url,
         address=scraped.address or "",
         city=scraped.city or "",
         state=scraped.state or "",

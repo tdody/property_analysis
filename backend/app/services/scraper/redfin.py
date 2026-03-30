@@ -128,6 +128,14 @@ def _extract_property_data(jsonld: dict, html_extras: dict) -> ScrapedPropertyDa
         except (ValueError, TypeError):
             pass
 
+    # Image URL from JSON-LD photo field
+    photo = jsonld.get("photo")
+    if isinstance(photo, list) and photo:
+        photo = photo[0]
+    if isinstance(photo, dict):
+        photo = photo.get("contentUrl") or photo.get("url")
+    image_url = photo if isinstance(photo, str) else None
+
     return ScrapedPropertyData(
         address=address_info.get("streetAddress"),
         city=address_info.get("addressLocality"),
@@ -143,6 +151,7 @@ def _extract_property_data(jsonld: dict, html_extras: dict) -> ScrapedPropertyDa
         property_type=map_property_type(raw_type),
         hoa_monthly=html_extras.get("hoa_monthly"),
         annual_taxes=html_extras.get("annual_taxes"),
+        image_url=image_url,
     )
 
 

@@ -19,6 +19,7 @@ class Property(Base):
     )
     name: Mapped[str] = mapped_column(String(255))
     source_url: Mapped[str | None] = mapped_column(String(2048), nullable=True)
+    image_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     address: Mapped[str] = mapped_column(String(500), default="")
     city: Mapped[str] = mapped_column(String(255), default="")
     state: Mapped[str] = mapped_column(String(2), default="")
