@@ -1,4 +1,7 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
+
+
+_ALLOWED_LOAN_TYPES = {"conventional", "fha", "va", "dscr", "portfolio", "heloc"}
 
 
 class ScenarioCreate(BaseModel):
@@ -17,6 +20,34 @@ class ScenarioCreate(BaseModel):
     pmi_monthly: float = 0
     is_active: bool = True
 
+    @field_validator("interest_rate")
+    @classmethod
+    def interest_rate_non_negative(cls, v: float) -> float:
+        if v < 0:
+            raise ValueError("interest_rate must be non-negative")
+        return v
+
+    @field_validator("purchase_price")
+    @classmethod
+    def purchase_price_non_negative(cls, v: float) -> float:
+        if v < 0:
+            raise ValueError("purchase_price must be non-negative")
+        return v
+
+    @field_validator("down_payment_pct")
+    @classmethod
+    def down_payment_in_range(cls, v: float) -> float:
+        if v < 0 or v > 100:
+            raise ValueError("down_payment_pct must be between 0 and 100")
+        return v
+
+    @field_validator("loan_type")
+    @classmethod
+    def loan_type_valid(cls, v: str) -> str:
+        if v not in _ALLOWED_LOAN_TYPES:
+            raise ValueError(f"loan_type must be one of: {', '.join(sorted(_ALLOWED_LOAN_TYPES))}")
+        return v
+
 
 class ScenarioUpdate(BaseModel):
     name: str | None = None
@@ -33,6 +64,34 @@ class ScenarioUpdate(BaseModel):
     other_upfront_costs: float | None = None
     pmi_monthly: float | None = None
     is_active: bool | None = None
+
+    @field_validator("interest_rate")
+    @classmethod
+    def interest_rate_non_negative(cls, v: float | None) -> float | None:
+        if v is not None and v < 0:
+            raise ValueError("interest_rate must be non-negative")
+        return v
+
+    @field_validator("purchase_price")
+    @classmethod
+    def purchase_price_non_negative(cls, v: float | None) -> float | None:
+        if v is not None and v < 0:
+            raise ValueError("purchase_price must be non-negative")
+        return v
+
+    @field_validator("down_payment_pct")
+    @classmethod
+    def down_payment_in_range(cls, v: float | None) -> float | None:
+        if v is not None and (v < 0 or v > 100):
+            raise ValueError("down_payment_pct must be between 0 and 100")
+        return v
+
+    @field_validator("loan_type")
+    @classmethod
+    def loan_type_valid(cls, v: str | None) -> str | None:
+        if v is not None and v not in _ALLOWED_LOAN_TYPES:
+            raise ValueError(f"loan_type must be one of: {', '.join(sorted(_ALLOWED_LOAN_TYPES))}")
+        return v
 
 
 class ScenarioResponse(BaseModel):

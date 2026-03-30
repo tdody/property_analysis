@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 
 class AssumptionsUpdate(BaseModel):
@@ -24,6 +24,41 @@ class AssumptionsUpdate(BaseModel):
     local_str_registration_fee: float | None = None
     local_gross_receipts_tax_pct: float | None = None
     platform_remits_tax: bool | None = None
+
+    @field_validator("occupancy_pct")
+    @classmethod
+    def occupancy_in_range(cls, v: float | None) -> float | None:
+        if v is not None and (v < 0 or v > 100):
+            raise ValueError("occupancy_pct must be between 0 and 100")
+        return v
+
+    @field_validator("avg_nightly_rate")
+    @classmethod
+    def nightly_rate_non_negative(cls, v: float | None) -> float | None:
+        if v is not None and v < 0:
+            raise ValueError("avg_nightly_rate must be non-negative")
+        return v
+
+    @field_validator("cleaning_fee_per_stay")
+    @classmethod
+    def cleaning_fee_non_negative(cls, v: float | None) -> float | None:
+        if v is not None and v < 0:
+            raise ValueError("cleaning_fee_per_stay must be non-negative")
+        return v
+
+    @field_validator("platform_fee_pct")
+    @classmethod
+    def platform_fee_in_range(cls, v: float | None) -> float | None:
+        if v is not None and (v < 0 or v > 100):
+            raise ValueError("platform_fee_pct must be between 0 and 100")
+        return v
+
+    @field_validator("rental_delay_months")
+    @classmethod
+    def rental_delay_in_range(cls, v: int | None) -> int | None:
+        if v is not None and (v < 0 or v > 12):
+            raise ValueError("rental_delay_months must be between 0 and 12")
+        return v
 
 
 class AssumptionsResponse(BaseModel):
