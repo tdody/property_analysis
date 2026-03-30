@@ -37,3 +37,19 @@ export const getResultsForScenario = (propertyId: string, scenarioId: string) =>
 export const getAmortization = (propertyId: string, scenarioId: string) => api.get<AmortizationEntry[]>(`/properties/${propertyId}/amortization/${scenarioId}`).then((r) => r.data);
 export const getSensitivity = (propertyId: string) => api.get<SensitivityData>(`/properties/${propertyId}/sensitivity`).then((r) => r.data);
 export const compareProperties = (ids: string[]) => api.get<ComparisonProperty[]>(`/compare?ids=${ids.join(",")}`).then((r) => r.data);
+
+// Scraper
+export interface ScrapeResponse {
+  property_id: string | null;
+  scraper_result: {
+    source: string;
+    source_url: string;
+    fields_found: string[];
+    fields_missing: string[];
+    scrape_succeeded: boolean;
+    error_message: string | null;
+  };
+}
+
+export const scrapeProperty = (url: string) =>
+  api.post<ScrapeResponse>("/properties/scrape", { url }).then((r) => r.data);

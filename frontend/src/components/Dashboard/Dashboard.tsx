@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { listProperties, createProperty, deleteProperty } from "../../api/client.ts";
+import { listProperties, createProperty, deleteProperty, scrapeProperty } from "../../api/client.ts";
 import type { PropertySummary } from "../../types/index.ts";
 import { PropertyCard } from "./PropertyCard.tsx";
 import { ConfirmDialog } from "../shared/ConfirmDialog.tsx";
@@ -22,6 +22,9 @@ export function Dashboard() {
   const [newPrice, setNewPrice] = useState("");
   const [creating, setCreating] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [scrapeUrl, setScrapeUrl] = useState("");
+  const [scraping, setScraping] = useState(false);
+  const [scrapeError, setScrapeError] = useState<string | null>(null);
 
   const fetchProperties = useCallback(async () => {
     try {
@@ -87,6 +90,25 @@ export function Dashboard() {
       setCreating(false);
     }
   }, [newName, newPrice, navigate]);
+
+  const handleScrape = useCallback(async () => {
+    if (!scrapeUrl.trim()) return;
+    try {
+      setScraping(true);
+      setScrapeError(null);
+      const result = await scrapeProperty(scrapeUrl.trim());
+      if (result.property_id) {
+        const fieldsMissing = result.scraper_result.fields_missing;
+        navigate(`/property/${result.property_id}`, { state: { fieldsMissing } });
+      } else {
+        setScrapeError(result.scraper_result.error_message ?? "Scrape failed — try creating manually.");
+      }
+    } catch {
+      setScrapeError("Failed to fetch property data. Check the URL and try again.");
+    } finally {
+      setScraping(false);
+    }
+  }, [scrapeUrl, navigate]);
 
   const handleDelete = useCallback(async () => {
     if (!deleteTarget) return;
@@ -200,6 +222,47 @@ export function Dashboard() {
       {showNewForm && (
         <div className="bg-white rounded-2xl p-6 mb-6 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.03)]">
           <h3 className="text-lg font-semibold tracking-tight mb-4">New Property</h3>
+
+          {/* URL scrape flow */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Import from Redfin
+            </label>
+            <div className="flex gap-3">
+              <input
+                type="url"
+                value={scrapeUrl}
+                onChange={(e) => { setScrapeUrl(e.target.value); setScrapeError(null); }}
+                onKeyDown={(e) => { if (e.key === "Enter") void handleScrape(); }}
+                placeholder="Paste a Redfin URL..."
+                disabled={scraping}
+                className="flex-1 px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:opacity-50"
+                autoFocus
+              />
+              <button
+                onClick={() => void handleScrape()}
+                disabled={scraping || !scrapeUrl.trim()}
+                className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-indigo-500 shadow-md shadow-indigo-200 text-white rounded-lg hover:from-indigo-700 hover:to-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium whitespace-nowrap"
+              >
+                {scraping ? "Fetching..." : "Fetch"}
+              </button>
+            </div>
+            {scraping && (
+              <p className="text-sm text-slate-500 mt-2">Fetching property data from Redfin...</p>
+            )}
+            {scrapeError && (
+              <p className="text-sm text-red-600 mt-2">{scrapeError}</p>
+            )}
+          </div>
+
+          {/* Divider */}
+          <div className="flex items-center gap-3 my-5">
+            <div className="flex-1 border-t border-slate-200" />
+            <span className="text-xs text-slate-400 font-medium">— or create manually —</span>
+            <div className="flex-1 border-t border-slate-200" />
+          </div>
+
+          {/* Manual create form */}
           <div className="flex gap-4 items-end">
             <div className="flex-1">
               <label className="block text-sm font-medium text-slate-700 mb-1">
@@ -211,7 +274,6 @@ export function Dashboard() {
                 onChange={(e) => setNewName(e.target.value)}
                 placeholder='e.g., "Lake House"'
                 className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                autoFocus
               />
             </div>
             <div className="w-48">
@@ -237,7 +299,7 @@ export function Dashboard() {
               {creating ? "Creating..." : "Create"}
             </button>
             <button
-              onClick={() => { setShowNewForm(false); setNewName(""); setNewPrice(""); }}
+              onClick={() => { setShowNewForm(false); setNewName(""); setNewPrice(""); setScrapeUrl(""); setScrapeError(null); }}
               className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors text-sm font-medium"
             >
               Cancel
