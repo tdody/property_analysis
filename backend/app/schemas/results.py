@@ -127,9 +127,19 @@ class MonthlyBreakdownResponse(BaseModel):
     months: list[MonthlyDetail]
 
 
+class OccupancySweepEntry(BaseModel):
+    occupancy_pct: int
+    monthly_cashflow: float
+
+
+class RateSweepEntry(BaseModel):
+    nightly_rate: float
+    monthly_cashflow: float
+
+
 class SensitivityResponse(BaseModel):
-    occupancy_sweep: list[dict]
-    rate_sweep: list[dict]
+    occupancy_sweep: list[OccupancySweepEntry]
+    rate_sweep: list[RateSweepEntry]
 
 
 class AmortizationEntry(BaseModel):
