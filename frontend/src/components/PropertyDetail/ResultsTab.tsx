@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback } from "react";
-import type { MortgageScenario, ComputedResults, SensitivityData, AmortizationEntry, ProjectionYear, MonthlyDetail } from "../../types/index.ts";
-import { getResults, getResultsForScenario, getSensitivity, getAmortization, getProjections, getMonthlyBreakdown } from "../../api/client.ts";
+import type { MortgageScenario, ComputedResults, LTRComputedResults, SensitivityData, LTRSensitivityData, AmortizationEntry, ProjectionYear, MonthlyDetail } from "../../types/index.ts";
+import { getResults, getResultsForScenario, getSensitivity, getLTRResults, getLTRSensitivity, getAmortization, getProjections, getMonthlyBreakdown } from "../../api/client.ts";
 import { MetricCard } from "../shared/MetricCard.tsx";
 
 interface ResultsTabProps {
   propertyId: string;
   scenarios: MortgageScenario[];
+  activeRentalType: 'str' | 'ltr';
 }
 
 function fmt(value: number, decimals = 0): string {
@@ -48,7 +49,7 @@ const METRIC_TOOLTIPS: Record<string, string> = {
     "(Annual cashflow + equity buildup + property appreciation) / total cash invested. Optimistic ROI that includes unrealized gains from property value increase.",
 };
 
-export function ResultsTab({ propertyId, scenarios }: ResultsTabProps) {
+export function ResultsTab({ propertyId, scenarios, activeRentalType }: ResultsTabProps) {
   const [results, setResults] = useState<ComputedResults | null>(null);
   const [sensitivity, setSensitivity] = useState<SensitivityData | null>(null);
   const [amortization, setAmortization] = useState<AmortizationEntry[]>([]);
@@ -66,6 +67,10 @@ export function ResultsTab({ propertyId, scenarios }: ResultsTabProps) {
   const [monthlyData, setMonthlyData] = useState<MonthlyDetail[]>([]);
   const [monthlyLoading, setMonthlyLoading] = useState(false);
   const [monthlyIsSeasonal, setMonthlyIsSeasonal] = useState(false);
+  const [showComparison, setShowComparison] = useState(false);
+  const [ltrResults, setLtrResults] = useState<LTRComputedResults | null>(null);
+  const [ltrSensitivity, setLtrSensitivity] = useState<LTRSensitivityData | null>(null);
+  const [comparisonLoading, setComparisonLoading] = useState(false);
 
   const activeScenario = scenarios.find((s) => s.is_active);
 
@@ -711,6 +716,134 @@ export function ResultsTab({ propertyId, scenarios }: ResultsTabProps) {
           )}
         </section>
       )}
+
+      {/* STR vs LTR Comparison */}
+      <section>
+        <button
+          onClick={() => {
+            const next = !showComparison;
+            setShowComparison(next);
+            if (next && !ltrResults) {
+              setComparisonLoading(true);
+              Promise.all([
+                getLTRResults(propertyId),
+                getLTRSensitivity(propertyId),
+              ])
+                .then(([ltrRes, ltrSens]) => {
+                  setLtrResults(ltrRes);
+                  setLtrSensitivity(ltrSens);
+                })
+                .catch(() => {
+                  setLtrResults(null);
+                  setLtrSensitivity(null);
+                })
+                .finally(() => setComparisonLoading(false));
+            }
+          }}
+          className="flex items-center gap-2 text-base font-semibold text-slate-900 mb-4 w-full text-left"
+        >
+          <span>{showComparison ? "\u25BC" : "\u25B6"}</span>
+          Compare STR vs LTR
+        </button>
+        {showComparison && (
+          comparisonLoading ? (
+            <div className="text-center py-6 text-slate-500">Loading LTR results...</div>
+          ) : ltrResults ? (
+            <div className="space-y-6">
+              <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead className="bg-slate-50">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-slate-600">Metric</th>
+                      <th className="px-4 py-3 text-right text-slate-600">
+                        <span className="inline-flex items-center gap-1">
+                          <span className="w-2 h-2 rounded-full bg-sky-400 inline-block" />
+                          STR
+                        </span>
+                      </th>
+                      <th className="px-4 py-3 text-right text-slate-600">
+                        <span className="inline-flex items-center gap-1">
+                          <span className="w-2 h-2 rounded-full bg-violet-400 inline-block" />
+                          LTR
+                        </span>
+                      </th>
+                      <th className="px-4 py-3 text-right text-slate-600">Difference</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {[
+                      { label: "Monthly Cashflow", strVal: m.monthly_cashflow, ltrVal: ltrResults.metrics.monthly_cashflow, fmt: fmtCurrency },
+                      { label: "Annual Cashflow", strVal: m.annual_cashflow, ltrVal: ltrResults.metrics.annual_cashflow, fmt: fmtCurrency },
+                      { label: "Cash-on-Cash Return", strVal: m.cash_on_cash_return, ltrVal: ltrResults.metrics.cash_on_cash_return, fmt: fmtPct },
+                      { label: "Cap Rate", strVal: m.cap_rate, ltrVal: ltrResults.metrics.cap_rate, fmt: fmtPct },
+                      { label: "NOI", strVal: m.noi, ltrVal: ltrResults.metrics.noi, fmt: fmtCurrency },
+                      { label: "DSCR", strVal: m.dscr, ltrVal: ltrResults.metrics.dscr, fmt: (v: number) => v.toFixed(2) },
+                      { label: "Gross Yield", strVal: m.gross_yield, ltrVal: ltrResults.metrics.gross_yield, fmt: fmtPct },
+                      { label: "Year-1 Total ROI", strVal: m.total_roi_year1, ltrVal: ltrResults.metrics.total_roi_year1, fmt: fmtPct },
+                    ].map(({ label, strVal, ltrVal, fmt }) => {
+                      const diff = ltrVal - strVal;
+                      const winner = diff > 0.01 ? "ltr" : diff < -0.01 ? "str" : "tie";
+                      return (
+                        <tr key={label}>
+                          <td className="px-4 py-2 text-slate-700 font-medium">{label}</td>
+                          <td className={`px-4 py-2 text-right ${winner === "str" ? "font-semibold text-sky-700" : ""}`}>
+                            {fmt(strVal)}
+                          </td>
+                          <td className={`px-4 py-2 text-right ${winner === "ltr" ? "font-semibold text-violet-700" : ""}`}>
+                            {fmt(ltrVal)}
+                          </td>
+                          <td className={`px-4 py-2 text-right text-sm ${diff > 0 ? "text-emerald-600" : diff < 0 ? "text-red-500" : "text-slate-400"}`}>
+                            {diff > 0 ? "+" : ""}{fmt(diff)}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* LTR Sensitivity */}
+              {ltrSensitivity && (
+                <div>
+                  <h4 className="text-sm font-semibold text-slate-700 mb-3">LTR Sensitivity Analysis</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+                      <div className="px-4 py-3 bg-slate-50 font-semibold text-slate-700">
+                        Vacancy % vs Monthly Cashflow
+                      </div>
+                      <div className="p-4">
+                        <SensitivityChart
+                          data={ltrSensitivity.vacancy_sweep.map((d) => ({
+                            label: `${d.vacancy_pct}%`,
+                            value: d.monthly_cashflow,
+                          }))}
+                        />
+                      </div>
+                    </div>
+                    <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+                      <div className="px-4 py-3 bg-slate-50 font-semibold text-slate-700">
+                        Monthly Rent vs Monthly Cashflow
+                      </div>
+                      <div className="p-4">
+                        <SensitivityChart
+                          data={ltrSensitivity.rent_sweep.map((d) => ({
+                            label: `$${d.monthly_rent}`,
+                            value: d.monthly_cashflow,
+                          }))}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="text-center py-6 text-slate-500">
+              Failed to load LTR results. Make sure you have at least one active scenario configured.
+            </div>
+          )
+        )}
+      </section>
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import type { STRAssumptions } from "../../types/index.ts";
+import type { STRAssumptions, LTRAssumptions } from "../../types/index.ts";
 import { CurrencyInput } from "../shared/CurrencyInput.tsx";
 import { PercentInput } from "../shared/PercentInput.tsx";
 import { TooltipIcon } from "../shared/TooltipIcon.tsx";
@@ -7,6 +7,10 @@ import { TooltipIcon } from "../shared/TooltipIcon.tsx";
 interface RevenueExpensesTabProps {
   assumptions: STRAssumptions;
   onUpdate: (updates: Partial<STRAssumptions>) => Promise<STRAssumptions>;
+  ltrAssumptions: LTRAssumptions | null;
+  onUpdateLTR: (updates: Partial<LTRAssumptions>) => Promise<LTRAssumptions>;
+  activeRentalType: 'str' | 'ltr';
+  onChangeRentalType: (type: 'str' | 'ltr') => void;
 }
 
 const TOOLTIPS = {
@@ -82,8 +86,9 @@ const TOOLTIPS = {
     "Expected annual expense growth rate for multi-year projections. Covers inflation on operating costs (cleaning, utilities, supplies, maintenance). General inflation: 2-4%.",
 };
 
-export function RevenueExpensesTab({ assumptions, onUpdate }: RevenueExpensesTabProps) {
+export function RevenueExpensesTab({ assumptions, onUpdate, ltrAssumptions, onUpdateLTR, activeRentalType, onChangeRentalType }: RevenueExpensesTabProps) {
   const [form, setForm] = useState<STRAssumptions>({ ...assumptions });
+  const [ltrForm, setLtrForm] = useState<LTRAssumptions | null>(ltrAssumptions ? { ...ltrAssumptions } : null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
@@ -92,10 +97,19 @@ export function RevenueExpensesTab({ assumptions, onUpdate }: RevenueExpensesTab
     setSaved(false);
   }, []);
 
+  const updateLTRField = useCallback(<K extends keyof LTRAssumptions>(key: K, value: LTRAssumptions[K]) => {
+    setLtrForm((prev) => prev ? ({ ...prev, [key]: value }) : prev);
+    setSaved(false);
+  }, []);
+
   const handleSave = useCallback(async () => {
     try {
       setSaving(true);
-      await onUpdate(form);
+      if (activeRentalType === 'ltr' && ltrForm) {
+        await onUpdateLTR(ltrForm);
+      } else {
+        await onUpdate(form);
+      }
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } catch {
@@ -103,10 +117,38 @@ export function RevenueExpensesTab({ assumptions, onUpdate }: RevenueExpensesTab
     } finally {
       setSaving(false);
     }
-  }, [form, onUpdate]);
+  }, [form, ltrForm, onUpdate, onUpdateLTR, activeRentalType]);
 
   return (
     <div className="space-y-8">
+      {/* Rental Type Toggle */}
+      <div className="flex items-center gap-2">
+        <span className="text-sm font-medium text-slate-700 mr-2">Rental Type:</span>
+        <button
+          onClick={() => onChangeRentalType('str')}
+          className={`px-4 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+            activeRentalType === 'str'
+              ? 'bg-sky-100 text-sky-700 shadow-sm'
+              : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100'
+          }`}
+        >
+          STR
+        </button>
+        <button
+          onClick={() => onChangeRentalType('ltr')}
+          className={`px-4 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+            activeRentalType === 'ltr'
+              ? 'bg-violet-100 text-violet-700 shadow-sm'
+              : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100'
+          }`}
+        >
+          LTR
+        </button>
+      </div>
+
+      {activeRentalType === 'ltr' && ltrForm ? (
+        <LTRForm ltrForm={ltrForm} updateLTRField={updateLTRField} />
+      ) : (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Left column: Revenue */}
         <div className="bg-white rounded-2xl shadow-sm p-6 space-y-6">
@@ -424,6 +466,8 @@ export function RevenueExpensesTab({ assumptions, onUpdate }: RevenueExpensesTab
         </div>
       </section>
 
+      )}
+
       {/* Save */}
       <div className="flex items-center gap-4 pt-4 border-t border-slate-100">
         <button
@@ -434,6 +478,234 @@ export function RevenueExpensesTab({ assumptions, onUpdate }: RevenueExpensesTab
           {saving ? "Saving..." : "Save Changes"}
         </button>
         {saved && <span className="text-emerald-600 text-sm font-medium">Saved successfully</span>}
+      </div>
+    </div>
+  );
+}
+
+const LTR_TOOLTIPS = {
+  monthly_rent: "Expected monthly rent for the property. Research comparable long-term rentals in the area on Zillow, Apartments.com, or local listings.",
+  lease_duration_months: "Length of the lease in months. Standard is 12 months. Shorter leases (6-9 months) may command higher rent but increase turnover costs.",
+  pet_rent_monthly: "Additional monthly pet rent. Typical range: $25-$50 per pet. Set to $0 if not accepting pets.",
+  late_fee_monthly: "Average monthly late fee income across all months. Most landlords charge $50-$100 per late payment; multiply by expected frequency.",
+  vacancy_rate_pct: "Ongoing vacancy rate as a percentage. Accounts for time between tenants after the initial lease-up. US average: 5-8%. Hot markets: 2-4%.",
+  lease_up_period_months: "Months to find the first tenant after purchase. Typically 1-2 months. Only affects Year 1 calculations.",
+  property_mgmt_pct: "Property management fee as % of collected rent. 0% if self-managing. Typical full-service: 8-12%.",
+  insurance_annual: "Annual landlord insurance premium. Typically $1,500-$3,000. May differ from STR insurance.",
+  maintenance_reserve_pct: "Percentage of gross revenue set aside for routine maintenance. Standard: 5%. Alternative: 1% of property value per year.",
+  capex_reserve_pct: "Percentage of gross revenue reserved for major capital expenditures (roof, HVAC, appliances). Standard: 5%.",
+  landlord_repairs_annual: "Annual budget for landlord-responsible repairs not covered by reserves. Includes plumbing, electrical, appliance repairs.",
+  tenant_turnover_cost: "Cost to prepare the unit between tenants: cleaning, painting, minor repairs, listing fees. Typical: $1,000-$3,000.",
+  utilities_monthly: "Monthly utilities paid by the landlord. Many LTR tenants pay their own utilities. Common landlord-paid: water, trash, common area electric.",
+  lawn_snow_monthly: "Monthly average for landscaping and snow removal. Set to $0 if tenant-responsible or for condos.",
+  other_monthly_expense: "Catch-all for expenses not covered above: pest control, common area maintenance, etc.",
+  accounting_annual: "Annual accounting and tax preparation costs. Typical: $500-$1,500.",
+  legal_annual: "Annual legal costs: lease preparation, eviction proceedings, compliance. Typical: $500-$1,500.",
+  land_value_pct: "Percentage of purchase price attributable to land (non-depreciable). Check county tax assessment. Typical: 15-30%.",
+  property_appreciation_pct_annual: "Expected annual property value appreciation. US historical average: 3-4%. Conservative: 2%.",
+  revenue_growth_pct: "Expected annual rent increase at lease renewal. US average: 3-5%. Tied to market conditions and lease terms.",
+  expense_growth_pct: "Expected annual expense growth rate. Covers inflation on operating costs. General inflation: 2-4%.",
+  marginal_tax_rate_pct: "Your combined marginal income tax rate (federal + state). Used to estimate after-tax cashflow. Set to 0 to hide tax analysis.",
+};
+
+function LTRForm({ ltrForm, updateLTRField }: {
+  ltrForm: LTRAssumptions;
+  updateLTRField: <K extends keyof LTRAssumptions>(key: K, value: LTRAssumptions[K]) => void;
+}) {
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      {/* Left column: Revenue */}
+      <div className="bg-white rounded-2xl shadow-sm p-6 space-y-6">
+        <h3 className="text-base font-semibold text-slate-900">LTR Revenue</h3>
+        <CurrencyInput
+          label="Monthly Rent"
+          value={ltrForm.monthly_rent}
+          onChange={(v) => updateLTRField("monthly_rent", v)}
+          tooltip={LTR_TOOLTIPS.monthly_rent}
+        />
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1">
+            Lease Duration (months)
+            <TooltipIcon text={LTR_TOOLTIPS.lease_duration_months} />
+          </label>
+          <input
+            type="number"
+            min="1"
+            max="36"
+            step="1"
+            value={ltrForm.lease_duration_months}
+            onChange={(e) => updateLTRField("lease_duration_months", parseInt(e.target.value) || 12)}
+            className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+          />
+        </div>
+        <CurrencyInput
+          label="Pet Rent (Monthly)"
+          value={ltrForm.pet_rent_monthly}
+          onChange={(v) => updateLTRField("pet_rent_monthly", v)}
+          tooltip={LTR_TOOLTIPS.pet_rent_monthly}
+        />
+        <CurrencyInput
+          label="Late Fee Income (Monthly Avg)"
+          value={ltrForm.late_fee_monthly}
+          onChange={(v) => updateLTRField("late_fee_monthly", v)}
+          tooltip={LTR_TOOLTIPS.late_fee_monthly}
+        />
+        <PercentInput
+          label="Vacancy Rate %"
+          value={ltrForm.vacancy_rate_pct}
+          onChange={(v) => updateLTRField("vacancy_rate_pct", v)}
+          tooltip={LTR_TOOLTIPS.vacancy_rate_pct}
+        />
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1">
+            Lease-Up Period (months)
+            <TooltipIcon text={LTR_TOOLTIPS.lease_up_period_months} />
+          </label>
+          <input
+            type="number"
+            min="0"
+            max="12"
+            step="1"
+            value={ltrForm.lease_up_period_months}
+            onChange={(e) => updateLTRField("lease_up_period_months", parseInt(e.target.value) || 0)}
+            className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+          />
+        </div>
+
+        <hr className="border-slate-100" />
+        <h4 className="text-xs uppercase tracking-wider text-slate-400 font-medium">Growth & Tax</h4>
+        <PercentInput
+          label="Land Value %"
+          value={ltrForm.land_value_pct}
+          onChange={(v) => updateLTRField("land_value_pct", v)}
+          tooltip={LTR_TOOLTIPS.land_value_pct}
+        />
+        <PercentInput
+          label="Annual Appreciation %"
+          value={ltrForm.property_appreciation_pct_annual}
+          onChange={(v) => updateLTRField("property_appreciation_pct_annual", v)}
+          tooltip={LTR_TOOLTIPS.property_appreciation_pct_annual}
+        />
+        <PercentInput
+          label="Rent Increase % / yr"
+          value={ltrForm.revenue_growth_pct}
+          onChange={(v) => updateLTRField("revenue_growth_pct", v)}
+          tooltip={LTR_TOOLTIPS.revenue_growth_pct}
+        />
+        <PercentInput
+          label="Expense Growth % / yr"
+          value={ltrForm.expense_growth_pct}
+          onChange={(v) => updateLTRField("expense_growth_pct", v)}
+          tooltip={LTR_TOOLTIPS.expense_growth_pct}
+        />
+        <PercentInput
+          label="Marginal Tax Rate %"
+          value={ltrForm.marginal_tax_rate_pct}
+          onChange={(v) => updateLTRField("marginal_tax_rate_pct", v)}
+          tooltip={LTR_TOOLTIPS.marginal_tax_rate_pct}
+        />
+      </div>
+
+      {/* Right column: Expenses */}
+      <div className="bg-white rounded-2xl shadow-sm p-6 space-y-6">
+        <h3 className="text-base font-semibold text-slate-900">LTR Expenses</h3>
+
+        {/* Management */}
+        <div>
+          <h4 className="text-xs uppercase tracking-wider text-slate-400 font-medium mb-3">Management</h4>
+          <PercentInput
+            label="Property Mgmt %"
+            value={ltrForm.property_mgmt_pct}
+            onChange={(v) => updateLTRField("property_mgmt_pct", v)}
+            tooltip={LTR_TOOLTIPS.property_mgmt_pct}
+          />
+        </div>
+
+        {/* Turnover */}
+        <div>
+          <h4 className="text-xs uppercase tracking-wider text-slate-400 font-medium mb-3">Turnover</h4>
+          <CurrencyInput
+            label="Tenant Turnover Cost"
+            value={ltrForm.tenant_turnover_cost}
+            onChange={(v) => updateLTRField("tenant_turnover_cost", v)}
+            tooltip={LTR_TOOLTIPS.tenant_turnover_cost}
+          />
+        </div>
+
+        {/* Monthly Fixed */}
+        <div>
+          <h4 className="text-xs uppercase tracking-wider text-slate-400 font-medium mb-3">Monthly Fixed</h4>
+          <div className="space-y-4">
+            <CurrencyInput
+              label="Utilities (Monthly)"
+              value={ltrForm.utilities_monthly}
+              onChange={(v) => updateLTRField("utilities_monthly", v)}
+              tooltip={LTR_TOOLTIPS.utilities_monthly}
+            />
+            <CurrencyInput
+              label="Lawn & Snow (Monthly)"
+              value={ltrForm.lawn_snow_monthly}
+              onChange={(v) => updateLTRField("lawn_snow_monthly", v)}
+              tooltip={LTR_TOOLTIPS.lawn_snow_monthly}
+            />
+            <CurrencyInput
+              label="Other Monthly Expense"
+              value={ltrForm.other_monthly_expense}
+              onChange={(v) => updateLTRField("other_monthly_expense", v)}
+              tooltip={LTR_TOOLTIPS.other_monthly_expense}
+            />
+          </div>
+        </div>
+
+        {/* Annual */}
+        <div>
+          <h4 className="text-xs uppercase tracking-wider text-slate-400 font-medium mb-3">Annual</h4>
+          <div className="space-y-4">
+            <CurrencyInput
+              label="Insurance (Annual)"
+              value={ltrForm.insurance_annual}
+              onChange={(v) => updateLTRField("insurance_annual", v)}
+              tooltip={LTR_TOOLTIPS.insurance_annual}
+            />
+            <CurrencyInput
+              label="Landlord Repairs (Annual)"
+              value={ltrForm.landlord_repairs_annual}
+              onChange={(v) => updateLTRField("landlord_repairs_annual", v)}
+              tooltip={LTR_TOOLTIPS.landlord_repairs_annual}
+            />
+            <CurrencyInput
+              label="Accounting (Annual)"
+              value={ltrForm.accounting_annual}
+              onChange={(v) => updateLTRField("accounting_annual", v)}
+              tooltip={LTR_TOOLTIPS.accounting_annual}
+            />
+            <CurrencyInput
+              label="Legal (Annual)"
+              value={ltrForm.legal_annual}
+              onChange={(v) => updateLTRField("legal_annual", v)}
+              tooltip={LTR_TOOLTIPS.legal_annual}
+            />
+          </div>
+        </div>
+
+        {/* Reserves */}
+        <div>
+          <h4 className="text-xs uppercase tracking-wider text-slate-400 font-medium mb-3">Reserves</h4>
+          <div className="space-y-4">
+            <PercentInput
+              label="Maintenance Reserve %"
+              value={ltrForm.maintenance_reserve_pct}
+              onChange={(v) => updateLTRField("maintenance_reserve_pct", v)}
+              tooltip={LTR_TOOLTIPS.maintenance_reserve_pct}
+            />
+            <PercentInput
+              label="CapEx Reserve %"
+              value={ltrForm.capex_reserve_pct}
+              onChange={(v) => updateLTRField("capex_reserve_pct", v)}
+              tooltip={LTR_TOOLTIPS.capex_reserve_pct}
+            />
+          </div>
+        </div>
       </div>
     </div>
   );

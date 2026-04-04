@@ -62,7 +62,16 @@ export function PropertyCard({ property, selected, onToggleSelect, onDelete }: P
       <div className="p-5 flex flex-col gap-3 flex-1">
         <div className="flex items-start justify-between">
           <div className="flex-1 min-w-0">
-            <h3 className="text-lg font-semibold tracking-tight text-slate-900 truncate">{property.name}</h3>
+            <div className="flex items-center gap-2">
+              <h3 className="text-lg font-semibold tracking-tight text-slate-900 truncate">{property.name}</h3>
+              <span className={`text-xs font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0 ${
+                property.active_rental_type === 'ltr'
+                  ? 'bg-violet-100 text-violet-700'
+                  : 'bg-sky-100 text-sky-700'
+              }`}>
+                {property.active_rental_type === 'ltr' ? 'LTR' : 'STR'}
+              </span>
+            </div>
             <p className="text-sm text-slate-500 truncate">
               {property.city}, {property.state}
             </p>

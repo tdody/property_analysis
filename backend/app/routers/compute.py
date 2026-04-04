@@ -28,11 +28,23 @@ from app.services.computation.revenue import (
 from app.services.computation.expenses import compute_operating_expenses
 from app.services.computation.projections import compute_five_year_projection
 from app.services.computation.irr import compute_irr, compute_equity_multiple
-from app.services.computation.monthly import compute_monthly_breakdown
-from app.services.computation.sensitivity import compute_sensitivity
-from app.services.analysis import compute_for_scenario, compute_and_cache_summary, get_occupancy, compute_fixed_opex
+from app.services.computation.monthly import compute_monthly_breakdown, compute_ltr_monthly_breakdown
+from app.services.computation.sensitivity import compute_sensitivity, compute_ltr_sensitivity
+from app.services.computation.ltr_revenue import compute_ltr_gross_revenue, compute_ltr_effective_revenue
+from app.services.analysis import compute_for_scenario, compute_and_cache_summary, get_occupancy, compute_fixed_opex, compute_for_scenario_ltr, compute_and_cache_ltr_summary, compute_ltr_fixed_opex
+from app.models.ltr_assumptions import LTRAssumptions
 
 router = APIRouter(tags=["compute"])
+
+
+def _get_ltr_assumptions(property_id: str, db: Session) -> LTRAssumptions:
+    ltr = db.query(LTRAssumptions).filter(LTRAssumptions.property_id == property_id).first()
+    if not ltr:
+        # Auto-create with defaults
+        ltr = LTRAssumptions(property_id=property_id)
+        db.add(ltr)
+        db.flush()
+    return ltr
 
 
 def _get_prop_scenario_assumptions(property_id: str, scenario_id: str | None, db: Session):
@@ -73,6 +85,24 @@ def get_results(property_id: str, db: Session = Depends(get_db)):
 def get_results_for_scenario(property_id: str, scenario_id: str, db: Session = Depends(get_db)):
     prop, scenario, assumptions = _get_prop_scenario_assumptions(property_id, scenario_id, db)
     result = compute_and_cache_summary(prop, scenario, assumptions, db)
+    db.commit()
+    return result
+
+
+@router.get("/api/properties/{property_id}/ltr-results")
+def get_ltr_results(property_id: str, db: Session = Depends(get_db)):
+    """Dedicated LTR results endpoint for comparison view."""
+    prop = db.query(Property).filter(Property.id == property_id).first()
+    if not prop:
+        raise HTTPException(status_code=404, detail="Property not found")
+    scenario = db.query(MortgageScenario).filter(
+        MortgageScenario.property_id == property_id,
+        MortgageScenario.is_active == True,
+    ).first()
+    if not scenario:
+        raise HTTPException(status_code=404, detail="No active scenario found")
+    ltr = _get_ltr_assumptions(property_id, db)
+    result = compute_for_scenario_ltr(prop, scenario, ltr)
     db.commit()
     return result
 
@@ -221,6 +251,45 @@ def get_sensitivity(property_id: str, db: Session = Depends(get_db)):
         maintenance_reserve_pct=float(assumptions.maintenance_reserve_pct),
         capex_reserve_pct=float(assumptions.capex_reserve_pct),
         fixed_opex_annual=fixed_opex,
+        total_monthly_housing=total_monthly_housing,
+    )
+
+
+@router.get("/api/properties/{property_id}/ltr-sensitivity")
+def get_ltr_sensitivity_endpoint(property_id: str, db: Session = Depends(get_db)):
+    """Dedicated LTR sensitivity endpoint."""
+    prop = db.query(Property).filter(Property.id == property_id).first()
+    if not prop:
+        raise HTTPException(status_code=404, detail="Property not found")
+    scenario = db.query(MortgageScenario).filter(
+        MortgageScenario.property_id == property_id,
+        MortgageScenario.is_active == True,
+    ).first()
+    if not scenario:
+        raise HTTPException(status_code=404, detail="No active scenario found")
+    ltr = _get_ltr_assumptions(property_id, db)
+
+    loan_amount = compute_loan_amount(float(scenario.purchase_price), float(scenario.down_payment_amt))
+    monthly_pi = compute_monthly_pi(loan_amount, float(scenario.interest_rate), scenario.loan_term_years)
+    monthly_pmi = compute_pmi(loan_amount, scenario.loan_type, float(scenario.down_payment_pct), None)
+    total_monthly_housing = compute_total_monthly_housing(
+        monthly_pi, monthly_pmi, float(prop.annual_taxes),
+        float(ltr.insurance_annual), float(prop.hoa_monthly),
+        float(prop.nonhomestead_annual_taxes) if prop.nonhomestead_annual_taxes else None,
+    )
+    fixed_opex = compute_ltr_fixed_opex(ltr)
+
+    return compute_ltr_sensitivity(
+        monthly_rent=float(ltr.monthly_rent),
+        pet_rent_monthly=float(ltr.pet_rent_monthly),
+        late_fee_monthly=float(ltr.late_fee_monthly),
+        base_vacancy_rate_pct=float(ltr.vacancy_rate_pct),
+        property_mgmt_pct=float(ltr.property_mgmt_pct),
+        maintenance_reserve_pct=float(ltr.maintenance_reserve_pct),
+        capex_reserve_pct=float(ltr.capex_reserve_pct),
+        fixed_opex_annual=fixed_opex,
+        tenant_turnover_cost=float(ltr.tenant_turnover_cost),
+        lease_duration_months=int(ltr.lease_duration_months),
         total_monthly_housing=total_monthly_housing,
     )
 

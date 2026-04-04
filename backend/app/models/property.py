@@ -1,10 +1,16 @@
 import uuid
 from datetime import datetime, timezone
+from enum import Enum
 
 from sqlalchemy import Boolean, DateTime, Float, Integer, Numeric, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
+
+
+class RentalType(str, Enum):
+    STR = "str"
+    LTR = "ltr"
 
 
 class Property(Base):
@@ -42,6 +48,8 @@ class Property(Base):
     in_portfolio: Mapped[bool] = mapped_column(Boolean, default=False)
     cached_monthly_cashflow: Mapped[float | None] = mapped_column(Numeric(10, 2), nullable=True)
     cached_cash_on_cash_return: Mapped[float | None] = mapped_column(Numeric(10, 4), nullable=True)
+    active_rental_type: Mapped[str] = mapped_column(String(10), default=RentalType.STR.value)
 
     scenarios: Mapped[list["MortgageScenario"]] = relationship(back_populates="property", cascade="all, delete-orphan")
     assumptions: Mapped["STRAssumptions | None"] = relationship(back_populates="property", uselist=False, cascade="all, delete-orphan")
+    ltr_assumptions: Mapped["LTRAssumptions | None"] = relationship(back_populates="property", uselist=False, cascade="all, delete-orphan")

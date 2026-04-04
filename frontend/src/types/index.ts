@@ -13,6 +13,7 @@ export interface PropertySummary {
   image_url: string | null;
   monthly_cashflow: number | null;
   cash_on_cash_return: number | null;
+  active_rental_type: 'str' | 'ltr';
 }
 
 export interface Property {
@@ -41,6 +42,7 @@ export interface Property {
   nonhomestead_annual_taxes: number | null;
   notes: string;
   is_archived: boolean;
+  active_rental_type: 'str' | 'ltr';
 }
 
 export interface MortgageScenario {
@@ -224,4 +226,88 @@ export interface ComparisonProperty {
   break_even_occupancy: number;
   dscr: number;
   gross_yield: number;
+}
+
+export interface LTRAssumptions {
+  id: string;
+  property_id: string;
+  monthly_rent: number;
+  lease_duration_months: number;
+  pet_rent_monthly: number;
+  late_fee_monthly: number;
+  vacancy_rate_pct: number;
+  lease_up_period_months: number;
+  property_mgmt_pct: number;
+  insurance_annual: number;
+  maintenance_reserve_pct: number;
+  capex_reserve_pct: number;
+  landlord_repairs_annual: number;
+  tenant_turnover_cost: number;
+  utilities_monthly: number;
+  lawn_snow_monthly: number;
+  other_monthly_expense: number;
+  accounting_annual: number;
+  legal_annual: number;
+  land_value_pct: number;
+  property_appreciation_pct_annual: number;
+  revenue_growth_pct: number;
+  expense_growth_pct: number;
+  marginal_tax_rate_pct: number;
+}
+
+export interface LTRComputedResults {
+  property_id: string;
+  scenario_id: string;
+  scenario_name: string;
+  rental_type: 'ltr';
+  mortgage: {
+    loan_amount: number;
+    monthly_pi: number;
+    monthly_pmi: number;
+    total_monthly_housing: number;
+    total_cash_invested: number;
+    origination_fee: number;
+  };
+  revenue: {
+    monthly_rent: number;
+    pet_rent_monthly: number;
+    late_fee_monthly: number;
+    gross_annual: number;
+    vacancy_loss: number;
+    effective_annual: number;
+  };
+  expenses: {
+    total_annual_operating: number;
+    breakdown: Record<string, number>;
+  };
+  metrics: {
+    monthly_cashflow: number;
+    annual_cashflow: number;
+    cash_on_cash_return: number;
+    cap_rate: number;
+    noi: number;
+    break_even_vacancy_pct: number;
+    dscr: number;
+    gross_yield: number;
+    total_roi_year1: number;
+    dscr_warning: string | null;
+    appreciation_year1: number;
+    total_roi_year1_with_appreciation: number;
+    taxable_income: number;
+    tax_liability: number;
+    after_tax_annual_cashflow: number;
+    after_tax_monthly_cashflow: number;
+  };
+  lease_up_period_months: number;
+  depreciation: {
+    building_value: number;
+    building_depreciation_annual: number;
+    furniture_depreciation_annual: number;
+    total_depreciation_annual: number;
+  } | null;
+}
+
+export interface LTRSensitivityData {
+  vacancy_sweep: Array<{ vacancy_pct: number; monthly_cashflow: number }>;
+  rent_sweep: Array<{ monthly_rent: number; monthly_cashflow: number }>;
 }
