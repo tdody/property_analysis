@@ -1,10 +1,4 @@
-from fastapi.testclient import TestClient
-from app.main import app
-
-client = TestClient(app)
-
-
-def test_dashboard_uses_cached_metrics():
+def test_dashboard_uses_cached_metrics(client):
     """Dashboard should return cached metrics without recomputing."""
     resp = client.post("/api/properties", json={"name": "Cache Test"})
     assert resp.status_code == 201

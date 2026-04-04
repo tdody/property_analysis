@@ -9,7 +9,7 @@ class STRAssumptions(Base):
     __tablename__ = "str_assumptions"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    property_id: Mapped[str] = mapped_column(String(36), ForeignKey("properties.id"), unique=True)
+    property_id: Mapped[str] = mapped_column(String(36), ForeignKey("properties.id", ondelete="CASCADE"), unique=True)
 
     # Revenue
     avg_nightly_rate: Mapped[float] = mapped_column(Numeric(10, 2), default=200)

@@ -89,6 +89,8 @@ def duplicate_scenario(property_id: str, scenario_id: str, db: Session = Depends
         furniture_cost=original.furniture_cost,
         other_upfront_costs=original.other_upfront_costs,
         pmi_monthly=original.pmi_monthly,
+        origination_points_pct=original.origination_points_pct,
+        io_period_years=original.io_period_years,
         is_active=False,
     )
     db.add(clone)
