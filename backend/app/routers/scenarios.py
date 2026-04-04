@@ -92,6 +92,10 @@ def duplicate_scenario(property_id: str, scenario_id: str, db: Session = Depends
         is_active=False,
     )
     db.add(clone)
+    prop = db.query(Property).filter(Property.id == property_id).first()
+    if prop:
+        prop.cached_monthly_cashflow = None
+        prop.cached_cash_on_cash_return = None
     db.commit()
     db.refresh(clone)
     return clone
@@ -111,6 +115,10 @@ def activate_scenario(property_id: str, scenario_id: str, db: Session = Depends(
     if not scenario:
         raise HTTPException(status_code=404, detail="Scenario not found")
     scenario.is_active = True
+    prop = db.query(Property).filter(Property.id == property_id).first()
+    if prop:
+        prop.cached_monthly_cashflow = None
+        prop.cached_cash_on_cash_return = None
     db.commit()
     db.refresh(scenario)
     return scenario
