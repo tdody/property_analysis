@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.models.property import Property
 from app.models.scenario import MortgageScenario
 from app.schemas.scenario import ScenarioCreate, ScenarioUpdate, ScenarioResponse
 
@@ -20,6 +21,11 @@ def create_scenario(property_id: str, data: ScenarioCreate, db: Session = Depend
     db.add(scenario)
     db.commit()
     db.refresh(scenario)
+    prop = db.query(Property).filter(Property.id == property_id).first()
+    if prop:
+        prop.cached_monthly_cashflow = None
+        prop.cached_cash_on_cash_return = None
+        db.commit()
     return scenario
 
 
@@ -35,6 +41,11 @@ def update_scenario(property_id: str, scenario_id: str, data: ScenarioUpdate, db
         setattr(scenario, field, value)
     db.commit()
     db.refresh(scenario)
+    prop = db.query(Property).filter(Property.id == property_id).first()
+    if prop:
+        prop.cached_monthly_cashflow = None
+        prop.cached_cash_on_cash_return = None
+        db.commit()
     return scenario
 
 
@@ -48,6 +59,11 @@ def delete_scenario(property_id: str, scenario_id: str, db: Session = Depends(ge
         raise HTTPException(status_code=404, detail="Scenario not found")
     db.delete(scenario)
     db.commit()
+    prop = db.query(Property).filter(Property.id == property_id).first()
+    if prop:
+        prop.cached_monthly_cashflow = None
+        prop.cached_cash_on_cash_return = None
+        db.commit()
     return {"status": "deleted"}
 
 

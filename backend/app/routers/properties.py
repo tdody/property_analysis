@@ -6,6 +6,7 @@ from app.database import get_db
 from app.models.property import Property
 from app.models.scenario import MortgageScenario
 from app.models.assumptions import STRAssumptions
+from app.routers.settings import get_or_create_settings
 from app.schemas.property import (
     PropertyCreate,
     PropertyUpdate,
@@ -26,20 +27,8 @@ def list_properties(db: Session = Depends(get_db)):
     summaries = []
     for prop in props:
         summary = PropertySummary.model_validate(prop)
-        # Compute cashflow for active scenario if available
-        active_scenario = db.query(MortgageScenario).filter(
-            MortgageScenario.property_id == prop.id,
-            MortgageScenario.is_active == True,
-        ).first()
-        assumptions = db.query(STRAssumptions).filter(STRAssumptions.property_id == prop.id).first()
-        if active_scenario and assumptions:
-            try:
-                from app.routers.compute import _compute_for_scenario
-                result = _compute_for_scenario(prop, active_scenario, assumptions)
-                summary.monthly_cashflow = result["metrics"].monthly_cashflow
-                summary.cash_on_cash_return = result["metrics"].cash_on_cash_return
-            except Exception:
-                pass
+        summary.monthly_cashflow = float(prop.cached_monthly_cashflow) if prop.cached_monthly_cashflow is not None else None
+        summary.cash_on_cash_return = float(prop.cached_cash_on_cash_return) if prop.cached_cash_on_cash_return is not None else None
         summaries.append(summary)
     return summaries
 
@@ -49,8 +38,14 @@ def create_property(data: PropertyCreate, db: Session = Depends(get_db)):
     prop = Property(**data.model_dump())
     db.add(prop)
     db.flush()  # Ensure prop.id is populated
-    # Auto-create default STR assumptions
-    assumptions = STRAssumptions(property_id=prop.id)
+    # Auto-create default STR assumptions with user's seasonal defaults
+    user_settings = get_or_create_settings(db)
+    assumptions = STRAssumptions(
+        property_id=prop.id,
+        peak_months=user_settings.default_peak_months,
+        peak_occupancy_pct=user_settings.default_peak_occupancy_pct,
+        off_peak_occupancy_pct=user_settings.default_off_peak_occupancy_pct,
+    )
     db.add(assumptions)
     db.commit()
     db.refresh(prop)
@@ -100,8 +95,14 @@ def scrape_property_endpoint(data: ScrapeRequest, db: Session = Depends(get_db))
     db.add(prop)
     db.flush()
 
-    # Create default assumptions
-    assumptions = STRAssumptions(property_id=prop.id)
+    # Create default assumptions with user's seasonal defaults
+    user_settings = get_or_create_settings(db)
+    assumptions = STRAssumptions(
+        property_id=prop.id,
+        peak_months=user_settings.default_peak_months,
+        peak_occupancy_pct=user_settings.default_peak_occupancy_pct,
+        off_peak_occupancy_pct=user_settings.default_off_peak_occupancy_pct,
+    )
     db.add(assumptions)
 
     # Create default scenario with listing price as purchase price

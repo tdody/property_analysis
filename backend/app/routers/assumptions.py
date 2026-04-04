@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.models.property import Property
 from app.models.assumptions import STRAssumptions
 from app.schemas.assumptions import AssumptionsUpdate, AssumptionsResponse
 
@@ -25,4 +26,9 @@ def update_assumptions(property_id: str, data: AssumptionsUpdate, db: Session = 
         setattr(assumptions, field, value)
     db.commit()
     db.refresh(assumptions)
+    prop = db.query(Property).filter(Property.id == property_id).first()
+    if prop:
+        prop.cached_monthly_cashflow = None
+        prop.cached_cash_on_cash_return = None
+        db.commit()
     return assumptions
