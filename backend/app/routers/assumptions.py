@@ -24,11 +24,10 @@ def update_assumptions(property_id: str, data: AssumptionsUpdate, db: Session = 
         raise HTTPException(status_code=404, detail="Assumptions not found")
     for field, value in data.model_dump(exclude_unset=True).items():
         setattr(assumptions, field, value)
-    db.commit()
-    db.refresh(assumptions)
     prop = db.query(Property).filter(Property.id == property_id).first()
     if prop:
         prop.cached_monthly_cashflow = None
         prop.cached_cash_on_cash_return = None
-        db.commit()
+    db.commit()
+    db.refresh(assumptions)
     return assumptions

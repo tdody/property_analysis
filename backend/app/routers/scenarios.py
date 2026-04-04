@@ -19,13 +19,12 @@ def list_scenarios(property_id: str, db: Session = Depends(get_db)):
 def create_scenario(property_id: str, data: ScenarioCreate, db: Session = Depends(get_db)):
     scenario = MortgageScenario(property_id=property_id, **data.model_dump())
     db.add(scenario)
-    db.commit()
-    db.refresh(scenario)
     prop = db.query(Property).filter(Property.id == property_id).first()
     if prop:
         prop.cached_monthly_cashflow = None
         prop.cached_cash_on_cash_return = None
-        db.commit()
+    db.commit()
+    db.refresh(scenario)
     return scenario
 
 
@@ -39,13 +38,12 @@ def update_scenario(property_id: str, scenario_id: str, data: ScenarioUpdate, db
         raise HTTPException(status_code=404, detail="Scenario not found")
     for field, value in data.model_dump(exclude_unset=True).items():
         setattr(scenario, field, value)
-    db.commit()
-    db.refresh(scenario)
     prop = db.query(Property).filter(Property.id == property_id).first()
     if prop:
         prop.cached_monthly_cashflow = None
         prop.cached_cash_on_cash_return = None
-        db.commit()
+    db.commit()
+    db.refresh(scenario)
     return scenario
 
 
@@ -58,12 +56,11 @@ def delete_scenario(property_id: str, scenario_id: str, db: Session = Depends(ge
     if not scenario:
         raise HTTPException(status_code=404, detail="Scenario not found")
     db.delete(scenario)
-    db.commit()
     prop = db.query(Property).filter(Property.id == property_id).first()
     if prop:
         prop.cached_monthly_cashflow = None
         prop.cached_cash_on_cash_return = None
-        db.commit()
+    db.commit()
     return {"status": "deleted"}
 
 

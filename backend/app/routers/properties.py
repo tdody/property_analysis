@@ -140,6 +140,8 @@ def update_property(property_id: str, data: PropertyUpdate, db: Session = Depend
         raise HTTPException(status_code=404, detail="Property not found")
     for field, value in data.model_dump(exclude_unset=True).items():
         setattr(prop, field, value)
+    prop.cached_monthly_cashflow = None
+    prop.cached_cash_on_cash_return = None
     db.commit()
     db.refresh(prop)
     return prop

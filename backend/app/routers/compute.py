@@ -30,7 +30,7 @@ from app.services.computation.projections import compute_five_year_projection
 from app.services.computation.irr import compute_irr, compute_equity_multiple
 from app.services.computation.monthly import compute_monthly_breakdown
 from app.services.computation.sensitivity import compute_sensitivity
-from app.services.analysis import compute_for_scenario, get_occupancy, compute_fixed_opex
+from app.services.analysis import compute_for_scenario, compute_and_cache_summary, get_occupancy, compute_fixed_opex
 
 router = APIRouter(tags=["compute"])
 
@@ -64,9 +64,7 @@ def _get_prop_scenario_assumptions(property_id: str, scenario_id: str | None, db
 @router.get("/api/properties/{property_id}/results", response_model=ComputedResultsResponse)
 def get_results(property_id: str, db: Session = Depends(get_db)):
     prop, scenario, assumptions = _get_prop_scenario_assumptions(property_id, None, db)
-    result = compute_for_scenario(prop, scenario, assumptions)
-    prop.cached_monthly_cashflow = result["metrics"].monthly_cashflow
-    prop.cached_cash_on_cash_return = result["metrics"].cash_on_cash_return
+    result = compute_and_cache_summary(prop, scenario, assumptions, db)
     db.commit()
     return result
 
@@ -74,9 +72,7 @@ def get_results(property_id: str, db: Session = Depends(get_db)):
 @router.get("/api/properties/{property_id}/results/{scenario_id}", response_model=ComputedResultsResponse)
 def get_results_for_scenario(property_id: str, scenario_id: str, db: Session = Depends(get_db)):
     prop, scenario, assumptions = _get_prop_scenario_assumptions(property_id, scenario_id, db)
-    result = compute_for_scenario(prop, scenario, assumptions)
-    prop.cached_monthly_cashflow = result["metrics"].monthly_cashflow
-    prop.cached_cash_on_cash_return = result["metrics"].cash_on_cash_return
+    result = compute_and_cache_summary(prop, scenario, assumptions, db)
     db.commit()
     return result
 
