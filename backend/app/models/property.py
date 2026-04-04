@@ -39,6 +39,9 @@ class Property(Base):
     nonhomestead_annual_taxes: Mapped[float | None] = mapped_column(Numeric(10, 2), nullable=True)
     notes: Mapped[str] = mapped_column(Text, default="")
     is_archived: Mapped[bool] = mapped_column(Boolean, default=False)
+    in_portfolio: Mapped[bool] = mapped_column(Boolean, default=False)
+    cached_monthly_cashflow: Mapped[float | None] = mapped_column(Numeric(10, 2), nullable=True)
+    cached_cash_on_cash_return: Mapped[float | None] = mapped_column(Numeric(10, 4), nullable=True)
 
     scenarios: Mapped[list["MortgageScenario"]] = relationship(back_populates="property", cascade="all, delete-orphan")
     assumptions: Mapped["STRAssumptions | None"] = relationship(back_populates="property", uselist=False, cascade="all, delete-orphan")
