@@ -1,0 +1,119 @@
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import type { Property } from "../../types/index.ts";
+import type { MortgageScenario, STRAssumptions } from "../../types/index.ts";
+import { PropertyInfoTab } from "./PropertyInfoTab.tsx";
+import { FinancingTab } from "./FinancingTab.tsx";
+import { RevenueExpensesTab } from "./RevenueExpensesTab.tsx";
+import { ResultsTab } from "./ResultsTab.tsx";
+
+const TABS = ["Property Info", "Financing", "Revenue & Expenses", "Results"] as const;
+type TabName = (typeof TABS)[number];
+
+interface PropertyDetailProps {
+  property: Property;
+  onUpdateProperty: (updates: Partial<Property>) => Promise<Property>;
+  scenarios: MortgageScenario[];
+  scenariosLoading: boolean;
+  onCreateScenario: (data: Partial<MortgageScenario>) => Promise<MortgageScenario>;
+  onUpdateScenario: (id: string, data: Partial<MortgageScenario>) => Promise<MortgageScenario>;
+  onDeleteScenario: (id: string) => Promise<void>;
+  onDuplicateScenario: (id: string) => Promise<MortgageScenario>;
+  onActivateScenario: (id: string) => Promise<void>;
+  assumptions: STRAssumptions | null;
+  assumptionsLoading: boolean;
+  onUpdateAssumptions: (updates: Partial<STRAssumptions>) => Promise<STRAssumptions>;
+}
+
+export function PropertyDetail({
+  property,
+  onUpdateProperty,
+  scenarios,
+  scenariosLoading,
+  onCreateScenario,
+  onUpdateScenario,
+  onDeleteScenario,
+  onDuplicateScenario,
+  onActivateScenario,
+  assumptions,
+  assumptionsLoading,
+  onUpdateAssumptions,
+}: PropertyDetailProps) {
+  const [activeTab, setActiveTab] = useState<TabName>("Property Info");
+  const navigate = useNavigate();
+
+  return (
+    <div>
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <button
+            onClick={() => navigate("/")}
+            className="text-sm text-indigo-600 hover:text-indigo-800 mb-2 inline-block"
+          >
+            &larr; Back to Dashboard
+          </button>
+          <h2 className="text-2xl font-bold tracking-tight text-slate-900">{property.name}</h2>
+          {property.address && (
+            <p className="text-sm text-slate-500">
+              {property.address}, {property.city}, {property.state} {property.zip_code}
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* Tabs — pill/segment style */}
+      <div className="mb-6">
+        <nav className="bg-slate-100 rounded-xl p-1 inline-flex gap-1">
+          {TABS.map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                activeTab === tab
+                  ? "bg-white shadow-sm text-slate-900 font-semibold"
+                  : "text-slate-500 hover:text-slate-700"
+              }`}
+            >
+              {tab}
+            </button>
+          ))}
+        </nav>
+      </div>
+
+      {/* Tab content */}
+      <div>
+        {activeTab === "Property Info" && (
+          <PropertyInfoTab property={property} onUpdate={onUpdateProperty} />
+        )}
+        {activeTab === "Financing" && (
+          scenariosLoading ? (
+            <div className="text-center py-12 text-slate-500">Loading scenarios...</div>
+          ) : (
+            <FinancingTab
+              scenarios={scenarios}
+              listingPrice={property.listing_price}
+              onCreateScenario={onCreateScenario}
+              onUpdateScenario={onUpdateScenario}
+              onDeleteScenario={onDeleteScenario}
+              onDuplicateScenario={onDuplicateScenario}
+              onActivateScenario={onActivateScenario}
+            />
+          )
+        )}
+        {activeTab === "Revenue & Expenses" && (
+          assumptionsLoading ? (
+            <div className="text-center py-12 text-slate-500">Loading assumptions...</div>
+          ) : assumptions ? (
+            <RevenueExpensesTab assumptions={assumptions} onUpdate={onUpdateAssumptions} />
+          ) : (
+            <div className="text-center py-12 text-slate-500">No assumptions data available</div>
+          )
+        )}
+        {activeTab === "Results" && (
+          <ResultsTab propertyId={property.id} scenarios={scenarios} />
+        )}
+      </div>
+    </div>
+  );
+}
