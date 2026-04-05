@@ -148,6 +148,28 @@ class TestOutputLength:
         assert [y["year"] for y in years] == [1, 2, 3, 4, 5]
 
 
+class TestProjectionLength:
+    def test_default_returns_five_years(self):
+        years = _base_projection()
+        assert len(years) == 5
+
+    def test_seven_years(self):
+        years = _base_projection(num_years=7)
+        assert len(years) == 7
+        assert [y["year"] for y in years] == [1, 2, 3, 4, 5, 6, 7]
+
+    def test_three_years(self):
+        years = _base_projection(num_years=3)
+        assert len(years) == 3
+        assert [y["year"] for y in years] == [1, 2, 3]
+
+    def test_ten_years_growth_compounds(self):
+        years = _base_projection(num_years=10, revenue_growth_pct=3.0)
+        y10 = years[9]
+        expected = 58_400 * 1.03 ** 9
+        assert abs(y10["gross_revenue"] - expected) < 0.01
+
+
 class TestAfterTaxProjections:
     def test_zero_tax_rate_equals_pretax(self):
         years = _base_projection(

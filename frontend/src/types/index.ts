@@ -107,6 +107,10 @@ export interface STRAssumptions {
   peak_months: number;
   peak_occupancy_pct: number;
   off_peak_occupancy_pct: number;
+  hold_period_years: number;
+  selling_cost_pct: number;
+  capital_gains_rate_pct: number;
+  depreciation_recapture_rate_pct: number;
 }
 
 export interface ComputedResults {
@@ -189,12 +193,39 @@ export interface ProjectionYear {
   after_tax_cashflow: number;
 }
 
+export interface ExitAnalysis {
+  sale_price: number;
+  selling_costs: number;
+  remaining_mortgage: number;
+  total_depreciation: number;
+  depreciation_recapture_tax: number;
+  capital_gain: number;
+  capital_gains_tax: number;
+  net_exit_proceeds: number;
+}
+
+export interface IRRResult {
+  irr_with_exit: number | null;
+  equity_multiple_with_exit: number;
+  total_profit: number;
+  hold_period_years: number;
+  exit_analysis: ExitAnalysis;
+  cashflow_series: number[];
+}
+
+export interface HoldPeriodSweepEntry {
+  hold_period: number;
+  irr: number | null;
+}
+
 export interface ProjectionSummary {
   property_id: string;
   scenario_id: string;
   years: ProjectionYear[];
   irr: number | null;
   equity_multiple: number;
+  irr_with_exit: IRRResult | null;
+  hold_period_sweep: HoldPeriodSweepEntry[];
 }
 
 export interface SensitivityData {

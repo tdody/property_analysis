@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import type { MortgageScenario, ComputedResults, LTRComputedResults, SensitivityData, LTRSensitivityData, AmortizationEntry, ProjectionYear, MonthlyDetail } from "../../types/index.ts";
+import type { MortgageScenario, ComputedResults, LTRComputedResults, SensitivityData, LTRSensitivityData, AmortizationEntry, ProjectionYear, MonthlyDetail, IRRResult, HoldPeriodSweepEntry } from "../../types/index.ts";
 import { getResults, getResultsForScenario, getSensitivity, getLTRResults, getLTRSensitivity, getAmortization, getProjections, getMonthlyBreakdown } from "../../api/client.ts";
 import { MetricCard } from "../shared/MetricCard.tsx";
 
@@ -63,6 +63,9 @@ export function ResultsTab({ propertyId, scenarios, activeRentalType }: ResultsT
   const [projectionsLoading, setProjectionsLoading] = useState(false);
   const [projectionIrr, setProjectionIrr] = useState<number | null>(null);
   const [projectionEqMultiple, setProjectionEqMultiple] = useState(0);
+  const [irrWithExit, setIrrWithExit] = useState<IRRResult | null>(null);
+  const [holdPeriodSweep, setHoldPeriodSweep] = useState<HoldPeriodSweepEntry[]>([]);
+  const [showExitAnalysis, setShowExitAnalysis] = useState(false);
   const [showMonthly, setShowMonthly] = useState(false);
   const [monthlyData, setMonthlyData] = useState<MonthlyDetail[]>([]);
   const [monthlyLoading, setMonthlyLoading] = useState(false);
@@ -122,6 +125,9 @@ export function ResultsTab({ propertyId, scenarios, activeRentalType }: ResultsT
     void fetchResults();
     setProjections([]);
     setShowProjections(false);
+    setIrrWithExit(null);
+    setHoldPeriodSweep([]);
+    setShowExitAnalysis(false);
     setMonthlyData([]);
     setShowMonthly(false);
   }, [fetchResults]);
@@ -899,6 +905,8 @@ export function ResultsTab({ propertyId, scenarios, activeRentalType }: ResultsT
                   setProjections(data.years);
                   setProjectionIrr(data.irr);
                   setProjectionEqMultiple(data.equity_multiple);
+                  setIrrWithExit(data.irr_with_exit);
+                  setHoldPeriodSweep(data.hold_period_sweep);
                 })
                 .catch(() => setProjections([]))
                 .finally(() => setProjectionsLoading(false));
@@ -907,7 +915,7 @@ export function ResultsTab({ propertyId, scenarios, activeRentalType }: ResultsT
           className="flex items-center gap-2 text-base font-semibold text-slate-900 dark:text-slate-100 mb-4 w-full text-left"
         >
           <span>{showProjections ? "\u25BC" : "\u25B6"}</span>
-          5-Year Projections
+          {irrWithExit ? `${irrWithExit.hold_period_years}` : "5"}-Year Projections
         </button>
         {showProjections && (
           projectionsLoading ? (
@@ -915,12 +923,28 @@ export function ResultsTab({ propertyId, scenarios, activeRentalType }: ResultsT
           ) : projections.length > 0 ? (
             <div className="space-y-4">
               {/* IRR & Equity Multiple summary */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                {irrWithExit?.irr_with_exit != null && (
+                  <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm dark:shadow-slate-900/20 p-3 text-center ring-2 ring-indigo-200 dark:ring-indigo-800">
+                    <div className="text-xs uppercase tracking-wider text-indigo-500 font-medium">IRR (with Exit)</div>
+                    <div className={`text-lg font-bold ${irrWithExit.irr_with_exit >= 0 ? "text-emerald-600" : "text-red-500"}`}>
+                      {irrWithExit.irr_with_exit.toFixed(1)}%
+                    </div>
+                  </div>
+                )}
                 {projectionIrr !== null && (
                   <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm dark:shadow-slate-900/20 p-3 text-center">
-                    <div className="text-xs uppercase tracking-wider text-slate-400 dark:text-slate-500 font-medium">5-Year IRR</div>
+                    <div className="text-xs uppercase tracking-wider text-slate-400 dark:text-slate-500 font-medium">IRR (Operating)</div>
                     <div className={`text-lg font-bold ${projectionIrr >= 0 ? "text-emerald-600" : "text-red-500"}`}>
                       {projectionIrr.toFixed(1)}%
+                    </div>
+                  </div>
+                )}
+                {irrWithExit && (
+                  <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm dark:shadow-slate-900/20 p-3 text-center">
+                    <div className="text-xs uppercase tracking-wider text-slate-400 dark:text-slate-500 font-medium">Equity Multiple (with Exit)</div>
+                    <div className={`text-lg font-bold ${irrWithExit.equity_multiple_with_exit >= 1 ? "text-emerald-600" : irrWithExit.equity_multiple_with_exit >= 0 ? "text-slate-900 dark:text-slate-100" : "text-red-500"}`}>
+                      {irrWithExit.equity_multiple_with_exit.toFixed(2)}x
                     </div>
                   </div>
                 )}
@@ -930,6 +954,14 @@ export function ResultsTab({ propertyId, scenarios, activeRentalType }: ResultsT
                     {projectionEqMultiple.toFixed(2)}x
                   </div>
                 </div>
+                {irrWithExit && (
+                  <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm dark:shadow-slate-900/20 p-3 text-center">
+                    <div className="text-xs uppercase tracking-wider text-slate-400 dark:text-slate-500 font-medium">Total Profit</div>
+                    <div className={`text-lg font-bold ${irrWithExit.total_profit >= 0 ? "text-emerald-600" : "text-red-500"}`}>
+                      {fmtCurrency(irrWithExit.total_profit)}
+                    </div>
+                  </div>
+                )}
               </div>
               <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm dark:shadow-slate-900/20 overflow-auto">
               <table className="w-full text-sm">
@@ -973,6 +1005,65 @@ export function ResultsTab({ propertyId, scenarios, activeRentalType }: ResultsT
                 </tbody>
               </table>
             </div>
+
+              {/* Exit Analysis Waterfall */}
+              {irrWithExit && (
+                <div>
+                  <button
+                    onClick={() => setShowExitAnalysis(!showExitAnalysis)}
+                    className="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2 w-full text-left"
+                  >
+                    <span>{showExitAnalysis ? "\u25BC" : "\u25B6"}</span>
+                    Exit Analysis
+                  </button>
+                  {showExitAnalysis && (
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm dark:shadow-slate-900/20 overflow-auto">
+                      <table className="w-full text-sm">
+                        <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+                          {[
+                            { label: "Sale Price", value: irrWithExit.exit_analysis.sale_price, positive: true },
+                            { label: "Selling Costs", value: -irrWithExit.exit_analysis.selling_costs, positive: false },
+                            { label: "Remaining Mortgage", value: -irrWithExit.exit_analysis.remaining_mortgage, positive: false },
+                            { label: "Capital Gains Tax", value: -irrWithExit.exit_analysis.capital_gains_tax, positive: false },
+                            { label: "Depreciation Recapture Tax", value: -irrWithExit.exit_analysis.depreciation_recapture_tax, positive: false },
+                          ].map((row) => (
+                            <tr key={row.label}>
+                              <td className="px-4 py-2 text-slate-600 dark:text-slate-400">{row.label}</td>
+                              <td className={`px-4 py-2 text-right font-medium ${row.positive ? "text-emerald-600" : "text-red-500"}`}>
+                                {fmtCurrency(row.value)}
+                              </td>
+                            </tr>
+                          ))}
+                          <tr className="bg-slate-50 dark:bg-slate-700 font-bold">
+                            <td className="px-4 py-2 text-slate-900 dark:text-slate-100">Net Exit Proceeds</td>
+                            <td className={`px-4 py-2 text-right ${irrWithExit.exit_analysis.net_exit_proceeds >= 0 ? "text-emerald-600" : "text-red-500"}`}>
+                              {fmtCurrency(irrWithExit.exit_analysis.net_exit_proceeds)}
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Hold Period Sensitivity */}
+              {holdPeriodSweep.length > 0 && (
+                <div>
+                  <div className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">IRR vs Hold Period</div>
+                  <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm dark:shadow-slate-900/20 p-4">
+                    <SensitivityChart
+                      data={holdPeriodSweep
+                        .filter((d) => d.irr !== null)
+                        .map((d) => ({
+                          label: `${d.hold_period}yr`,
+                          value: d.irr!,
+                        }))}
+                      yLabel="%"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <div className="text-center py-6 text-slate-500">No projection data available.</div>
@@ -1149,7 +1240,7 @@ export function ResultsTab({ propertyId, scenarios, activeRentalType }: ResultsT
 }
 
 // Simple SVG line chart for sensitivity analysis
-function SensitivityChart({ data }: { data: Array<{ label: string; value: number }> }) {
+function SensitivityChart({ data, yLabel }: { data: Array<{ label: string; value: number }>; yLabel?: string }) {
   if (data.length === 0) return null;
 
   const values = data.map((d) => d.value);
@@ -1232,7 +1323,7 @@ function SensitivityChart({ data }: { data: Array<{ label: string; value: number
             className="text-xs fill-slate-500"
             fontSize={10}
           >
-            ${Math.round(val).toLocaleString()}
+            {yLabel === "%" ? `${val.toFixed(1)}%` : `$${Math.round(val).toLocaleString()}`}
           </text>
         );
       })}

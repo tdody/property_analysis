@@ -23,6 +23,7 @@ def compute_five_year_projection(
     marginal_tax_rate_pct: float = 0,
     total_depreciation_annual: float = 0,
     io_period_years: int = 0,
+    num_years: int = 5,
 ) -> list[dict]:
     annual_housing_cost = total_monthly_housing * 12
 
@@ -53,7 +54,7 @@ def compute_five_year_projection(
     years = []
     cumulative_cashflow: float = 0
 
-    for year in range(1, 6):
+    for year in range(1, num_years + 1):
         if year == 1:
             gross = year1_gross_revenue
             net = year1_net_revenue
