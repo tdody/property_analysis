@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import engine, Base
-from app.models import Property, MortgageScenario, STRAssumptions  # noqa: F401
+from app.models import Property, MortgageScenario, STRAssumptions, LTRAssumptions  # noqa: F401
 
 
 @asynccontextmanager
@@ -24,12 +24,13 @@ app.add_middleware(
 )
 
 
-from app.routers import properties, scenarios, assumptions, compute
+from app.routers import properties, scenarios, assumptions, compute, ltr_assumptions
 
 app.include_router(properties.router)
 app.include_router(scenarios.router)
 app.include_router(assumptions.router)
 app.include_router(compute.router)
+app.include_router(ltr_assumptions.router)
 
 
 @app.get("/api/health")

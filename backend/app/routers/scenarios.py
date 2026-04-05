@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.models.property import Property
 from app.models.scenario import MortgageScenario
 from app.schemas.scenario import ScenarioCreate, ScenarioUpdate, ScenarioResponse
 
@@ -18,6 +19,10 @@ def list_scenarios(property_id: str, db: Session = Depends(get_db)):
 def create_scenario(property_id: str, data: ScenarioCreate, db: Session = Depends(get_db)):
     scenario = MortgageScenario(property_id=property_id, **data.model_dump())
     db.add(scenario)
+    prop = db.query(Property).filter(Property.id == property_id).first()
+    if prop:
+        prop.cached_monthly_cashflow = None
+        prop.cached_cash_on_cash_return = None
     db.commit()
     db.refresh(scenario)
     return scenario
@@ -33,6 +38,10 @@ def update_scenario(property_id: str, scenario_id: str, data: ScenarioUpdate, db
         raise HTTPException(status_code=404, detail="Scenario not found")
     for field, value in data.model_dump(exclude_unset=True).items():
         setattr(scenario, field, value)
+    prop = db.query(Property).filter(Property.id == property_id).first()
+    if prop:
+        prop.cached_monthly_cashflow = None
+        prop.cached_cash_on_cash_return = None
     db.commit()
     db.refresh(scenario)
     return scenario
@@ -47,6 +56,10 @@ def delete_scenario(property_id: str, scenario_id: str, db: Session = Depends(ge
     if not scenario:
         raise HTTPException(status_code=404, detail="Scenario not found")
     db.delete(scenario)
+    prop = db.query(Property).filter(Property.id == property_id).first()
+    if prop:
+        prop.cached_monthly_cashflow = None
+        prop.cached_cash_on_cash_return = None
     db.commit()
     return {"status": "deleted"}
 
@@ -76,9 +89,15 @@ def duplicate_scenario(property_id: str, scenario_id: str, db: Session = Depends
         furniture_cost=original.furniture_cost,
         other_upfront_costs=original.other_upfront_costs,
         pmi_monthly=original.pmi_monthly,
+        origination_points_pct=original.origination_points_pct,
+        io_period_years=original.io_period_years,
         is_active=False,
     )
     db.add(clone)
+    prop = db.query(Property).filter(Property.id == property_id).first()
+    if prop:
+        prop.cached_monthly_cashflow = None
+        prop.cached_cash_on_cash_return = None
     db.commit()
     db.refresh(clone)
     return clone
@@ -98,6 +117,10 @@ def activate_scenario(property_id: str, scenario_id: str, db: Session = Depends(
     if not scenario:
         raise HTTPException(status_code=404, detail="Scenario not found")
     scenario.is_active = True
+    prop = db.query(Property).filter(Property.id == property_id).first()
+    if prop:
+        prop.cached_monthly_cashflow = None
+        prop.cached_cash_on_cash_return = None
     db.commit()
     db.refresh(scenario)
     return scenario

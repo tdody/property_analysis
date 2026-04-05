@@ -9,7 +9,7 @@ class MortgageScenario(Base):
     __tablename__ = "mortgage_scenarios"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    property_id: Mapped[str] = mapped_column(String(36), ForeignKey("properties.id"))
+    property_id: Mapped[str] = mapped_column(String(36), ForeignKey("properties.id", ondelete="CASCADE"))
     name: Mapped[str] = mapped_column(String(255), default="Default Scenario")
     loan_type: Mapped[str] = mapped_column(String(20), default="conventional")
     purchase_price: Mapped[float] = mapped_column(Numeric(12, 2), default=0)

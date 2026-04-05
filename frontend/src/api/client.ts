@@ -4,8 +4,11 @@ import type {
   PropertySummary,
   MortgageScenario,
   STRAssumptions,
+  LTRAssumptions,
   ComputedResults,
+  LTRComputedResults,
   SensitivityData,
+  LTRSensitivityData,
   AmortizationEntry,
   ComparisonProperty,
   ProjectionSummary,
@@ -33,6 +36,10 @@ export const activateScenario = (propertyId: string, scenarioId: string) => api.
 export const getAssumptions = (propertyId: string) => api.get<STRAssumptions>(`/properties/${propertyId}/assumptions`).then((r) => r.data);
 export const updateAssumptions = (propertyId: string, data: Partial<STRAssumptions>) => api.put<STRAssumptions>(`/properties/${propertyId}/assumptions`, data).then((r) => r.data);
 
+// LTR Assumptions
+export const getLTRAssumptions = (propertyId: string) => api.get<LTRAssumptions>(`/properties/${propertyId}/ltr-assumptions`).then((r) => r.data);
+export const updateLTRAssumptions = (propertyId: string, data: Partial<LTRAssumptions>) => api.put<LTRAssumptions>(`/properties/${propertyId}/ltr-assumptions`, data).then((r) => r.data);
+
 // Compute
 export const getResults = (propertyId: string) => api.get<ComputedResults>(`/properties/${propertyId}/results`).then((r) => r.data);
 export const getResultsForScenario = (propertyId: string, scenarioId: string) => api.get<ComputedResults>(`/properties/${propertyId}/results/${scenarioId}`).then((r) => r.data);
@@ -41,6 +48,10 @@ export const getSensitivity = (propertyId: string) => api.get<SensitivityData>(`
 export const compareProperties = (ids: string[]) => api.get<ComparisonProperty[]>(`/compare?ids=${ids.join(",")}`).then((r) => r.data);
 export const getProjections = (propertyId: string, scenarioId: string) => api.get<ProjectionSummary>(`/properties/${propertyId}/projections/${scenarioId}`).then((r) => r.data);
 export const getMonthlyBreakdown = (propertyId: string, scenarioId: string) => api.get<{ property_id: string; scenario_id: string; use_seasonal: boolean; months: MonthlyDetail[] }>(`/properties/${propertyId}/monthly/${scenarioId}`).then((r) => r.data);
+
+// LTR Compute
+export const getLTRResults = (propertyId: string) => api.get<LTRComputedResults>(`/properties/${propertyId}/ltr-results`).then((r) => r.data);
+export const getLTRSensitivity = (propertyId: string) => api.get<LTRSensitivityData>(`/properties/${propertyId}/ltr-sensitivity`).then((r) => r.data);
 
 // Scraper
 export interface ScrapeResponse {

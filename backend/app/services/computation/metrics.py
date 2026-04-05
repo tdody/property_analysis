@@ -73,6 +73,23 @@ def compute_tax_analysis(
         "after_tax_monthly_cashflow": after_tax_annual / 12,
     }
 
+def compute_break_even_vacancy(
+    gross_annual_revenue: float,
+    fixed_opex_annual: float,
+    annual_housing_cost: float,
+) -> float:
+    """Compute the vacancy rate at which cashflow goes to zero for LTR.
+
+    total_annual_costs = fixed_opex + housing cost
+    break_even_vacancy_pct = (1 - total_annual_costs / gross_annual_revenue) * 100
+    """
+    if gross_annual_revenue <= 0:
+        return 0
+    total_annual_costs = fixed_opex_annual + annual_housing_cost
+    result = (1 - total_annual_costs / gross_annual_revenue) * 100
+    return max(result, 0)
+
+
 def compute_delay_carrying_costs(total_monthly_housing: float, rental_delay_months: int) -> float:
     return total_monthly_housing * rental_delay_months
 

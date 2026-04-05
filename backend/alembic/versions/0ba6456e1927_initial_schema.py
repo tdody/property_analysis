@@ -1,8 +1,8 @@
-"""initial tables
+"""initial schema
 
-Revision ID: 719883dd7ef3
+Revision ID: 0ba6456e1927
 Revises: 
-Create Date: 2026-03-29 19:21:19.524530
+Create Date: 2026-04-04 17:36:07.090614
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '719883dd7ef3'
+revision: str = '0ba6456e1927'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -27,6 +27,7 @@ def upgrade() -> None:
     sa.Column('updated_at', sa.DateTime(), nullable=False),
     sa.Column('name', sa.String(length=255), nullable=False),
     sa.Column('source_url', sa.String(length=2048), nullable=True),
+    sa.Column('image_url', sa.String(length=500), nullable=True),
     sa.Column('address', sa.String(length=500), nullable=False),
     sa.Column('city', sa.String(length=255), nullable=False),
     sa.Column('state', sa.String(length=2), nullable=False),
@@ -46,7 +47,21 @@ def upgrade() -> None:
     sa.Column('nonhomestead_annual_taxes', sa.Numeric(precision=10, scale=2), nullable=True),
     sa.Column('notes', sa.Text(), nullable=False),
     sa.Column('is_archived', sa.Boolean(), nullable=False),
+    sa.Column('in_portfolio', sa.Boolean(), nullable=False),
+    sa.Column('cached_monthly_cashflow', sa.Numeric(precision=10, scale=2), nullable=True),
+    sa.Column('cached_cash_on_cash_return', sa.Numeric(precision=10, scale=4), nullable=True),
     sa.PrimaryKeyConstraint('id')
+    )
+    op.create_table('user_settings',
+    sa.Column('id', sa.String(length=36), nullable=False),
+    sa.Column('user_id', sa.String(length=255), nullable=False),
+    sa.Column('created_at', sa.DateTime(), nullable=False),
+    sa.Column('updated_at', sa.DateTime(), nullable=False),
+    sa.Column('default_peak_months', sa.Integer(), nullable=False),
+    sa.Column('default_peak_occupancy_pct', sa.Numeric(precision=6, scale=2), nullable=False),
+    sa.Column('default_off_peak_occupancy_pct', sa.Numeric(precision=6, scale=2), nullable=False),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('user_id')
     )
     op.create_table('mortgage_scenarios',
     sa.Column('id', sa.String(length=36), nullable=False),
@@ -64,8 +79,10 @@ def upgrade() -> None:
     sa.Column('furniture_cost', sa.Numeric(precision=12, scale=2), nullable=False),
     sa.Column('other_upfront_costs', sa.Numeric(precision=12, scale=2), nullable=False),
     sa.Column('pmi_monthly', sa.Numeric(precision=10, scale=2), nullable=False),
+    sa.Column('origination_points_pct', sa.Numeric(precision=6, scale=2), nullable=False),
+    sa.Column('io_period_years', sa.Integer(), nullable=False),
     sa.Column('is_active', sa.Boolean(), nullable=False),
-    sa.ForeignKeyConstraint(['property_id'], ['properties.id'], ),
+    sa.ForeignKeyConstraint(['property_id'], ['properties.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('str_assumptions',
@@ -82,16 +99,32 @@ def upgrade() -> None:
     sa.Column('insurance_annual', sa.Numeric(precision=10, scale=2), nullable=False),
     sa.Column('maintenance_reserve_pct', sa.Numeric(precision=6, scale=2), nullable=False),
     sa.Column('capex_reserve_pct', sa.Numeric(precision=6, scale=2), nullable=False),
+    sa.Column('damage_reserve_pct', sa.Numeric(precision=6, scale=2), nullable=False),
     sa.Column('supplies_monthly', sa.Numeric(precision=10, scale=2), nullable=False),
     sa.Column('lawn_snow_monthly', sa.Numeric(precision=10, scale=2), nullable=False),
     sa.Column('other_monthly_expense', sa.Numeric(precision=10, scale=2), nullable=False),
     sa.Column('vacancy_reserve_pct', sa.Numeric(precision=6, scale=2), nullable=False),
+    sa.Column('marketing_monthly', sa.Numeric(precision=10, scale=2), nullable=False),
+    sa.Column('software_monthly', sa.Numeric(precision=10, scale=2), nullable=False),
+    sa.Column('accounting_annual', sa.Numeric(precision=10, scale=2), nullable=False),
+    sa.Column('legal_annual', sa.Numeric(precision=10, scale=2), nullable=False),
+    sa.Column('rental_delay_months', sa.Integer(), nullable=False),
     sa.Column('state_rooms_tax_pct', sa.Numeric(precision=6, scale=2), nullable=False),
     sa.Column('str_surcharge_pct', sa.Numeric(precision=6, scale=2), nullable=False),
     sa.Column('local_option_tax_pct', sa.Numeric(precision=6, scale=2), nullable=False),
     sa.Column('local_str_registration_fee', sa.Numeric(precision=10, scale=2), nullable=False),
+    sa.Column('local_gross_receipts_tax_pct', sa.Numeric(precision=6, scale=2), nullable=False),
     sa.Column('platform_remits_tax', sa.Boolean(), nullable=False),
-    sa.ForeignKeyConstraint(['property_id'], ['properties.id'], ),
+    sa.Column('land_value_pct', sa.Numeric(precision=6, scale=2), nullable=False),
+    sa.Column('property_appreciation_pct_annual', sa.Numeric(precision=6, scale=2), nullable=False),
+    sa.Column('revenue_growth_pct', sa.Numeric(precision=6, scale=2), nullable=False),
+    sa.Column('expense_growth_pct', sa.Numeric(precision=6, scale=2), nullable=False),
+    sa.Column('marginal_tax_rate_pct', sa.Numeric(precision=6, scale=2), nullable=False),
+    sa.Column('use_seasonal_occupancy', sa.Boolean(), nullable=False),
+    sa.Column('peak_months', sa.Integer(), nullable=False),
+    sa.Column('peak_occupancy_pct', sa.Numeric(precision=6, scale=2), nullable=False),
+    sa.Column('off_peak_occupancy_pct', sa.Numeric(precision=6, scale=2), nullable=False),
+    sa.ForeignKeyConstraint(['property_id'], ['properties.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('property_id')
     )
@@ -103,5 +136,6 @@ def downgrade() -> None:
     # ### commands auto generated by Alembic - please adjust! ###
     op.drop_table('str_assumptions')
     op.drop_table('mortgage_scenarios')
+    op.drop_table('user_settings')
     op.drop_table('properties')
     # ### end Alembic commands ###
