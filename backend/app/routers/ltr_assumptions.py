@@ -5,6 +5,7 @@ from app.database import get_db
 from app.models.property import Property
 from app.models.ltr_assumptions import LTRAssumptions
 from app.schemas.ltr_assumptions import LTRAssumptionsUpdate, LTRAssumptionsResponse
+from app.routers.properties import _recompute_cache
 
 router = APIRouter(prefix="/api/properties/{property_id}/ltr-assumptions", tags=["ltr-assumptions"])
 
@@ -35,8 +36,7 @@ def update_ltr_assumptions(property_id: str, data: LTRAssumptionsUpdate, db: Ses
         setattr(ltr, field, value)
     prop = db.query(Property).filter(Property.id == property_id).first()
     if prop:
-        prop.cached_monthly_cashflow = None
-        prop.cached_cash_on_cash_return = None
+        _recompute_cache(prop, db)
     db.commit()
     db.refresh(ltr)
     return ltr

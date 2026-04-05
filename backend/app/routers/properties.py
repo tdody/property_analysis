@@ -18,6 +18,7 @@ from app.schemas.property import (
     ScraperResultSchema,
 )
 from app.services.scraper.redfin import scrape_redfin_property, parse_redfin_url
+from app.services.analysis import compute_and_cache_summary, compute_and_cache_ltr_summary
 
 router = APIRouter(prefix="/api/properties", tags=["properties"])
 
@@ -141,15 +142,58 @@ def get_property(property_id: str, db: Session = Depends(get_db)):
     return prop
 
 
+# Fields that don't affect financial calculations — no need to invalidate cache
+_NON_FINANCIAL_FIELDS = {
+    "name", "source_url", "image_url", "address", "city", "state",
+    "zip_code", "notes", "property_type", "in_portfolio",
+    "beds", "baths", "sqft", "lot_sqft", "year_built",
+    "estimated_value", "is_homestead_tax", "tax_rate",
+}
+
+
+def _recompute_cache(prop: Property, db: Session) -> None:
+    """Recompute and cache metrics for the property's active rental type."""
+    scenario = db.query(MortgageScenario).filter(
+        MortgageScenario.property_id == prop.id,
+        MortgageScenario.is_active == True,
+    ).first()
+    if not scenario:
+        prop.cached_monthly_cashflow = None
+        prop.cached_cash_on_cash_return = None
+        return
+
+    if prop.active_rental_type == "ltr":
+        ltr = db.query(LTRAssumptions).filter(LTRAssumptions.property_id == prop.id).first()
+        if ltr:
+            compute_and_cache_ltr_summary(prop, scenario, ltr, db)
+        else:
+            prop.cached_monthly_cashflow = None
+            prop.cached_cash_on_cash_return = None
+    else:
+        assumptions = db.query(STRAssumptions).filter(STRAssumptions.property_id == prop.id).first()
+        if assumptions:
+            compute_and_cache_summary(prop, scenario, assumptions, db)
+        else:
+            prop.cached_monthly_cashflow = None
+            prop.cached_cash_on_cash_return = None
+
+
 @router.put("/{property_id}", response_model=PropertyResponse)
 def update_property(property_id: str, data: PropertyUpdate, db: Session = Depends(get_db)):
     prop = db.query(Property).filter(Property.id == property_id).first()
     if not prop:
         raise HTTPException(status_code=404, detail="Property not found")
-    for field, value in data.model_dump(exclude_unset=True).items():
+
+    updated_fields = data.model_dump(exclude_unset=True)
+    rental_type_changed = "active_rental_type" in updated_fields and updated_fields["active_rental_type"] != prop.active_rental_type
+    has_financial_change = any(f not in _NON_FINANCIAL_FIELDS for f in updated_fields)
+
+    for field, value in updated_fields.items():
         setattr(prop, field, value)
-    prop.cached_monthly_cashflow = None
-    prop.cached_cash_on_cash_return = None
+
+    if rental_type_changed or has_financial_change:
+        _recompute_cache(prop, db)
+
     db.commit()
     db.refresh(prop)
     return prop

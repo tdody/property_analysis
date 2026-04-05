@@ -53,6 +53,10 @@ export const getMonthlyBreakdown = (propertyId: string, scenarioId: string) => a
 export const getLTRResults = (propertyId: string) => api.get<LTRComputedResults>(`/properties/${propertyId}/ltr-results`).then((r) => r.data);
 export const getLTRSensitivity = (propertyId: string) => api.get<LTRSensitivityData>(`/properties/${propertyId}/ltr-sensitivity`).then((r) => r.data);
 
+// Settings
+export const getSettings = () => api.get("/settings").then((r) => r.data);
+export const updateSettings = (data: Record<string, unknown>) => api.put("/settings", data).then((r) => r.data);
+
 // Scraper
 export interface ScrapeResponse {
   property_id: string | null;

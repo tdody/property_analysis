@@ -102,7 +102,7 @@ def get_ltr_results(property_id: str, db: Session = Depends(get_db)):
     if not scenario:
         raise HTTPException(status_code=404, detail="No active scenario found")
     ltr = _get_ltr_assumptions(property_id, db)
-    result = compute_for_scenario_ltr(prop, scenario, ltr)
+    result = compute_and_cache_ltr_summary(prop, scenario, ltr, db)
     db.commit()
     return result
 

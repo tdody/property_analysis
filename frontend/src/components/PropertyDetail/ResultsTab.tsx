@@ -85,22 +85,38 @@ export function ResultsTab({ propertyId, scenarios, activeRentalType }: ResultsT
     try {
       setLoading(true);
       setError(null);
-      const [resultData, sensitivityData, amortData] = await Promise.all([
-        selectedScenarioId
-          ? getResultsForScenario(propertyId, selectedScenarioId)
-          : getResults(propertyId),
-        getSensitivity(propertyId),
-        getAmortization(propertyId, selectedScenarioId),
-      ]);
-      setResults(resultData);
-      setSensitivity(sensitivityData);
-      setAmortization(amortData.slice(0, 60)); // First 5 years
+
+      if (activeRentalType === 'ltr') {
+        const [ltrRes, ltrSens, amortData] = await Promise.all([
+          getLTRResults(propertyId),
+          getLTRSensitivity(propertyId),
+          getAmortization(propertyId, selectedScenarioId),
+        ]);
+        setLtrResults(ltrRes);
+        setLtrSensitivity(ltrSens);
+        setResults(null);
+        setSensitivity(null);
+        setAmortization(amortData.slice(0, 60));
+      } else {
+        const [resultData, sensitivityData, amortData] = await Promise.all([
+          selectedScenarioId
+            ? getResultsForScenario(propertyId, selectedScenarioId)
+            : getResults(propertyId),
+          getSensitivity(propertyId),
+          getAmortization(propertyId, selectedScenarioId),
+        ]);
+        setResults(resultData);
+        setSensitivity(sensitivityData);
+        setLtrResults(null);
+        setLtrSensitivity(null);
+        setAmortization(amortData.slice(0, 60));
+      }
     } catch {
       setError("Failed to load results. Make sure you have at least one scenario and revenue/expense assumptions configured.");
     } finally {
       setLoading(false);
     }
-  }, [propertyId, selectedScenarioId]);
+  }, [propertyId, selectedScenarioId, activeRentalType]);
 
   useEffect(() => {
     void fetchResults();
@@ -123,10 +139,295 @@ export function ResultsTab({ propertyId, scenarios, activeRentalType }: ResultsT
     return <div className="text-center py-12 text-slate-500">Loading results...</div>;
   }
 
-  if (error || !results) {
+  if (error || (!results && !ltrResults)) {
     return (
       <div className="text-center py-12">
         <p className="text-red-600 mb-4">{error || "No results available"}</p>
+        <button
+          onClick={() => void fetchResults()}
+          className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-indigo-500 shadow-md shadow-indigo-200 text-white rounded-lg hover:from-indigo-700 hover:to-indigo-600"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  // LTR primary view
+  if (activeRentalType === 'ltr' && ltrResults) {
+    const lm = ltrResults.metrics;
+    return (
+      <div className="space-y-8">
+        {/* Scenario selector */}
+        <div className="flex items-center gap-4">
+          <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Scenario:</label>
+          <select
+            value={selectedScenarioId}
+            onChange={(e) => setSelectedScenarioId(e.target.value)}
+            className="px-3 py-2 bg-slate-100 dark:bg-slate-700 border-0 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:text-slate-100"
+          >
+            {scenarios.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name} {s.is_active ? "(Active)" : ""}
+              </option>
+            ))}
+          </select>
+          <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-violet-100 text-violet-700">LTR</span>
+        </div>
+
+        {/* Metric cards */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+          <MetricCard
+            label="Monthly Cashflow"
+            value={`${fmtCurrency(lm.monthly_cashflow)}/mo`}
+            variant={cashflowVariant(lm.monthly_cashflow)}
+            tooltip={METRIC_TOOLTIPS.monthly_cashflow}
+          />
+          <MetricCard
+            label="Annual Cashflow"
+            value={fmtCurrency(lm.annual_cashflow)}
+            variant={cashflowVariant(lm.annual_cashflow)}
+            tooltip={METRIC_TOOLTIPS.annual_cashflow}
+          />
+          {lm.tax_liability !== 0 && (
+            <MetricCard
+              label="After-Tax Cashflow"
+              value={`${fmtCurrency(lm.after_tax_annual_cashflow / 12)}/mo`}
+              variant={cashflowVariant(lm.after_tax_annual_cashflow)}
+              tooltip="Monthly cashflow after estimated income taxes, accounting for depreciation and mortgage interest deductions."
+            />
+          )}
+          <MetricCard
+            label="Cash-on-Cash Return"
+            value={fmtPct(lm.cash_on_cash_return)}
+            variant={cashflowVariant(lm.cash_on_cash_return)}
+            tooltip={METRIC_TOOLTIPS.cash_on_cash_return}
+          />
+          <MetricCard
+            label="Cap Rate"
+            value={fmtPct(lm.cap_rate)}
+            variant={lm.cap_rate >= 6 ? "positive" : lm.cap_rate >= 4 ? "neutral" : "negative"}
+            tooltip={METRIC_TOOLTIPS.cap_rate}
+          />
+          <MetricCard
+            label="NOI"
+            value={fmtCurrency(lm.noi)}
+            variant={cashflowVariant(lm.noi)}
+            tooltip={METRIC_TOOLTIPS.noi}
+          />
+          <MetricCard
+            label="DSCR"
+            value={lm.dscr.toFixed(2)}
+            variant={lm.dscr >= 1.25 ? "positive" : lm.dscr >= 1.0 ? "neutral" : "negative"}
+            tooltip={METRIC_TOOLTIPS.dscr}
+          />
+          <MetricCard
+            label="Gross Yield"
+            value={fmtPct(lm.gross_yield)}
+            variant={lm.gross_yield >= 8 ? "positive" : lm.gross_yield >= 5 ? "neutral" : "negative"}
+            tooltip={METRIC_TOOLTIPS.gross_yield}
+          />
+          <MetricCard
+            label="Year-1 Total ROI"
+            value={fmtPct(lm.total_roi_year1)}
+            variant={cashflowVariant(lm.total_roi_year1)}
+            tooltip={METRIC_TOOLTIPS.total_roi_year1}
+          />
+          {lm.appreciation_year1 > 0 && (
+            <MetricCard
+              label="Year-1 ROI (w/ Appreciation)"
+              value={fmtPct(lm.total_roi_year1_with_appreciation)}
+              variant={cashflowVariant(lm.total_roi_year1_with_appreciation)}
+              tooltip={METRIC_TOOLTIPS.total_roi_year1_with_appreciation}
+            />
+          )}
+        </div>
+
+        {/* DSCR Warning */}
+        {lm.dscr_warning && (
+          <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-xl px-4 py-3 flex items-start gap-3">
+            <span className="text-amber-500 text-lg mt-0.5">&#9888;</span>
+            <div>
+              <p className="text-sm font-medium text-amber-800 dark:text-amber-300">DSCR Lender Warning</p>
+              <p className="text-sm text-amber-700 dark:text-amber-400">{lm.dscr_warning}</p>
+            </div>
+          </div>
+        )}
+
+        {/* LTR Revenue Breakdown */}
+        <section>
+          <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100 mb-4">Revenue Breakdown</h3>
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm dark:shadow-slate-900/20 overflow-hidden">
+            <table className="w-full text-sm">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+                <tr>
+                  <td className="px-4 py-3 text-slate-700 dark:text-slate-300">Monthly Rent</td>
+                  <td className="px-4 py-3 text-right font-semibold dark:text-slate-100">{fmtCurrency(ltrResults.revenue.monthly_rent)}/mo</td>
+                </tr>
+                {ltrResults.revenue.pet_rent_monthly > 0 && (
+                  <tr>
+                    <td className="px-4 py-3 text-slate-500 dark:text-slate-400 pl-8">Pet Rent</td>
+                    <td className="px-4 py-3 text-right dark:text-slate-200">{fmtCurrency(ltrResults.revenue.pet_rent_monthly)}/mo</td>
+                  </tr>
+                )}
+                {ltrResults.revenue.late_fee_monthly > 0 && (
+                  <tr>
+                    <td className="px-4 py-3 text-slate-500 dark:text-slate-400 pl-8">Late Fee Income</td>
+                    <td className="px-4 py-3 text-right dark:text-slate-200">{fmtCurrency(ltrResults.revenue.late_fee_monthly)}/mo</td>
+                  </tr>
+                )}
+                <tr>
+                  <td className="px-4 py-3 text-slate-700 dark:text-slate-300">Gross Annual Revenue</td>
+                  <td className="px-4 py-3 text-right font-semibold dark:text-slate-100">{fmtCurrency(ltrResults.revenue.gross_annual)}</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3 text-slate-500 dark:text-slate-400 pl-8">Less: Vacancy Loss</td>
+                  <td className="px-4 py-3 text-right text-red-500">-{fmtCurrency(ltrResults.revenue.vacancy_loss)}</td>
+                </tr>
+                <tr className="bg-slate-50 dark:bg-slate-700">
+                  <td className="px-4 py-3 font-semibold text-slate-900 dark:text-slate-100">Effective Annual Revenue</td>
+                  <td className="px-4 py-3 text-right font-semibold dark:text-slate-100">{fmtCurrency(ltrResults.revenue.effective_annual)}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        {/* LTR Expense Breakdown */}
+        <section>
+          <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100 mb-4">Expense Breakdown</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm dark:shadow-slate-900/20 overflow-hidden">
+              <div className="px-4 py-3 bg-slate-50 dark:bg-slate-700 font-semibold text-slate-700 dark:text-slate-300">Operating Expenses</div>
+              <table className="w-full text-sm">
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+                  {Object.entries(ltrResults.expenses.breakdown).map(([key, val]) => (
+                    <tr key={key}>
+                      <td className="px-4 py-2 text-slate-600 dark:text-slate-400 capitalize">{key.replace(/_/g, " ")}</td>
+                      <td className="px-4 py-2 text-right dark:text-slate-200">{fmtCurrency(val)}</td>
+                    </tr>
+                  ))}
+                  <tr className="bg-slate-50 dark:bg-slate-700 font-semibold dark:text-slate-100">
+                    <td className="px-4 py-3">Total Operating</td>
+                    <td className="px-4 py-3 text-right dark:text-slate-200">{fmtCurrency(ltrResults.expenses.total_annual_operating)}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm dark:shadow-slate-900/20 overflow-hidden">
+              <div className="px-4 py-3 bg-slate-50 dark:bg-slate-700 font-semibold text-slate-700 dark:text-slate-300">Housing Costs (Monthly)</div>
+              <table className="w-full text-sm">
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+                  <tr>
+                    <td className="px-4 py-2 text-slate-600 dark:text-slate-400">Principal & Interest</td>
+                    <td className="px-4 py-2 text-right dark:text-slate-200">{fmtCurrency(ltrResults.mortgage.monthly_pi)}</td>
+                  </tr>
+                  {ltrResults.mortgage.monthly_pmi > 0 && (
+                    <tr>
+                      <td className="px-4 py-2 text-slate-600 dark:text-slate-400">PMI</td>
+                      <td className="px-4 py-2 text-right dark:text-slate-200">{fmtCurrency(ltrResults.mortgage.monthly_pmi)}</td>
+                    </tr>
+                  )}
+                  <tr className="bg-slate-50 dark:bg-slate-700 font-semibold dark:text-slate-100">
+                    <td className="px-4 py-3">Total Monthly Housing</td>
+                    <td className="px-4 py-3 text-right dark:text-slate-200">{fmtCurrency(ltrResults.mortgage.total_monthly_housing)}</td>
+                  </tr>
+                  {ltrResults.mortgage.origination_fee > 0 && (
+                    <tr>
+                      <td className="px-4 py-2 text-slate-600 dark:text-slate-400">Origination Fee</td>
+                      <td className="px-4 py-2 text-right dark:text-slate-200">{fmtCurrency(ltrResults.mortgage.origination_fee)}</td>
+                    </tr>
+                  )}
+                  <tr>
+                    <td className="px-4 py-2 text-slate-600 dark:text-slate-400">Total Cash Invested</td>
+                    <td className="px-4 py-2 text-right font-semibold dark:text-slate-100">{fmtCurrency(ltrResults.mortgage.total_cash_invested)}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        {/* LTR Sensitivity */}
+        {ltrSensitivity && (
+          <section>
+            <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100 mb-4">Sensitivity Analysis</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm dark:shadow-slate-900/20 overflow-hidden">
+                <div className="px-4 py-3 bg-slate-50 dark:bg-slate-700 font-semibold text-slate-700 dark:text-slate-300">
+                  Vacancy % vs Monthly Cashflow
+                </div>
+                <div className="p-4">
+                  <SensitivityChart
+                    data={ltrSensitivity.vacancy_sweep.map((d) => ({
+                      label: `${d.vacancy_pct}%`,
+                      value: d.monthly_cashflow,
+                    }))}
+                  />
+                </div>
+              </div>
+              <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm dark:shadow-slate-900/20 overflow-hidden">
+                <div className="px-4 py-3 bg-slate-50 dark:bg-slate-700 font-semibold text-slate-700 dark:text-slate-300">
+                  Monthly Rent vs Monthly Cashflow
+                </div>
+                <div className="p-4">
+                  <SensitivityChart
+                    data={ltrSensitivity.rent_sweep.map((d) => ({
+                      label: `$${d.monthly_rent}`,
+                      value: d.monthly_cashflow,
+                    }))}
+                  />
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* Amortization Table */}
+        {amortization.length > 0 && (
+          <section>
+            <button
+              onClick={() => setShowAmortization(!showAmortization)}
+              className="flex items-center gap-2 text-base font-semibold text-slate-900 dark:text-slate-100 mb-4 w-full text-left"
+            >
+              <span>{showAmortization ? "\u25BC" : "\u25B6"}</span>
+              Amortization Schedule (First 5 Years)
+            </button>
+            {showAmortization && (
+              <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm dark:shadow-slate-900/20 overflow-auto max-h-96">
+                <table className="w-full text-sm">
+                  <thead className="bg-slate-50 dark:bg-slate-700 sticky top-0">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-slate-600 dark:text-slate-400">Month</th>
+                      <th className="px-4 py-3 text-right text-slate-600 dark:text-slate-400">Principal</th>
+                      <th className="px-4 py-3 text-right text-slate-600 dark:text-slate-400">Interest</th>
+                      <th className="px-4 py-3 text-right text-slate-600 dark:text-slate-400">Remaining Balance</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+                    {amortization.map((entry) => (
+                      <tr key={entry.month}>
+                        <td className="px-4 py-2 dark:text-slate-200">{entry.month}</td>
+                        <td className="px-4 py-2 text-right dark:text-slate-200">{fmtCurrency(entry.principal)}</td>
+                        <td className="px-4 py-2 text-right dark:text-slate-200">{fmtCurrency(entry.interest)}</td>
+                        <td className="px-4 py-2 text-right dark:text-slate-200">{fmtCurrency(entry.remaining_balance)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+        )}
+      </div>
+    );
+  }
+
+  if (!results) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-red-600 mb-4">No results available</p>
         <button
           onClick={() => void fetchResults()}
           className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-indigo-500 shadow-md shadow-indigo-200 text-white rounded-lg hover:from-indigo-700 hover:to-indigo-600"
@@ -143,11 +444,11 @@ export function ResultsTab({ propertyId, scenarios, activeRentalType }: ResultsT
     <div className="space-y-8">
       {/* Scenario selector */}
       <div className="flex items-center gap-4">
-        <label className="text-sm font-medium text-slate-700">Scenario:</label>
+        <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Scenario:</label>
         <select
           value={selectedScenarioId}
           onChange={(e) => setSelectedScenarioId(e.target.value)}
-          className="px-3 py-2 bg-slate-100 border-0 rounded-lg focus:ring-2 focus:ring-indigo-500"
+          className="px-3 py-2 bg-slate-100 dark:bg-slate-700 border-0 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:text-slate-100"
         >
           {scenarios.map((s) => (
             <option key={s.id} value={s.id}>
@@ -163,7 +464,6 @@ export function ResultsTab({ propertyId, scenarios, activeRentalType }: ResultsT
           label="Monthly Cashflow"
           value={`${fmtCurrency(m.monthly_cashflow)}/mo`}
           variant={cashflowVariant(m.monthly_cashflow)}
-          large
           tooltip={METRIC_TOOLTIPS.monthly_cashflow}
         />
         <MetricCard
@@ -234,35 +534,35 @@ export function ResultsTab({ propertyId, scenarios, activeRentalType }: ResultsT
 
       {/* DSCR Warning */}
       {m.dscr_warning && (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 flex items-start gap-3">
+        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-xl px-4 py-3 flex items-start gap-3">
           <span className="text-amber-500 text-lg mt-0.5">&#9888;</span>
           <div>
-            <p className="text-sm font-medium text-amber-800">DSCR Lender Warning</p>
-            <p className="text-sm text-amber-700">{m.dscr_warning}</p>
+            <p className="text-sm font-medium text-amber-800 dark:text-amber-300">DSCR Lender Warning</p>
+            <p className="text-sm text-amber-700 dark:text-amber-400">{m.dscr_warning}</p>
           </div>
         </div>
       )}
 
       {/* Occupancy/Rate Warning */}
       {m.occupancy_rate_warning && (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 flex items-start gap-3">
+        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-xl px-4 py-3 flex items-start gap-3">
           <span className="text-amber-500 text-lg mt-0.5">&#9888;</span>
           <div>
-            <p className="text-sm font-medium text-amber-800">Optimistic Assumptions</p>
-            <p className="text-sm text-amber-700">{m.occupancy_rate_warning}</p>
+            <p className="text-sm font-medium text-amber-800 dark:text-amber-300">Optimistic Assumptions</p>
+            <p className="text-sm text-amber-700 dark:text-amber-400">{m.occupancy_rate_warning}</p>
           </div>
         </div>
       )}
 
       {/* Rental Delay Notice */}
       {results.rental_delay_months > 0 && (
-        <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 flex items-start gap-3">
+        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl px-4 py-3 flex items-start gap-3">
           <span className="text-blue-500 text-lg mt-0.5">&#128197;</span>
           <div>
-            <p className="text-sm font-medium text-blue-800">
+            <p className="text-sm font-medium text-blue-800 dark:text-blue-300">
               Year-1 Adjusted ({results.rental_delay_months}-month rental delay)
             </p>
-            <p className="text-sm text-blue-700">
+            <p className="text-sm text-blue-700 dark:text-blue-400">
               Metrics reflect {12 - results.rental_delay_months} months of rental income with 12 months of carrying costs.
               Carrying costs during the delay period are added to total cash invested.
             </p>
@@ -272,51 +572,51 @@ export function ResultsTab({ propertyId, scenarios, activeRentalType }: ResultsT
 
       {/* Revenue Waterfall */}
       <section>
-        <h3 className="text-base font-semibold text-slate-900 mb-4">Revenue Breakdown</h3>
-        <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+        <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100 mb-4">Revenue Breakdown</h3>
+        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm dark:shadow-slate-900/20 overflow-hidden">
           <table className="w-full text-sm">
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
               <tr>
-                <td className="px-4 py-3 text-slate-700">Gross Annual Revenue</td>
-                <td className="px-4 py-3 text-right font-semibold">{fmtCurrency(results.revenue.gross_annual)}</td>
+                <td className="px-4 py-3 text-slate-700 dark:text-slate-300">Gross Annual Revenue</td>
+                <td className="px-4 py-3 text-right font-semibold dark:text-slate-100">{fmtCurrency(results.revenue.gross_annual)}</td>
               </tr>
               <tr>
-                <td className="px-4 py-3 text-slate-500 pl-8">Less: Platform Fees</td>
+                <td className="px-4 py-3 text-slate-500 dark:text-slate-400 pl-8">Less: Platform Fees</td>
                 <td className="px-4 py-3 text-right text-red-500">
                   -{fmtCurrency(results.revenue.gross_annual - results.revenue.net_annual)}
                 </td>
               </tr>
-              <tr className="bg-slate-50">
-                <td className="px-4 py-3 font-semibold text-slate-900">Net Annual Revenue</td>
-                <td className="px-4 py-3 text-right font-semibold">{fmtCurrency(results.revenue.net_annual)}</td>
+              <tr className="bg-slate-50 dark:bg-slate-700">
+                <td className="px-4 py-3 font-semibold text-slate-900 dark:text-slate-100">Net Annual Revenue</td>
+                <td className="px-4 py-3 text-right font-semibold dark:text-slate-100">{fmtCurrency(results.revenue.net_annual)}</td>
               </tr>
               <tr>
-                <td className="px-4 py-3 text-slate-500">Annual Turnovers</td>
-                <td className="px-4 py-3 text-right">{results.revenue.annual_turnovers}</td>
+                <td className="px-4 py-3 text-slate-500 dark:text-slate-400">Annual Turnovers</td>
+                <td className="px-4 py-3 text-right dark:text-slate-200">{results.revenue.annual_turnovers}</td>
               </tr>
               {m.guest_cost_per_night > 0 && (
                 <tr>
-                  <td className="px-4 py-3 text-slate-500">
+                  <td className="px-4 py-3 text-slate-500 dark:text-slate-400">
                     Guest Cost per Night
-                    <span className="ml-2 text-xs text-slate-400">(rate + cleaning fee / stay length)</span>
+                    <span className="ml-2 text-xs text-slate-400 dark:text-slate-500">(rate + cleaning fee / stay length)</span>
                   </td>
-                  <td className="px-4 py-3 text-right">{fmtCurrency(m.guest_cost_per_night)}</td>
+                  <td className="px-4 py-3 text-right dark:text-slate-200">{fmtCurrency(m.guest_cost_per_night)}</td>
                 </tr>
               )}
               {results.tax_impact && (
                 <>
-                  <tr className="bg-amber-50/50">
-                    <td className="px-4 py-3 text-slate-700">
+                  <tr className="bg-amber-50/50 dark:bg-amber-900/10">
+                    <td className="px-4 py-3 text-slate-700 dark:text-slate-300">
                       Guest-Facing Tax Rate
                       {results.tax_impact.platform_remits && (
-                        <span className="ml-2 text-xs text-slate-400">(platform remits)</span>
+                        <span className="ml-2 text-xs text-slate-400 dark:text-slate-500">(platform remits)</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-right">{fmtPct(results.tax_impact.guest_facing_tax_pct)}</td>
+                    <td className="px-4 py-3 text-right dark:text-slate-200">{fmtPct(results.tax_impact.guest_facing_tax_pct)}</td>
                   </tr>
-                  <tr className="bg-amber-50/50">
-                    <td className="px-4 py-3 text-slate-500 pl-8">Effective Nightly Rate (with tax)</td>
-                    <td className="px-4 py-3 text-right">{fmtCurrency(results.tax_impact.effective_nightly_rate_with_tax)}</td>
+                  <tr className="bg-amber-50/50 dark:bg-amber-900/10">
+                    <td className="px-4 py-3 text-slate-500 dark:text-slate-400 pl-8">Effective Nightly Rate (with tax)</td>
+                    <td className="px-4 py-3 text-right dark:text-slate-200">{fmtCurrency(results.tax_impact.effective_nightly_rate_with_tax)}</td>
                   </tr>
                 </>
               )}
@@ -327,55 +627,55 @@ export function ResultsTab({ propertyId, scenarios, activeRentalType }: ResultsT
 
       {/* Expense Breakdown */}
       <section>
-        <h3 className="text-base font-semibold text-slate-900 mb-4">Expense Breakdown</h3>
+        <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100 mb-4">Expense Breakdown</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Operating expenses */}
-          <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-            <div className="px-4 py-3 bg-slate-50 font-semibold text-slate-700">Operating Expenses</div>
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm dark:shadow-slate-900/20 overflow-hidden">
+            <div className="px-4 py-3 bg-slate-50 dark:bg-slate-700 font-semibold text-slate-700 dark:text-slate-300">Operating Expenses</div>
             <table className="w-full text-sm">
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
                 {Object.entries(results.expenses.breakdown).map(([key, val]) => (
                   <tr key={key}>
-                    <td className="px-4 py-2 text-slate-600 capitalize">{key.replace(/_/g, " ")}</td>
-                    <td className="px-4 py-2 text-right">{fmtCurrency(val)}</td>
+                    <td className="px-4 py-2 text-slate-600 dark:text-slate-400 capitalize">{key.replace(/_/g, " ")}</td>
+                    <td className="px-4 py-2 text-right dark:text-slate-200">{fmtCurrency(val)}</td>
                   </tr>
                 ))}
-                <tr className="bg-slate-50 font-semibold">
+                <tr className="bg-slate-50 dark:bg-slate-700 font-semibold dark:text-slate-100">
                   <td className="px-4 py-3">Total Operating</td>
-                  <td className="px-4 py-3 text-right">{fmtCurrency(results.expenses.total_annual_operating)}</td>
+                  <td className="px-4 py-3 text-right dark:text-slate-200">{fmtCurrency(results.expenses.total_annual_operating)}</td>
                 </tr>
               </tbody>
             </table>
           </div>
 
           {/* Housing costs */}
-          <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-            <div className="px-4 py-3 bg-slate-50 font-semibold text-slate-700">Housing Costs (Monthly)</div>
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm dark:shadow-slate-900/20 overflow-hidden">
+            <div className="px-4 py-3 bg-slate-50 dark:bg-slate-700 font-semibold text-slate-700 dark:text-slate-300">Housing Costs (Monthly)</div>
             <table className="w-full text-sm">
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
                 <tr>
-                  <td className="px-4 py-2 text-slate-600">Principal & Interest</td>
-                  <td className="px-4 py-2 text-right">{fmtCurrency(results.mortgage.monthly_pi)}</td>
+                  <td className="px-4 py-2 text-slate-600 dark:text-slate-400">Principal & Interest</td>
+                  <td className="px-4 py-2 text-right dark:text-slate-200">{fmtCurrency(results.mortgage.monthly_pi)}</td>
                 </tr>
                 {results.mortgage.monthly_pmi > 0 && (
                   <tr>
-                    <td className="px-4 py-2 text-slate-600">PMI</td>
-                    <td className="px-4 py-2 text-right">{fmtCurrency(results.mortgage.monthly_pmi)}</td>
+                    <td className="px-4 py-2 text-slate-600 dark:text-slate-400">PMI</td>
+                    <td className="px-4 py-2 text-right dark:text-slate-200">{fmtCurrency(results.mortgage.monthly_pmi)}</td>
                   </tr>
                 )}
-                <tr className="bg-slate-50 font-semibold">
+                <tr className="bg-slate-50 dark:bg-slate-700 font-semibold dark:text-slate-100">
                   <td className="px-4 py-3">Total Monthly Housing</td>
-                  <td className="px-4 py-3 text-right">{fmtCurrency(results.mortgage.total_monthly_housing)}</td>
+                  <td className="px-4 py-3 text-right dark:text-slate-200">{fmtCurrency(results.mortgage.total_monthly_housing)}</td>
                 </tr>
                 {results.mortgage.origination_fee > 0 && (
                   <tr>
-                    <td className="px-4 py-2 text-slate-600">Origination Fee</td>
-                    <td className="px-4 py-2 text-right">{fmtCurrency(results.mortgage.origination_fee)}</td>
+                    <td className="px-4 py-2 text-slate-600 dark:text-slate-400">Origination Fee</td>
+                    <td className="px-4 py-2 text-right dark:text-slate-200">{fmtCurrency(results.mortgage.origination_fee)}</td>
                   </tr>
                 )}
                 <tr>
-                  <td className="px-4 py-2 text-slate-600">Total Cash Invested</td>
-                  <td className="px-4 py-2 text-right font-semibold">{fmtCurrency(results.mortgage.total_cash_invested)}</td>
+                  <td className="px-4 py-2 text-slate-600 dark:text-slate-400">Total Cash Invested</td>
+                  <td className="px-4 py-2 text-right font-semibold dark:text-slate-100">{fmtCurrency(results.mortgage.total_cash_invested)}</td>
                 </tr>
               </tbody>
             </table>
@@ -388,48 +688,48 @@ export function ResultsTab({ propertyId, scenarios, activeRentalType }: ResultsT
         <section>
           <button
             onClick={() => setShowTaxAnalysis(!showTaxAnalysis)}
-            className="flex items-center gap-2 text-base font-semibold text-slate-900 mb-4 w-full text-left"
+            className="flex items-center gap-2 text-base font-semibold text-slate-900 dark:text-slate-100 mb-4 w-full text-left"
           >
             <span>{showTaxAnalysis ? "\u25BC" : "\u25B6"}</span>
             Tax Analysis
           </button>
           {showTaxAnalysis && (
-            <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm dark:shadow-slate-900/20 overflow-hidden">
               <table className="w-full text-sm">
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
                   <tr>
-                    <td className="px-4 py-2 text-slate-700">Net Operating Income (NOI)</td>
-                    <td className="px-4 py-2 text-right">{fmtCurrency(m.noi)}</td>
+                    <td className="px-4 py-2 text-slate-700 dark:text-slate-300">Net Operating Income (NOI)</td>
+                    <td className="px-4 py-2 text-right dark:text-slate-200">{fmtCurrency(m.noi)}</td>
                   </tr>
                   <tr>
-                    <td className="px-4 py-2 text-slate-500 pl-8">Less: Mortgage Interest (Year 1)</td>
+                    <td className="px-4 py-2 text-slate-500 dark:text-slate-400 pl-8">Less: Mortgage Interest (Year 1)</td>
                     <td className="px-4 py-2 text-right text-red-500">
                       -{fmtCurrency(m.noi - m.taxable_income - (results.depreciation?.total_depreciation_annual ?? 0))}
                     </td>
                   </tr>
                   <tr>
-                    <td className="px-4 py-2 text-slate-500 pl-8">Less: Depreciation</td>
+                    <td className="px-4 py-2 text-slate-500 dark:text-slate-400 pl-8">Less: Depreciation</td>
                     <td className="px-4 py-2 text-right text-red-500">
                       -{fmtCurrency(results.depreciation?.total_depreciation_annual ?? 0)}
                     </td>
                   </tr>
-                  <tr className="bg-slate-50">
-                    <td className="px-4 py-3 font-semibold text-slate-900">Taxable Income</td>
-                    <td className={`px-4 py-3 text-right font-semibold ${m.taxable_income >= 0 ? "" : "text-emerald-600"}`}>
+                  <tr className="bg-slate-50 dark:bg-slate-700">
+                    <td className="px-4 py-3 font-semibold text-slate-900 dark:text-slate-100">Taxable Income</td>
+                    <td className={`px-4 py-3 text-right font-semibold ${m.taxable_income >= 0 ? "dark:text-slate-100" : "text-emerald-600"}`}>
                       {fmtCurrency(m.taxable_income)}
                       {m.taxable_income < 0 && <span className="text-xs ml-1">(paper loss)</span>}
                     </td>
                   </tr>
                   <tr>
-                    <td className="px-4 py-2 text-slate-700">
+                    <td className="px-4 py-2 text-slate-700 dark:text-slate-300">
                       {m.tax_liability >= 0 ? "Tax Liability" : "Tax Savings"}
                     </td>
                     <td className={`px-4 py-2 text-right font-medium ${m.tax_liability >= 0 ? "text-red-500" : "text-emerald-600"}`}>
                       {m.tax_liability >= 0 ? `-${fmtCurrency(m.tax_liability)}` : `+${fmtCurrency(Math.abs(m.tax_liability))}`}
                     </td>
                   </tr>
-                  <tr className="bg-slate-50">
-                    <td className="px-4 py-3 font-semibold text-slate-900">After-Tax Annual Cashflow</td>
+                  <tr className="bg-slate-50 dark:bg-slate-700">
+                    <td className="px-4 py-3 font-semibold text-slate-900 dark:text-slate-100">After-Tax Annual Cashflow</td>
                     <td className={`px-4 py-3 text-right font-semibold ${m.after_tax_annual_cashflow >= 0 ? "text-emerald-600" : "text-red-500"}`}>
                       {fmtCurrency(m.after_tax_annual_cashflow)}
                     </td>
@@ -444,31 +744,31 @@ export function ResultsTab({ propertyId, scenarios, activeRentalType }: ResultsT
       {/* Tax Deductions (Depreciation) */}
       {results.depreciation && results.depreciation.total_depreciation_annual > 0 && (
         <section>
-          <h3 className="text-base font-semibold text-slate-900 mb-4">Tax Deductions (Non-Cash)</h3>
-          <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+          <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100 mb-4">Tax Deductions (Non-Cash)</h3>
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm dark:shadow-slate-900/20 overflow-hidden">
             <table className="w-full text-sm">
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
                 <tr>
-                  <td className="px-4 py-2 text-slate-600">Building Value (Depreciable)</td>
-                  <td className="px-4 py-2 text-right">{fmtCurrency(results.depreciation.building_value)}</td>
+                  <td className="px-4 py-2 text-slate-600 dark:text-slate-400">Building Value (Depreciable)</td>
+                  <td className="px-4 py-2 text-right dark:text-slate-200">{fmtCurrency(results.depreciation.building_value)}</td>
                 </tr>
                 <tr>
-                  <td className="px-4 py-2 text-slate-600">Building Depreciation (27.5 yr)</td>
-                  <td className="px-4 py-2 text-right">{fmtCurrency(results.depreciation.building_depreciation_annual)}/yr</td>
+                  <td className="px-4 py-2 text-slate-600 dark:text-slate-400">Building Depreciation (27.5 yr)</td>
+                  <td className="px-4 py-2 text-right dark:text-slate-200">{fmtCurrency(results.depreciation.building_depreciation_annual)}/yr</td>
                 </tr>
                 {results.depreciation.furniture_depreciation_annual > 0 && (
                   <tr>
-                    <td className="px-4 py-2 text-slate-600">Furniture Depreciation (7 yr)</td>
-                    <td className="px-4 py-2 text-right">{fmtCurrency(results.depreciation.furniture_depreciation_annual)}/yr</td>
+                    <td className="px-4 py-2 text-slate-600 dark:text-slate-400">Furniture Depreciation (7 yr)</td>
+                    <td className="px-4 py-2 text-right dark:text-slate-200">{fmtCurrency(results.depreciation.furniture_depreciation_annual)}/yr</td>
                   </tr>
                 )}
-                <tr className="bg-slate-50 font-semibold">
+                <tr className="bg-slate-50 dark:bg-slate-700 font-semibold dark:text-slate-100">
                   <td className="px-4 py-3">Total Annual Depreciation</td>
-                  <td className="px-4 py-3 text-right">{fmtCurrency(results.depreciation.total_depreciation_annual)}/yr</td>
+                  <td className="px-4 py-3 text-right dark:text-slate-200">{fmtCurrency(results.depreciation.total_depreciation_annual)}/yr</td>
                 </tr>
               </tbody>
             </table>
-            <div className="px-4 py-2 text-xs text-slate-400 bg-slate-50 border-t border-slate-100">
+            <div className="px-4 py-2 text-xs text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-slate-700 border-t border-slate-100 dark:border-slate-600">
               Depreciation is a non-cash tax deduction. It reduces taxable income but does not affect NOI, cashflow, or DSCR.
             </div>
           </div>
@@ -478,11 +778,11 @@ export function ResultsTab({ propertyId, scenarios, activeRentalType }: ResultsT
       {/* Sensitivity Analysis */}
       {sensitivity && (
         <section>
-          <h3 className="text-base font-semibold text-slate-900 mb-4">Sensitivity Analysis</h3>
+          <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100 mb-4">Sensitivity Analysis</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Occupancy sweep */}
-            <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-              <div className="px-4 py-3 bg-slate-50 font-semibold text-slate-700">
+            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm dark:shadow-slate-900/20 overflow-hidden">
+              <div className="px-4 py-3 bg-slate-50 dark:bg-slate-700 font-semibold text-slate-700 dark:text-slate-300">
                 Occupancy % vs Monthly Cashflow
               </div>
               <div className="p-4">
@@ -496,8 +796,8 @@ export function ResultsTab({ propertyId, scenarios, activeRentalType }: ResultsT
             </div>
 
             {/* Rate sweep */}
-            <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-              <div className="px-4 py-3 bg-slate-50 font-semibold text-slate-700">
+            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm dark:shadow-slate-900/20 overflow-hidden">
+              <div className="px-4 py-3 bg-slate-50 dark:bg-slate-700 font-semibold text-slate-700 dark:text-slate-300">
                 Nightly Rate vs Monthly Cashflow
               </div>
               <div className="p-4">
@@ -530,7 +830,7 @@ export function ResultsTab({ propertyId, scenarios, activeRentalType }: ResultsT
                 .finally(() => setMonthlyLoading(false));
             }
           }}
-          className="flex items-center gap-2 text-base font-semibold text-slate-900 mb-4 w-full text-left"
+          className="flex items-center gap-2 text-base font-semibold text-slate-900 dark:text-slate-100 mb-4 w-full text-left"
         >
           <span>{showMonthly ? "\u25BC" : "\u25B6"}</span>
           Monthly Cashflow
@@ -541,26 +841,26 @@ export function ResultsTab({ propertyId, scenarios, activeRentalType }: ResultsT
           ) : monthlyData.length > 0 ? (
             <div className="space-y-4">
               {/* Bar chart */}
-              <div className="bg-white rounded-2xl shadow-sm p-4">
+              <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm dark:shadow-slate-900/20 p-4">
                 <MonthlyCashflowChart data={monthlyData} />
               </div>
               {/* Table */}
-              <div className="bg-white rounded-2xl shadow-sm overflow-auto">
+              <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm dark:shadow-slate-900/20 overflow-auto">
                 <table className="w-full text-sm">
-                  <thead className="bg-slate-50 sticky top-0">
+                  <thead className="bg-slate-50 dark:bg-slate-700 sticky top-0">
                     <tr>
-                      <th className="px-3 py-3 text-left text-slate-600">Month</th>
-                      {monthlyIsSeasonal && <th className="px-3 py-3 text-left text-slate-600">Season</th>}
-                      <th className="px-3 py-3 text-right text-slate-600">Revenue</th>
-                      <th className="px-3 py-3 text-right text-slate-600">Expenses</th>
-                      <th className="px-3 py-3 text-right text-slate-600">NOI</th>
-                      <th className="px-3 py-3 text-right text-slate-600">Cashflow</th>
+                      <th className="px-3 py-3 text-left text-slate-600 dark:text-slate-400">Month</th>
+                      {monthlyIsSeasonal && <th className="px-3 py-3 text-left text-slate-600 dark:text-slate-400">Season</th>}
+                      <th className="px-3 py-3 text-right text-slate-600 dark:text-slate-400">Revenue</th>
+                      <th className="px-3 py-3 text-right text-slate-600 dark:text-slate-400">Expenses</th>
+                      <th className="px-3 py-3 text-right text-slate-600 dark:text-slate-400">NOI</th>
+                      <th className="px-3 py-3 text-right text-slate-600 dark:text-slate-400">Cashflow</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
                     {monthlyData.map((m) => (
                       <tr key={m.month}>
-                        <td className="px-3 py-2 font-medium">{m.month}</td>
+                        <td className="px-3 py-2 font-medium dark:text-slate-200">{m.month}</td>
                         {monthlyIsSeasonal && (
                           <td className="px-3 py-2">
                             <span className={`text-xs px-2 py-0.5 rounded-full ${m.is_peak ? "bg-amber-100 text-amber-700" : "bg-blue-100 text-blue-700"}`}>
@@ -568,9 +868,9 @@ export function ResultsTab({ propertyId, scenarios, activeRentalType }: ResultsT
                             </span>
                           </td>
                         )}
-                        <td className="px-3 py-2 text-right">{fmtCurrency(m.gross_revenue)}</td>
-                        <td className="px-3 py-2 text-right">{fmtCurrency(m.total_expenses)}</td>
-                        <td className="px-3 py-2 text-right">{fmtCurrency(m.noi)}</td>
+                        <td className="px-3 py-2 text-right dark:text-slate-200">{fmtCurrency(m.gross_revenue)}</td>
+                        <td className="px-3 py-2 text-right dark:text-slate-200">{fmtCurrency(m.total_expenses)}</td>
+                        <td className="px-3 py-2 text-right dark:text-slate-200">{fmtCurrency(m.noi)}</td>
                         <td className={`px-3 py-2 text-right font-medium ${m.cashflow >= 0 ? "text-emerald-600" : "text-red-500"}`}>
                           {fmtCurrency(m.cashflow)}
                         </td>
@@ -604,7 +904,7 @@ export function ResultsTab({ propertyId, scenarios, activeRentalType }: ResultsT
                 .finally(() => setProjectionsLoading(false));
             }
           }}
-          className="flex items-center gap-2 text-base font-semibold text-slate-900 mb-4 w-full text-left"
+          className="flex items-center gap-2 text-base font-semibold text-slate-900 dark:text-slate-100 mb-4 w-full text-left"
         >
           <span>{showProjections ? "\u25BC" : "\u25B6"}</span>
           5-Year Projections
@@ -617,52 +917,52 @@ export function ResultsTab({ propertyId, scenarios, activeRentalType }: ResultsT
               {/* IRR & Equity Multiple summary */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {projectionIrr !== null && (
-                  <div className="bg-white rounded-xl shadow-sm p-3 text-center">
-                    <div className="text-xs uppercase tracking-wider text-slate-400 font-medium">5-Year IRR</div>
+                  <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm dark:shadow-slate-900/20 p-3 text-center">
+                    <div className="text-xs uppercase tracking-wider text-slate-400 dark:text-slate-500 font-medium">5-Year IRR</div>
                     <div className={`text-lg font-bold ${projectionIrr >= 0 ? "text-emerald-600" : "text-red-500"}`}>
                       {projectionIrr.toFixed(1)}%
                     </div>
                   </div>
                 )}
-                <div className="bg-white rounded-xl shadow-sm p-3 text-center">
-                  <div className="text-xs uppercase tracking-wider text-slate-400 font-medium">Equity Multiple</div>
-                  <div className={`text-lg font-bold ${projectionEqMultiple >= 1 ? "text-emerald-600" : projectionEqMultiple >= 0 ? "text-slate-900" : "text-red-500"}`}>
+                <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm dark:shadow-slate-900/20 p-3 text-center">
+                  <div className="text-xs uppercase tracking-wider text-slate-400 dark:text-slate-500 font-medium">Equity Multiple</div>
+                  <div className={`text-lg font-bold ${projectionEqMultiple >= 1 ? "text-emerald-600" : projectionEqMultiple >= 0 ? "text-slate-900 dark:text-slate-100" : "text-red-500"}`}>
                     {projectionEqMultiple.toFixed(2)}x
                   </div>
                 </div>
               </div>
-              <div className="bg-white rounded-2xl shadow-sm overflow-auto">
+              <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm dark:shadow-slate-900/20 overflow-auto">
               <table className="w-full text-sm">
-                <thead className="bg-slate-50 sticky top-0">
+                <thead className="bg-slate-50 dark:bg-slate-700 sticky top-0">
                   <tr>
-                    <th className="px-3 py-3 text-left text-slate-600">Year</th>
-                    <th className="px-3 py-3 text-right text-slate-600">Gross Revenue</th>
-                    <th className="px-3 py-3 text-right text-slate-600">NOI</th>
-                    <th className="px-3 py-3 text-right text-slate-600">Cashflow</th>
-                    <th className="px-3 py-3 text-right text-slate-600">Cumulative CF</th>
-                    <th className="px-3 py-3 text-right text-slate-600">CoC Return</th>
-                    <th className="px-3 py-3 text-right text-slate-600">Property Value</th>
-                    <th className="px-3 py-3 text-right text-slate-600">Loan Balance</th>
-                    <th className="px-3 py-3 text-right text-slate-600">Equity</th>
-                    {m.tax_liability !== 0 && <th className="px-3 py-3 text-right text-slate-600">After-Tax CF</th>}
+                    <th className="px-3 py-3 text-left text-slate-600 dark:text-slate-400">Year</th>
+                    <th className="px-3 py-3 text-right text-slate-600 dark:text-slate-400">Gross Revenue</th>
+                    <th className="px-3 py-3 text-right text-slate-600 dark:text-slate-400">NOI</th>
+                    <th className="px-3 py-3 text-right text-slate-600 dark:text-slate-400">Cashflow</th>
+                    <th className="px-3 py-3 text-right text-slate-600 dark:text-slate-400">Cumulative CF</th>
+                    <th className="px-3 py-3 text-right text-slate-600 dark:text-slate-400">CoC Return</th>
+                    <th className="px-3 py-3 text-right text-slate-600 dark:text-slate-400">Property Value</th>
+                    <th className="px-3 py-3 text-right text-slate-600 dark:text-slate-400">Loan Balance</th>
+                    <th className="px-3 py-3 text-right text-slate-600 dark:text-slate-400">Equity</th>
+                    {m.tax_liability !== 0 && <th className="px-3 py-3 text-right text-slate-600 dark:text-slate-400">After-Tax CF</th>}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
                   {projections.map((y) => (
                     <tr key={y.year}>
-                      <td className="px-3 py-2 font-medium">{y.year}</td>
-                      <td className="px-3 py-2 text-right">{fmtCurrency(y.gross_revenue)}</td>
-                      <td className="px-3 py-2 text-right">{fmtCurrency(y.noi)}</td>
+                      <td className="px-3 py-2 font-medium dark:text-slate-200">{y.year}</td>
+                      <td className="px-3 py-2 text-right dark:text-slate-200">{fmtCurrency(y.gross_revenue)}</td>
+                      <td className="px-3 py-2 text-right dark:text-slate-200">{fmtCurrency(y.noi)}</td>
                       <td className={`px-3 py-2 text-right font-medium ${y.annual_cashflow >= 0 ? "text-emerald-600" : "text-red-500"}`}>
                         {fmtCurrency(y.annual_cashflow)}
                       </td>
                       <td className={`px-3 py-2 text-right ${y.cumulative_cashflow >= 0 ? "text-emerald-600" : "text-red-500"}`}>
                         {fmtCurrency(y.cumulative_cashflow)}
                       </td>
-                      <td className="px-3 py-2 text-right">{fmtPct(y.cash_on_cash_return)}</td>
-                      <td className="px-3 py-2 text-right">{fmtCurrency(y.property_value)}</td>
-                      <td className="px-3 py-2 text-right">{fmtCurrency(y.loan_balance)}</td>
-                      <td className="px-3 py-2 text-right font-medium">{fmtCurrency(y.equity)}</td>
+                      <td className="px-3 py-2 text-right dark:text-slate-200">{fmtPct(y.cash_on_cash_return)}</td>
+                      <td className="px-3 py-2 text-right dark:text-slate-200">{fmtCurrency(y.property_value)}</td>
+                      <td className="px-3 py-2 text-right dark:text-slate-200">{fmtCurrency(y.loan_balance)}</td>
+                      <td className="px-3 py-2 text-right font-medium dark:text-slate-100">{fmtCurrency(y.equity)}</td>
                       {m.tax_liability !== 0 && (
                         <td className={`px-3 py-2 text-right font-medium ${y.after_tax_cashflow >= 0 ? "text-emerald-600" : "text-red-500"}`}>
                           {fmtCurrency(y.after_tax_cashflow)}
@@ -685,29 +985,29 @@ export function ResultsTab({ propertyId, scenarios, activeRentalType }: ResultsT
         <section>
           <button
             onClick={() => setShowAmortization(!showAmortization)}
-            className="flex items-center gap-2 text-base font-semibold text-slate-900 mb-4 w-full text-left"
+            className="flex items-center gap-2 text-base font-semibold text-slate-900 dark:text-slate-100 mb-4 w-full text-left"
           >
             <span>{showAmortization ? "\u25BC" : "\u25B6"}</span>
             Amortization Schedule (First 5 Years)
           </button>
           {showAmortization && (
-            <div className="bg-white rounded-2xl shadow-sm overflow-auto max-h-96">
+            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm dark:shadow-slate-900/20 overflow-auto max-h-96">
               <table className="w-full text-sm">
-                <thead className="bg-slate-50 sticky top-0">
+                <thead className="bg-slate-50 dark:bg-slate-700 sticky top-0">
                   <tr>
-                    <th className="px-4 py-3 text-left text-slate-600">Month</th>
-                    <th className="px-4 py-3 text-right text-slate-600">Principal</th>
-                    <th className="px-4 py-3 text-right text-slate-600">Interest</th>
-                    <th className="px-4 py-3 text-right text-slate-600">Remaining Balance</th>
+                    <th className="px-4 py-3 text-left text-slate-600 dark:text-slate-400">Month</th>
+                    <th className="px-4 py-3 text-right text-slate-600 dark:text-slate-400">Principal</th>
+                    <th className="px-4 py-3 text-right text-slate-600 dark:text-slate-400">Interest</th>
+                    <th className="px-4 py-3 text-right text-slate-600 dark:text-slate-400">Remaining Balance</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
                   {amortization.map((entry) => (
                     <tr key={entry.month}>
-                      <td className="px-4 py-2">{entry.month}</td>
-                      <td className="px-4 py-2 text-right">{fmtCurrency(entry.principal)}</td>
-                      <td className="px-4 py-2 text-right">{fmtCurrency(entry.interest)}</td>
-                      <td className="px-4 py-2 text-right">{fmtCurrency(entry.remaining_balance)}</td>
+                      <td className="px-4 py-2 dark:text-slate-200">{entry.month}</td>
+                      <td className="px-4 py-2 text-right dark:text-slate-200">{fmtCurrency(entry.principal)}</td>
+                      <td className="px-4 py-2 text-right dark:text-slate-200">{fmtCurrency(entry.interest)}</td>
+                      <td className="px-4 py-2 text-right dark:text-slate-200">{fmtCurrency(entry.remaining_balance)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -740,7 +1040,7 @@ export function ResultsTab({ propertyId, scenarios, activeRentalType }: ResultsT
                 .finally(() => setComparisonLoading(false));
             }
           }}
-          className="flex items-center gap-2 text-base font-semibold text-slate-900 mb-4 w-full text-left"
+          className="flex items-center gap-2 text-base font-semibold text-slate-900 dark:text-slate-100 mb-4 w-full text-left"
         >
           <span>{showComparison ? "\u25BC" : "\u25B6"}</span>
           Compare STR vs LTR
@@ -750,27 +1050,27 @@ export function ResultsTab({ propertyId, scenarios, activeRentalType }: ResultsT
             <div className="text-center py-6 text-slate-500">Loading LTR results...</div>
           ) : ltrResults ? (
             <div className="space-y-6">
-              <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+              <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm dark:shadow-slate-900/20 overflow-hidden">
                 <table className="w-full text-sm">
-                  <thead className="bg-slate-50">
+                  <thead className="bg-slate-50 dark:bg-slate-700">
                     <tr>
-                      <th className="px-4 py-3 text-left text-slate-600">Metric</th>
-                      <th className="px-4 py-3 text-right text-slate-600">
+                      <th className="px-4 py-3 text-left text-slate-600 dark:text-slate-400">Metric</th>
+                      <th className="px-4 py-3 text-right text-slate-600 dark:text-slate-400">
                         <span className="inline-flex items-center gap-1">
                           <span className="w-2 h-2 rounded-full bg-sky-400 inline-block" />
                           STR
                         </span>
                       </th>
-                      <th className="px-4 py-3 text-right text-slate-600">
+                      <th className="px-4 py-3 text-right text-slate-600 dark:text-slate-400">
                         <span className="inline-flex items-center gap-1">
                           <span className="w-2 h-2 rounded-full bg-violet-400 inline-block" />
                           LTR
                         </span>
                       </th>
-                      <th className="px-4 py-3 text-right text-slate-600">Difference</th>
+                      <th className="px-4 py-3 text-right text-slate-600 dark:text-slate-400">Difference</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
                     {[
                       { label: "Monthly Cashflow", strVal: m.monthly_cashflow, ltrVal: ltrResults.metrics.monthly_cashflow, fmt: fmtCurrency },
                       { label: "Annual Cashflow", strVal: m.annual_cashflow, ltrVal: ltrResults.metrics.annual_cashflow, fmt: fmtCurrency },
@@ -785,11 +1085,11 @@ export function ResultsTab({ propertyId, scenarios, activeRentalType }: ResultsT
                       const winner = diff > 0.01 ? "ltr" : diff < -0.01 ? "str" : "tie";
                       return (
                         <tr key={label}>
-                          <td className="px-4 py-2 text-slate-700 font-medium">{label}</td>
-                          <td className={`px-4 py-2 text-right ${winner === "str" ? "font-semibold text-sky-700" : ""}`}>
+                          <td className="px-4 py-2 text-slate-700 dark:text-slate-300 font-medium">{label}</td>
+                          <td className={`px-4 py-2 text-right dark:text-slate-200 ${winner === "str" ? "font-semibold text-sky-700 dark:text-sky-400" : ""}`}>
                             {fmt(strVal)}
                           </td>
-                          <td className={`px-4 py-2 text-right ${winner === "ltr" ? "font-semibold text-violet-700" : ""}`}>
+                          <td className={`px-4 py-2 text-right dark:text-slate-200 ${winner === "ltr" ? "font-semibold text-violet-700 dark:text-violet-400" : ""}`}>
                             {fmt(ltrVal)}
                           </td>
                           <td className={`px-4 py-2 text-right text-sm ${diff > 0 ? "text-emerald-600" : diff < 0 ? "text-red-500" : "text-slate-400"}`}>
@@ -805,10 +1105,10 @@ export function ResultsTab({ propertyId, scenarios, activeRentalType }: ResultsT
               {/* LTR Sensitivity */}
               {ltrSensitivity && (
                 <div>
-                  <h4 className="text-sm font-semibold text-slate-700 mb-3">LTR Sensitivity Analysis</h4>
+                  <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">LTR Sensitivity Analysis</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-                      <div className="px-4 py-3 bg-slate-50 font-semibold text-slate-700">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm dark:shadow-slate-900/20 overflow-hidden">
+                      <div className="px-4 py-3 bg-slate-50 dark:bg-slate-700 font-semibold text-slate-700 dark:text-slate-300">
                         Vacancy % vs Monthly Cashflow
                       </div>
                       <div className="p-4">
@@ -820,8 +1120,8 @@ export function ResultsTab({ propertyId, scenarios, activeRentalType }: ResultsT
                         />
                       </div>
                     </div>
-                    <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-                      <div className="px-4 py-3 bg-slate-50 font-semibold text-slate-700">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm dark:shadow-slate-900/20 overflow-hidden">
+                      <div className="px-4 py-3 bg-slate-50 dark:bg-slate-700 font-semibold text-slate-700 dark:text-slate-300">
                         Monthly Rent vs Monthly Cashflow
                       </div>
                       <div className="p-4">

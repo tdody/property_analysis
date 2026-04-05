@@ -60,7 +60,7 @@ export function PropertyDetail({
             &larr; Back to Dashboard
           </button>
           <div className="flex items-center gap-2">
-            <h2 className="text-2xl font-bold tracking-tight text-slate-900">{property.name}</h2>
+            <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">{property.name}</h2>
             <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
               property.active_rental_type === 'ltr'
                 ? 'bg-violet-100 text-violet-700'
@@ -70,7 +70,7 @@ export function PropertyDetail({
             </span>
           </div>
           {property.address && (
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-slate-500 dark:text-slate-400">
               {property.address}, {property.city}, {property.state} {property.zip_code}
             </p>
           )}
@@ -79,15 +79,15 @@ export function PropertyDetail({
 
       {/* Tabs — pill/segment style */}
       <div className="mb-6">
-        <nav className="bg-slate-100 rounded-xl p-1 inline-flex gap-1">
+        <nav className="bg-slate-100 dark:bg-slate-800 rounded-xl p-1 inline-flex gap-1">
           {TABS.map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
                 activeTab === tab
-                  ? "bg-white shadow-sm text-slate-900 font-semibold"
-                  : "text-slate-500 hover:text-slate-700"
+                  ? "bg-white dark:bg-slate-700 shadow-sm text-slate-900 dark:text-slate-100 font-semibold"
+                  : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
               }`}
             >
               {tab}
@@ -103,7 +103,7 @@ export function PropertyDetail({
         )}
         {activeTab === "Financing" && (
           scenariosLoading ? (
-            <div className="text-center py-12 text-slate-500">Loading scenarios...</div>
+            <div className="text-center py-12 text-slate-500 dark:text-slate-400">Loading scenarios...</div>
           ) : (
             <FinancingTab
               scenarios={scenarios}
@@ -118,7 +118,7 @@ export function PropertyDetail({
         )}
         {activeTab === "Revenue & Expenses" && (
           (assumptionsLoading || ltrLoading) ? (
-            <div className="text-center py-12 text-slate-500">Loading assumptions...</div>
+            <div className="text-center py-12 text-slate-500 dark:text-slate-400">Loading assumptions...</div>
           ) : assumptions ? (
             <RevenueExpensesTab
               assumptions={assumptions}
@@ -129,7 +129,7 @@ export function PropertyDetail({
               onChangeRentalType={(type) => onUpdateProperty({ active_rental_type: type })}
             />
           ) : (
-            <div className="text-center py-12 text-slate-500">No assumptions data available</div>
+            <div className="text-center py-12 text-slate-500 dark:text-slate-400">No assumptions data available</div>
           )
         )}
         {activeTab === "Results" && (

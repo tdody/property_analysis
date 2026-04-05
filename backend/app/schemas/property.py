@@ -48,6 +48,7 @@ class PropertyUpdate(BaseModel):
     is_homestead_tax: bool | None = None
     nonhomestead_annual_taxes: float | None = None
     notes: str | None = None
+    in_portfolio: bool | None = None
     active_rental_type: str | None = None
 
 
@@ -66,6 +67,7 @@ class PropertySummary(BaseModel):
     image_url: str | None = None
     monthly_cashflow: float | None = None
     cash_on_cash_return: float | None = None
+    in_portfolio: bool = False
     active_rental_type: str = "str"
 
     model_config = {"from_attributes": True}

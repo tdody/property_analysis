@@ -13,6 +13,7 @@ export interface PropertySummary {
   image_url: string | null;
   monthly_cashflow: number | null;
   cash_on_cash_return: number | null;
+  in_portfolio: boolean;
   active_rental_type: 'str' | 'ltr';
 }
 

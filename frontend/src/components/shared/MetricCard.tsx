@@ -1,3 +1,5 @@
+import { TooltipIcon } from "./TooltipIcon.tsx";
+
 interface MetricCardProps {
   label: string;
   value: string;
@@ -10,24 +12,27 @@ export function MetricCard({ label, value, tooltip, variant = "neutral", large }
   const colorMap = {
     positive: "text-emerald-600",
     negative: "text-red-500",
-    neutral: "text-slate-900",
+    neutral: "text-slate-900 dark:text-slate-100",
   };
 
   const bgMap = {
-    positive: "bg-emerald-50",
-    negative: "bg-red-50",
-    neutral: "bg-white",
+    positive: "bg-emerald-50 dark:bg-emerald-900/20",
+    negative: "bg-red-50 dark:bg-red-900/20",
+    neutral: "bg-white dark:bg-slate-800",
   };
 
   const barColorMap = {
     positive: "bg-emerald-400",
     negative: "bg-red-400",
-    neutral: "bg-slate-200",
+    neutral: "bg-slate-200 dark:bg-slate-600",
   };
 
   return (
     <div className={`${bgMap[variant]} rounded-2xl shadow-sm p-4 ${large ? "col-span-2" : ""}`}>
-      <div className="text-xs uppercase tracking-wider text-slate-400 font-medium mb-1" title={tooltip}>{label}</div>
+      <div className="text-xs uppercase tracking-wider text-slate-400 dark:text-slate-500 font-medium mb-1">
+        {label}
+        {tooltip && <TooltipIcon text={tooltip} />}
+      </div>
       <div className={`${large ? "text-2xl font-bold tracking-tight" : "text-xl font-bold"} ${colorMap[variant]}`}>
         {value}
       </div>

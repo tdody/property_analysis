@@ -6,6 +6,7 @@ from app.database import get_db
 from app.models.property import Property
 from app.models.scenario import MortgageScenario
 from app.schemas.scenario import ScenarioCreate, ScenarioUpdate, ScenarioResponse
+from app.routers.properties import _recompute_cache
 
 router = APIRouter(prefix="/api/properties/{property_id}/scenarios", tags=["scenarios"])
 
@@ -21,8 +22,7 @@ def create_scenario(property_id: str, data: ScenarioCreate, db: Session = Depend
     db.add(scenario)
     prop = db.query(Property).filter(Property.id == property_id).first()
     if prop:
-        prop.cached_monthly_cashflow = None
-        prop.cached_cash_on_cash_return = None
+        _recompute_cache(prop, db)
     db.commit()
     db.refresh(scenario)
     return scenario
@@ -40,8 +40,7 @@ def update_scenario(property_id: str, scenario_id: str, data: ScenarioUpdate, db
         setattr(scenario, field, value)
     prop = db.query(Property).filter(Property.id == property_id).first()
     if prop:
-        prop.cached_monthly_cashflow = None
-        prop.cached_cash_on_cash_return = None
+        _recompute_cache(prop, db)
     db.commit()
     db.refresh(scenario)
     return scenario
@@ -58,8 +57,7 @@ def delete_scenario(property_id: str, scenario_id: str, db: Session = Depends(ge
     db.delete(scenario)
     prop = db.query(Property).filter(Property.id == property_id).first()
     if prop:
-        prop.cached_monthly_cashflow = None
-        prop.cached_cash_on_cash_return = None
+        _recompute_cache(prop, db)
     db.commit()
     return {"status": "deleted"}
 
@@ -96,8 +94,7 @@ def duplicate_scenario(property_id: str, scenario_id: str, db: Session = Depends
     db.add(clone)
     prop = db.query(Property).filter(Property.id == property_id).first()
     if prop:
-        prop.cached_monthly_cashflow = None
-        prop.cached_cash_on_cash_return = None
+        _recompute_cache(prop, db)
     db.commit()
     db.refresh(clone)
     return clone
@@ -119,8 +116,7 @@ def activate_scenario(property_id: str, scenario_id: str, db: Session = Depends(
     scenario.is_active = True
     prop = db.query(Property).filter(Property.id == property_id).first()
     if prop:
-        prop.cached_monthly_cashflow = None
-        prop.cached_cash_on_cash_return = None
+        _recompute_cache(prop, db)
     db.commit()
     db.refresh(scenario)
     return scenario

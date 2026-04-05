@@ -55,7 +55,7 @@ export function FinancingTab({
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between mb-2">
-        <h3 className="text-lg font-semibold tracking-tight text-slate-900">Mortgage Scenarios</h3>
+        <h3 className="text-lg font-semibold tracking-tight text-slate-900 dark:text-slate-100">Mortgage Scenarios</h3>
         <button
           onClick={() => void handleAdd()}
           className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-indigo-500 shadow-md shadow-indigo-200 text-white rounded-lg hover:from-indigo-700 hover:to-indigo-600 text-sm font-medium"
@@ -65,9 +65,9 @@ export function FinancingTab({
       </div>
 
       {scenarios.length === 0 ? (
-        <div className="text-center py-12 bg-white rounded-2xl shadow-sm">
-          <p className="text-slate-500 mb-2">No financing scenarios yet</p>
-          <p className="text-slate-400 text-sm mb-4">Add a scenario to model different financing options</p>
+        <div className="text-center py-12 bg-white dark:bg-slate-800 rounded-2xl shadow-sm dark:shadow-slate-900/20">
+          <p className="text-slate-500 dark:text-slate-400 mb-2">No financing scenarios yet</p>
+          <p className="text-slate-400 dark:text-slate-500 text-sm mb-4">Add a scenario to model different financing options</p>
           <button
             onClick={() => void handleAdd()}
             className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-indigo-500 shadow-md shadow-indigo-200 text-white rounded-lg hover:from-indigo-700 hover:to-indigo-600 text-sm font-medium"

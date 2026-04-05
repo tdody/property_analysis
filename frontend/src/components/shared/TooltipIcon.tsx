@@ -23,7 +23,7 @@ export function TooltipIcon({ text }: TooltipIconProps) {
     <span className="relative inline-block ml-1" ref={ref}>
       <button
         type="button"
-        className="text-gray-400 hover:text-gray-600 text-xs"
+        className="text-gray-400 hover:text-gray-600 dark:text-slate-500 dark:hover:text-slate-300 text-xs"
         onMouseEnter={() => setShow(true)}
         onMouseLeave={() => setShow(false)}
         onClick={() => setShow(!show)}
@@ -31,7 +31,7 @@ export function TooltipIcon({ text }: TooltipIconProps) {
         &#9432;
       </button>
       {show && (
-        <div className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 w-80 p-3 bg-gray-800 text-white text-xs rounded-lg shadow-lg">
+        <div className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 w-80 p-3 bg-gray-800 text-white text-xs normal-case tracking-normal leading-relaxed rounded-lg shadow-lg">
           {text}
         </div>
       )}

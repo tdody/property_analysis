@@ -102,14 +102,42 @@ export function RevenueExpensesTab({ assumptions, onUpdate, ltrAssumptions, onUp
     setSaved(false);
   }, []);
 
+  // Shared fields that get synced to both STR and LTR on save
+  const SHARED_KEYS = [
+    'insurance_annual', 'maintenance_reserve_pct', 'capex_reserve_pct',
+    'lawn_snow_monthly', 'other_monthly_expense', 'accounting_annual',
+    'legal_annual', 'land_value_pct', 'property_appreciation_pct_annual',
+    'revenue_growth_pct', 'expense_growth_pct', 'marginal_tax_rate_pct',
+  ] as const;
+
+  // Update a shared field in both form states
+  const updateSharedField = useCallback(<K extends typeof SHARED_KEYS[number]>(key: K, value: number) => {
+    setForm((prev) => ({ ...prev, [key]: value }));
+    setLtrForm((prev) => prev ? ({ ...prev, [key]: value }) : prev);
+    setSaved(false);
+  }, []);
+
   const handleSave = useCallback(async () => {
     try {
       setSaving(true);
-      if (activeRentalType === 'ltr' && ltrForm) {
-        await onUpdateLTR(ltrForm);
-      } else {
-        await onUpdate(form);
+      // Build shared field values from the STR form (source of truth for shared fields)
+      const sharedValues: Record<string, number> = {};
+      for (const key of SHARED_KEYS) {
+        sharedValues[key] = form[key] as number;
       }
+
+      // Always sync shared fields to both endpoints
+      const promises: Promise<unknown>[] = [];
+      if (activeRentalType === 'ltr' && ltrForm) {
+        promises.push(onUpdateLTR({ ...ltrForm, ...sharedValues }));
+        promises.push(onUpdate(sharedValues as Partial<STRAssumptions>));
+      } else {
+        promises.push(onUpdate(form));
+        if (ltrForm) {
+          promises.push(onUpdateLTR(sharedValues as Partial<LTRAssumptions>));
+        }
+      }
+      await Promise.all(promises);
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } catch {
@@ -123,13 +151,13 @@ export function RevenueExpensesTab({ assumptions, onUpdate, ltrAssumptions, onUp
     <div className="space-y-8">
       {/* Rental Type Toggle */}
       <div className="flex items-center gap-2">
-        <span className="text-sm font-medium text-slate-700 mr-2">Rental Type:</span>
+        <span className="text-sm font-medium text-slate-700 dark:text-slate-300 mr-2">Rental Type:</span>
         <button
           onClick={() => onChangeRentalType('str')}
           className={`px-4 py-1.5 text-sm font-medium rounded-lg transition-colors ${
             activeRentalType === 'str'
               ? 'bg-sky-100 text-sky-700 shadow-sm'
-              : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100'
+              : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700'
           }`}
         >
           STR
@@ -139,7 +167,7 @@ export function RevenueExpensesTab({ assumptions, onUpdate, ltrAssumptions, onUp
           className={`px-4 py-1.5 text-sm font-medium rounded-lg transition-colors ${
             activeRentalType === 'ltr'
               ? 'bg-violet-100 text-violet-700 shadow-sm'
-              : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100'
+              : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700'
           }`}
         >
           LTR
@@ -151,8 +179,8 @@ export function RevenueExpensesTab({ assumptions, onUpdate, ltrAssumptions, onUp
       ) : (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Left column: Revenue */}
-        <div className="bg-white rounded-2xl shadow-sm p-6 space-y-6">
-          <h3 className="text-base font-semibold text-slate-900">Revenue</h3>
+        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm dark:shadow-slate-900/20 p-6 space-y-6">
+          <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">Revenue</h3>
           <CurrencyInput
             label="Avg Nightly Rate"
             value={form.avg_nightly_rate}
@@ -166,9 +194,9 @@ export function RevenueExpensesTab({ assumptions, onUpdate, ltrAssumptions, onUp
                 type="checkbox"
                 checked={form.use_seasonal_occupancy}
                 onChange={(e) => updateField("use_seasonal_occupancy", e.target.checked)}
-                className="h-4 w-4 text-indigo-600 rounded border-slate-300"
+                className="h-4 w-4 text-indigo-600 rounded border-slate-300 dark:border-slate-600"
               />
-              <span className="ml-2 text-sm font-medium text-slate-700">
+              <span className="ml-2 text-sm font-medium text-slate-700 dark:text-slate-300">
                 Use Seasonal Occupancy
                 <TooltipIcon text={TOOLTIPS.use_seasonal_occupancy} />
               </span>
@@ -176,7 +204,7 @@ export function RevenueExpensesTab({ assumptions, onUpdate, ltrAssumptions, onUp
             {form.use_seasonal_occupancy ? (
               <div className="space-y-4 pl-6 border-l-2 border-indigo-100">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                     Peak Months
                     <TooltipIcon text={TOOLTIPS.peak_months} />
                   </label>
@@ -187,7 +215,7 @@ export function RevenueExpensesTab({ assumptions, onUpdate, ltrAssumptions, onUp
                     step="1"
                     value={form.peak_months}
                     onChange={(e) => updateField("peak_months", parseInt(e.target.value) || 6)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                    className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-slate-700 dark:text-slate-100"
                   />
                 </div>
                 <PercentInput
@@ -202,8 +230,8 @@ export function RevenueExpensesTab({ assumptions, onUpdate, ltrAssumptions, onUp
                   onChange={(v) => updateField("off_peak_occupancy_pct", v)}
                   tooltip={TOOLTIPS.off_peak_occupancy_pct}
                 />
-                <div className="text-sm text-slate-500">
-                  Effective Occupancy: <span className="font-semibold text-slate-700">
+                <div className="text-sm text-slate-500 dark:text-slate-400">
+                  Effective Occupancy: <span className="font-semibold text-slate-700 dark:text-slate-300">
                     {((form.peak_months * form.peak_occupancy_pct + (12 - form.peak_months) * form.off_peak_occupancy_pct) / 12).toFixed(1)}%
                   </span>
                 </div>
@@ -224,7 +252,7 @@ export function RevenueExpensesTab({ assumptions, onUpdate, ltrAssumptions, onUp
             tooltip={TOOLTIPS.cleaning_fee_per_stay}
           />
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
               Avg Stay Length (nights)
               <TooltipIcon text={TOOLTIPS.avg_stay_length_nights} />
             </label>
@@ -233,11 +261,11 @@ export function RevenueExpensesTab({ assumptions, onUpdate, ltrAssumptions, onUp
               step="0.5"
               value={form.avg_stay_length_nights || ""}
               onChange={(e) => updateField("avg_stay_length_nights", parseFloat(e.target.value) || 0)}
-              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-slate-700 dark:text-slate-100"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
               Rental Delay (months)
               <TooltipIcon text={TOOLTIPS.rental_delay_months} />
             </label>
@@ -248,48 +276,18 @@ export function RevenueExpensesTab({ assumptions, onUpdate, ltrAssumptions, onUp
               step="1"
               value={form.rental_delay_months ?? 1}
               onChange={(e) => updateField("rental_delay_months", parseInt(e.target.value) || 0)}
-              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-slate-700 dark:text-slate-100"
             />
           </div>
-          <PercentInput
-            label="Land Value %"
-            value={form.land_value_pct}
-            onChange={(v) => updateField("land_value_pct", v)}
-            tooltip={TOOLTIPS.land_value_pct}
-          />
-          <PercentInput
-            label="Annual Appreciation %"
-            value={form.property_appreciation_pct_annual}
-            onChange={(v) => updateField("property_appreciation_pct_annual", v)}
-            tooltip={TOOLTIPS.property_appreciation_pct_annual}
-          />
-          <PercentInput
-            label="Marginal Tax Rate %"
-            value={form.marginal_tax_rate_pct}
-            onChange={(v) => updateField("marginal_tax_rate_pct", v)}
-            tooltip={TOOLTIPS.marginal_tax_rate_pct}
-          />
-          <PercentInput
-            label="Revenue Growth % / yr"
-            value={form.revenue_growth_pct}
-            onChange={(v) => updateField("revenue_growth_pct", v)}
-            tooltip={TOOLTIPS.revenue_growth_pct}
-          />
-          <PercentInput
-            label="Expense Growth % / yr"
-            value={form.expense_growth_pct}
-            onChange={(v) => updateField("expense_growth_pct", v)}
-            tooltip={TOOLTIPS.expense_growth_pct}
-          />
         </div>
 
         {/* Right column: Expenses */}
-        <div className="bg-white rounded-2xl shadow-sm p-6 space-y-6">
-          <h3 className="text-base font-semibold text-slate-900">Expenses</h3>
+        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm dark:shadow-slate-900/20 p-6 space-y-6">
+          <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">Expenses</h3>
 
           {/* Platform & Management */}
           <div>
-            <h4 className="text-xs uppercase tracking-wider text-slate-400 font-medium mb-3">Platform & Management</h4>
+            <h4 className="text-xs uppercase tracking-wider text-slate-400 dark:text-slate-500 font-medium mb-3">Platform & Management</h4>
             <div className="space-y-4">
               <PercentInput
                 label="Platform Fee %"
@@ -308,7 +306,7 @@ export function RevenueExpensesTab({ assumptions, onUpdate, ltrAssumptions, onUp
 
           {/* Turnover Costs */}
           <div>
-            <h4 className="text-xs uppercase tracking-wider text-slate-400 font-medium mb-3">Turnover Costs</h4>
+            <h4 className="text-xs uppercase tracking-wider text-slate-400 dark:text-slate-500 font-medium mb-3">Turnover Costs</h4>
             <CurrencyInput
               label="Cleaning Cost per Turnover"
               value={form.cleaning_cost_per_turn}
@@ -319,7 +317,7 @@ export function RevenueExpensesTab({ assumptions, onUpdate, ltrAssumptions, onUp
 
           {/* Monthly Fixed */}
           <div>
-            <h4 className="text-xs uppercase tracking-wider text-slate-400 font-medium mb-3">Monthly Fixed</h4>
+            <h4 className="text-xs uppercase tracking-wider text-slate-400 dark:text-slate-500 font-medium mb-3">Monthly Fixed</h4>
             <div className="space-y-4">
               <CurrencyInput
                 label="Utilities (Monthly)"
@@ -332,18 +330,6 @@ export function RevenueExpensesTab({ assumptions, onUpdate, ltrAssumptions, onUp
                 value={form.supplies_monthly}
                 onChange={(v) => updateField("supplies_monthly", v)}
                 tooltip={TOOLTIPS.supplies_monthly}
-              />
-              <CurrencyInput
-                label="Lawn & Snow (Monthly)"
-                value={form.lawn_snow_monthly}
-                onChange={(v) => updateField("lawn_snow_monthly", v)}
-                tooltip={TOOLTIPS.lawn_snow_monthly}
-              />
-              <CurrencyInput
-                label="Other Monthly Expense"
-                value={form.other_monthly_expense}
-                onChange={(v) => updateField("other_monthly_expense", v)}
-                tooltip={TOOLTIPS.other_monthly_expense}
               />
               <CurrencyInput
                 label="Marketing (Monthly)"
@@ -360,47 +346,10 @@ export function RevenueExpensesTab({ assumptions, onUpdate, ltrAssumptions, onUp
             </div>
           </div>
 
-          {/* Annual */}
+          {/* Reserves (STR-specific) */}
           <div>
-            <h4 className="text-xs uppercase tracking-wider text-slate-400 font-medium mb-3">Annual</h4>
+            <h4 className="text-xs uppercase tracking-wider text-slate-400 dark:text-slate-500 font-medium mb-3">Reserves</h4>
             <div className="space-y-4">
-              <CurrencyInput
-                label="Insurance (Annual)"
-                value={form.insurance_annual}
-                onChange={(v) => updateField("insurance_annual", v)}
-                tooltip={TOOLTIPS.insurance_annual}
-              />
-              <CurrencyInput
-                label="Accounting / Tax Prep (Annual)"
-                value={form.accounting_annual}
-                onChange={(v) => updateField("accounting_annual", v)}
-                tooltip={TOOLTIPS.accounting_annual}
-              />
-              <CurrencyInput
-                label="Legal / Compliance (Annual)"
-                value={form.legal_annual}
-                onChange={(v) => updateField("legal_annual", v)}
-                tooltip={TOOLTIPS.legal_annual}
-              />
-            </div>
-          </div>
-
-          {/* Reserves */}
-          <div>
-            <h4 className="text-xs uppercase tracking-wider text-slate-400 font-medium mb-3">Reserves</h4>
-            <div className="space-y-4">
-              <PercentInput
-                label="Maintenance Reserve %"
-                value={form.maintenance_reserve_pct}
-                onChange={(v) => updateField("maintenance_reserve_pct", v)}
-                tooltip={TOOLTIPS.maintenance_reserve_pct}
-              />
-              <PercentInput
-                label="CapEx Reserve %"
-                value={form.capex_reserve_pct}
-                onChange={(v) => updateField("capex_reserve_pct", v)}
-                tooltip={TOOLTIPS.capex_reserve_pct}
-              />
               <PercentInput
                 label="Damage Reserve %"
                 value={form.damage_reserve_pct}
@@ -411,10 +360,106 @@ export function RevenueExpensesTab({ assumptions, onUpdate, ltrAssumptions, onUp
           </div>
         </div>
       </div>
+      )}
 
-      {/* Vermont / State Taxes */}
-      <section className="bg-white rounded-2xl shadow-sm p-6">
-        <h3 className="text-base font-semibold text-slate-900 mb-4">Vermont / State Taxes</h3>
+      {/* Shared Assumptions (always visible) */}
+      <section className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm dark:shadow-slate-900/20 p-6">
+        <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100 mb-4">Shared Assumptions</h3>
+        <p className="text-xs text-slate-400 dark:text-slate-500 mb-4">These values apply to both STR and LTR calculations and are kept in sync.</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-4">
+          {/* Reserves */}
+          <div className="space-y-4">
+            <h4 className="text-xs uppercase tracking-wider text-slate-400 dark:text-slate-500 font-medium">Reserves</h4>
+            <PercentInput
+              label="Maintenance Reserve %"
+              value={form.maintenance_reserve_pct}
+              onChange={(v) => updateSharedField("maintenance_reserve_pct", v)}
+              tooltip={TOOLTIPS.maintenance_reserve_pct}
+            />
+            <PercentInput
+              label="CapEx Reserve %"
+              value={form.capex_reserve_pct}
+              onChange={(v) => updateSharedField("capex_reserve_pct", v)}
+              tooltip={TOOLTIPS.capex_reserve_pct}
+            />
+          </div>
+
+          {/* Fixed Costs */}
+          <div className="space-y-4">
+            <h4 className="text-xs uppercase tracking-wider text-slate-400 dark:text-slate-500 font-medium">Fixed Costs</h4>
+            <CurrencyInput
+              label="Insurance (Annual)"
+              value={form.insurance_annual}
+              onChange={(v) => updateSharedField("insurance_annual", v)}
+              tooltip={TOOLTIPS.insurance_annual}
+            />
+            <CurrencyInput
+              label="Lawn & Snow (Monthly)"
+              value={form.lawn_snow_monthly}
+              onChange={(v) => updateSharedField("lawn_snow_monthly", v)}
+              tooltip={TOOLTIPS.lawn_snow_monthly}
+            />
+            <CurrencyInput
+              label="Other Monthly Expense"
+              value={form.other_monthly_expense}
+              onChange={(v) => updateSharedField("other_monthly_expense", v)}
+              tooltip={TOOLTIPS.other_monthly_expense}
+            />
+            <CurrencyInput
+              label="Accounting (Annual)"
+              value={form.accounting_annual}
+              onChange={(v) => updateSharedField("accounting_annual", v)}
+              tooltip={TOOLTIPS.accounting_annual}
+            />
+            <CurrencyInput
+              label="Legal (Annual)"
+              value={form.legal_annual}
+              onChange={(v) => updateSharedField("legal_annual", v)}
+              tooltip={TOOLTIPS.legal_annual}
+            />
+          </div>
+
+          {/* Growth & Tax */}
+          <div className="space-y-4">
+            <h4 className="text-xs uppercase tracking-wider text-slate-400 dark:text-slate-500 font-medium">Growth & Tax</h4>
+            <PercentInput
+              label="Annual Appreciation %"
+              value={form.property_appreciation_pct_annual}
+              onChange={(v) => updateSharedField("property_appreciation_pct_annual", v)}
+              tooltip={TOOLTIPS.property_appreciation_pct_annual}
+            />
+            <PercentInput
+              label="Revenue Growth % / yr"
+              value={form.revenue_growth_pct}
+              onChange={(v) => updateSharedField("revenue_growth_pct", v)}
+              tooltip={TOOLTIPS.revenue_growth_pct}
+            />
+            <PercentInput
+              label="Expense Growth % / yr"
+              value={form.expense_growth_pct}
+              onChange={(v) => updateSharedField("expense_growth_pct", v)}
+              tooltip={TOOLTIPS.expense_growth_pct}
+            />
+            <PercentInput
+              label="Land Value %"
+              value={form.land_value_pct}
+              onChange={(v) => updateSharedField("land_value_pct", v)}
+              tooltip={TOOLTIPS.land_value_pct}
+            />
+            <PercentInput
+              label="Marginal Tax Rate %"
+              value={form.marginal_tax_rate_pct}
+              onChange={(v) => updateSharedField("marginal_tax_rate_pct", v)}
+              tooltip={TOOLTIPS.marginal_tax_rate_pct}
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* Vermont / State Taxes (STR-only) */}
+      {activeRentalType === 'str' && (
+      <section className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm dark:shadow-slate-900/20 p-6">
+        <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100 mb-4">Vermont / State Taxes</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <PercentInput
             label="VT Rooms Tax %"
@@ -447,7 +492,7 @@ export function RevenueExpensesTab({ assumptions, onUpdate, ltrAssumptions, onUp
             tooltip={TOOLTIPS.local_str_registration_fee}
           />
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
               Platform Remits Tax
               <TooltipIcon text={TOOLTIPS.platform_remits_tax} />
             </label>
@@ -456,20 +501,19 @@ export function RevenueExpensesTab({ assumptions, onUpdate, ltrAssumptions, onUp
                 type="checkbox"
                 checked={form.platform_remits_tax}
                 onChange={(e) => updateField("platform_remits_tax", e.target.checked)}
-                className="h-4 w-4 text-indigo-600 rounded border-slate-300"
+                className="h-4 w-4 text-indigo-600 rounded border-slate-300 dark:border-slate-600"
               />
-              <span className="ml-2 text-sm text-slate-600">
+              <span className="ml-2 text-sm text-slate-600 dark:text-slate-400">
                 Platform collects and remits taxes
               </span>
             </div>
           </div>
         </div>
       </section>
-
       )}
 
       {/* Save */}
-      <div className="flex items-center gap-4 pt-4 border-t border-slate-100">
+      <div className="flex items-center gap-4 pt-4 border-t border-slate-100 dark:border-slate-700">
         <button
           onClick={() => void handleSave()}
           disabled={saving}
@@ -515,8 +559,8 @@ function LTRForm({ ltrForm, updateLTRField }: {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
       {/* Left column: Revenue */}
-      <div className="bg-white rounded-2xl shadow-sm p-6 space-y-6">
-        <h3 className="text-base font-semibold text-slate-900">LTR Revenue</h3>
+      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm dark:shadow-slate-900/20 p-6 space-y-6">
+        <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">LTR Revenue</h3>
         <CurrencyInput
           label="Monthly Rent"
           value={ltrForm.monthly_rent}
@@ -524,7 +568,7 @@ function LTRForm({ ltrForm, updateLTRField }: {
           tooltip={LTR_TOOLTIPS.monthly_rent}
         />
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">
+          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
             Lease Duration (months)
             <TooltipIcon text={LTR_TOOLTIPS.lease_duration_months} />
           </label>
@@ -535,7 +579,7 @@ function LTRForm({ ltrForm, updateLTRField }: {
             step="1"
             value={ltrForm.lease_duration_months}
             onChange={(e) => updateLTRField("lease_duration_months", parseInt(e.target.value) || 12)}
-            className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-slate-700 dark:text-slate-100"
           />
         </div>
         <CurrencyInput
@@ -557,7 +601,7 @@ function LTRForm({ ltrForm, updateLTRField }: {
           tooltip={LTR_TOOLTIPS.vacancy_rate_pct}
         />
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">
+          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
             Lease-Up Period (months)
             <TooltipIcon text={LTR_TOOLTIPS.lease_up_period_months} />
           </label>
@@ -568,51 +612,19 @@ function LTRForm({ ltrForm, updateLTRField }: {
             step="1"
             value={ltrForm.lease_up_period_months}
             onChange={(e) => updateLTRField("lease_up_period_months", parseInt(e.target.value) || 0)}
-            className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-slate-700 dark:text-slate-100"
           />
         </div>
 
-        <hr className="border-slate-100" />
-        <h4 className="text-xs uppercase tracking-wider text-slate-400 font-medium">Growth & Tax</h4>
-        <PercentInput
-          label="Land Value %"
-          value={ltrForm.land_value_pct}
-          onChange={(v) => updateLTRField("land_value_pct", v)}
-          tooltip={LTR_TOOLTIPS.land_value_pct}
-        />
-        <PercentInput
-          label="Annual Appreciation %"
-          value={ltrForm.property_appreciation_pct_annual}
-          onChange={(v) => updateLTRField("property_appreciation_pct_annual", v)}
-          tooltip={LTR_TOOLTIPS.property_appreciation_pct_annual}
-        />
-        <PercentInput
-          label="Rent Increase % / yr"
-          value={ltrForm.revenue_growth_pct}
-          onChange={(v) => updateLTRField("revenue_growth_pct", v)}
-          tooltip={LTR_TOOLTIPS.revenue_growth_pct}
-        />
-        <PercentInput
-          label="Expense Growth % / yr"
-          value={ltrForm.expense_growth_pct}
-          onChange={(v) => updateLTRField("expense_growth_pct", v)}
-          tooltip={LTR_TOOLTIPS.expense_growth_pct}
-        />
-        <PercentInput
-          label="Marginal Tax Rate %"
-          value={ltrForm.marginal_tax_rate_pct}
-          onChange={(v) => updateLTRField("marginal_tax_rate_pct", v)}
-          tooltip={LTR_TOOLTIPS.marginal_tax_rate_pct}
-        />
       </div>
 
       {/* Right column: Expenses */}
-      <div className="bg-white rounded-2xl shadow-sm p-6 space-y-6">
-        <h3 className="text-base font-semibold text-slate-900">LTR Expenses</h3>
+      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm dark:shadow-slate-900/20 p-6 space-y-6">
+        <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">LTR Expenses</h3>
 
         {/* Management */}
         <div>
-          <h4 className="text-xs uppercase tracking-wider text-slate-400 font-medium mb-3">Management</h4>
+          <h4 className="text-xs uppercase tracking-wider text-slate-400 dark:text-slate-500 font-medium mb-3">Management</h4>
           <PercentInput
             label="Property Mgmt %"
             value={ltrForm.property_mgmt_pct}
@@ -623,7 +635,7 @@ function LTRForm({ ltrForm, updateLTRField }: {
 
         {/* Turnover */}
         <div>
-          <h4 className="text-xs uppercase tracking-wider text-slate-400 font-medium mb-3">Turnover</h4>
+          <h4 className="text-xs uppercase tracking-wider text-slate-400 dark:text-slate-500 font-medium mb-3">Turnover</h4>
           <CurrencyInput
             label="Tenant Turnover Cost"
             value={ltrForm.tenant_turnover_cost}
@@ -634,7 +646,7 @@ function LTRForm({ ltrForm, updateLTRField }: {
 
         {/* Monthly Fixed */}
         <div>
-          <h4 className="text-xs uppercase tracking-wider text-slate-400 font-medium mb-3">Monthly Fixed</h4>
+          <h4 className="text-xs uppercase tracking-wider text-slate-400 dark:text-slate-500 font-medium mb-3">Monthly Fixed</h4>
           <div className="space-y-4">
             <CurrencyInput
               label="Utilities (Monthly)"
@@ -642,70 +654,22 @@ function LTRForm({ ltrForm, updateLTRField }: {
               onChange={(v) => updateLTRField("utilities_monthly", v)}
               tooltip={LTR_TOOLTIPS.utilities_monthly}
             />
-            <CurrencyInput
-              label="Lawn & Snow (Monthly)"
-              value={ltrForm.lawn_snow_monthly}
-              onChange={(v) => updateLTRField("lawn_snow_monthly", v)}
-              tooltip={LTR_TOOLTIPS.lawn_snow_monthly}
-            />
-            <CurrencyInput
-              label="Other Monthly Expense"
-              value={ltrForm.other_monthly_expense}
-              onChange={(v) => updateLTRField("other_monthly_expense", v)}
-              tooltip={LTR_TOOLTIPS.other_monthly_expense}
-            />
           </div>
         </div>
 
-        {/* Annual */}
+        {/* Annual (LTR-specific) */}
         <div>
-          <h4 className="text-xs uppercase tracking-wider text-slate-400 font-medium mb-3">Annual</h4>
+          <h4 className="text-xs uppercase tracking-wider text-slate-400 dark:text-slate-500 font-medium mb-3">Annual</h4>
           <div className="space-y-4">
-            <CurrencyInput
-              label="Insurance (Annual)"
-              value={ltrForm.insurance_annual}
-              onChange={(v) => updateLTRField("insurance_annual", v)}
-              tooltip={LTR_TOOLTIPS.insurance_annual}
-            />
             <CurrencyInput
               label="Landlord Repairs (Annual)"
               value={ltrForm.landlord_repairs_annual}
               onChange={(v) => updateLTRField("landlord_repairs_annual", v)}
               tooltip={LTR_TOOLTIPS.landlord_repairs_annual}
             />
-            <CurrencyInput
-              label="Accounting (Annual)"
-              value={ltrForm.accounting_annual}
-              onChange={(v) => updateLTRField("accounting_annual", v)}
-              tooltip={LTR_TOOLTIPS.accounting_annual}
-            />
-            <CurrencyInput
-              label="Legal (Annual)"
-              value={ltrForm.legal_annual}
-              onChange={(v) => updateLTRField("legal_annual", v)}
-              tooltip={LTR_TOOLTIPS.legal_annual}
-            />
           </div>
         </div>
 
-        {/* Reserves */}
-        <div>
-          <h4 className="text-xs uppercase tracking-wider text-slate-400 font-medium mb-3">Reserves</h4>
-          <div className="space-y-4">
-            <PercentInput
-              label="Maintenance Reserve %"
-              value={ltrForm.maintenance_reserve_pct}
-              onChange={(v) => updateLTRField("maintenance_reserve_pct", v)}
-              tooltip={LTR_TOOLTIPS.maintenance_reserve_pct}
-            />
-            <PercentInput
-              label="CapEx Reserve %"
-              value={ltrForm.capex_reserve_pct}
-              onChange={(v) => updateLTRField("capex_reserve_pct", v)}
-              tooltip={LTR_TOOLTIPS.capex_reserve_pct}
-            />
-          </div>
-        </div>
       </div>
     </div>
   );

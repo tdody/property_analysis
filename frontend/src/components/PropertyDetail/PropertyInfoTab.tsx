@@ -69,13 +69,13 @@ export function PropertyInfoTab({ property, onUpdate }: PropertyInfoTabProps) {
   const isFound = (field: string) => isScraped && !isMissing(field);
 
   const fieldClass = (field: string) =>
-    `w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${
-      isMissing(field) ? "border-amber-300" : "border-slate-200"
+    `w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-slate-700 dark:text-slate-100 ${
+      isMissing(field) ? "border-amber-300 dark:border-amber-500" : "border-slate-200 dark:border-slate-600"
     }`;
 
   const RedfinBadge = ({ field }: { field: string }) =>
     isFound(field) ? (
-      <span className="ml-1.5 text-[10px] bg-indigo-50 text-indigo-500 px-1.5 py-0.5 rounded font-medium">
+      <span className="ml-1.5 text-[10px] bg-indigo-50 dark:bg-indigo-900/30 text-indigo-500 dark:text-indigo-400 px-1.5 py-0.5 rounded font-medium">
         Redfin
       </span>
     ) : null;
@@ -107,17 +107,17 @@ export function PropertyInfoTab({ property, onUpdate }: PropertyInfoTabProps) {
     <div className="space-y-8">
       {/* Redfin scrape info banner */}
       {isScraped && !bannerDismissed && (
-        <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4">
+        <div className="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-xl p-4">
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-start gap-2">
               <span className="text-indigo-500 text-lg leading-none mt-0.5">ℹ</span>
-              <p className="text-sm text-indigo-800 font-medium">
+              <p className="text-sm text-indigo-800 dark:text-indigo-300 font-medium">
                 Property data populated from Redfin — review highlighted fields below
               </p>
             </div>
             <button
               onClick={() => setBannerDismissed(true)}
-              className="text-indigo-400 hover:text-indigo-600 transition-colors flex-shrink-0 text-lg leading-none"
+              className="text-indigo-400 hover:text-indigo-600 dark:hover:text-indigo-300 transition-colors flex-shrink-0 text-lg leading-none"
               aria-label="Dismiss"
             >
               ×
@@ -128,14 +128,14 @@ export function PropertyInfoTab({ property, onUpdate }: PropertyInfoTabProps) {
 
       {/* Non-homestead tax warning */}
       {form.is_homestead_tax && !form.nonhomestead_annual_taxes && (
-        <div className="bg-amber-50 border border-amber-300 rounded-xl p-4">
+        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-700 rounded-xl p-4">
           <div className="flex items-start gap-2">
-            <span className="text-amber-600 text-lg">!</span>
+            <span className="text-amber-600 dark:text-amber-400 text-lg">!</span>
             <div>
-              <p className="font-medium text-amber-800">
+              <p className="font-medium text-amber-800 dark:text-amber-300">
                 Tax Warning: Listing taxes are likely at the homestead rate
               </p>
-              <p className="text-sm text-amber-700 mt-1">
+              <p className="text-sm text-amber-700 dark:text-amber-400 mt-1">
                 STR investment properties in Vermont are taxed at the higher nonhomestead rate.
                 The taxes shown on the listing are almost always the homestead rate.
                 Enter the actual nonhomestead tax amount below, or look it up on the{" "}
@@ -155,11 +155,11 @@ export function PropertyInfoTab({ property, onUpdate }: PropertyInfoTabProps) {
       )}
 
       {/* Location */}
-      <section>
-        <h3 className="text-base font-semibold text-slate-900 mb-4">Location</h3>
+      <section className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm dark:shadow-slate-900/20 p-6">
+        <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100 mb-4">Location</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
               Address<RedfinBadge field="address" />
             </label>
             <input
@@ -171,7 +171,7 @@ export function PropertyInfoTab({ property, onUpdate }: PropertyInfoTabProps) {
             <MissingHelper field="address" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
               City<RedfinBadge field="city" />
             </label>
             <input
@@ -183,7 +183,7 @@ export function PropertyInfoTab({ property, onUpdate }: PropertyInfoTabProps) {
             <MissingHelper field="city" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
               State<RedfinBadge field="state" />
             </label>
             <input
@@ -196,7 +196,7 @@ export function PropertyInfoTab({ property, onUpdate }: PropertyInfoTabProps) {
             <MissingHelper field="state" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
               Zip Code<RedfinBadge field="zip_code" />
             </label>
             <input
@@ -211,11 +211,11 @@ export function PropertyInfoTab({ property, onUpdate }: PropertyInfoTabProps) {
       </section>
 
       {/* Details */}
-      <section>
-        <h3 className="text-base font-semibold text-slate-900 mb-4">Details</h3>
+      <section className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm dark:shadow-slate-900/20 p-6">
+        <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100 mb-4">Details</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
               Bedrooms<RedfinBadge field="beds" />
             </label>
             <input
@@ -227,7 +227,7 @@ export function PropertyInfoTab({ property, onUpdate }: PropertyInfoTabProps) {
             <MissingHelper field="beds" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
               Bathrooms<RedfinBadge field="baths" />
             </label>
             <input
@@ -240,7 +240,7 @@ export function PropertyInfoTab({ property, onUpdate }: PropertyInfoTabProps) {
             <MissingHelper field="baths" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
               Sqft<RedfinBadge field="sqft" />
             </label>
             <input
@@ -252,7 +252,7 @@ export function PropertyInfoTab({ property, onUpdate }: PropertyInfoTabProps) {
             <MissingHelper field="sqft" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
               Lot Sqft<RedfinBadge field="lot_sqft" />
             </label>
             <input
@@ -264,7 +264,7 @@ export function PropertyInfoTab({ property, onUpdate }: PropertyInfoTabProps) {
             <MissingHelper field="lot_sqft" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
               Year Built<RedfinBadge field="year_built" />
             </label>
             <input
@@ -276,11 +276,11 @@ export function PropertyInfoTab({ property, onUpdate }: PropertyInfoTabProps) {
             <MissingHelper field="year_built" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Property Type</label>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Property Type</label>
             <select
               value={form.property_type}
               onChange={(e) => updateField("property_type", e.target.value)}
-              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-slate-700 dark:text-slate-100"
             >
               {PROPERTY_TYPES.map((pt) => (
                 <option key={pt.value} value={pt.value}>
@@ -293,8 +293,8 @@ export function PropertyInfoTab({ property, onUpdate }: PropertyInfoTabProps) {
       </section>
 
       {/* Financials */}
-      <section>
-        <h3 className="text-base font-semibold text-slate-900 mb-4">Financials</h3>
+      <section className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm dark:shadow-slate-900/20 p-6">
+        <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100 mb-4">Financials</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <CurrencyInput
             label="Listing Price"
@@ -327,7 +327,7 @@ export function PropertyInfoTab({ property, onUpdate }: PropertyInfoTabProps) {
             tooltip={TOOLTIPS.nonhomestead_annual_taxes}
           />
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
               Is Homestead Tax
               <TooltipIcon text="If checked, the listing taxes shown are at the homestead rate. STR properties pay the higher nonhomestead rate." />
             </label>
@@ -336,9 +336,9 @@ export function PropertyInfoTab({ property, onUpdate }: PropertyInfoTabProps) {
                 type="checkbox"
                 checked={form.is_homestead_tax}
                 onChange={(e) => updateField("is_homestead_tax", e.target.checked)}
-                className="h-4 w-4 text-indigo-600 rounded border-slate-300"
+                className="h-4 w-4 text-indigo-600 rounded border-slate-300 dark:border-slate-600"
               />
-              <span className="ml-2 text-sm text-slate-600">
+              <span className="ml-2 text-sm text-slate-600 dark:text-slate-400">
                 Listing taxes are at homestead rate
               </span>
             </div>
@@ -358,32 +358,32 @@ export function PropertyInfoTab({ property, onUpdate }: PropertyInfoTabProps) {
             scraped={isFound("hoa_monthly")}
           />
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Source URL</label>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Source URL</label>
             <input
               type="url"
               value={form.source_url ?? ""}
               onChange={(e) => updateField("source_url", e.target.value || null)}
               placeholder="https://www.zillow.com/..."
-              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-slate-700 dark:text-slate-100"
             />
           </div>
         </div>
       </section>
 
       {/* Notes */}
-      <section>
-        <h3 className="text-base font-semibold text-slate-900 mb-4">Notes</h3>
+      <section className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm dark:shadow-slate-900/20 p-6">
+        <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100 mb-4">Notes</h3>
         <textarea
           value={form.notes}
           onChange={(e) => updateField("notes", e.target.value)}
           rows={4}
-          className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+          className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-slate-700 dark:text-slate-100"
           placeholder="Free-form notes about this property..."
         />
       </section>
 
       {/* Save */}
-      <div className="flex items-center gap-4 pt-4 border-t border-slate-100">
+      <div className="flex items-center gap-4 pt-4 border-t border-slate-100 dark:border-slate-700">
         <button
           onClick={() => void handleSave()}
           disabled={saving}

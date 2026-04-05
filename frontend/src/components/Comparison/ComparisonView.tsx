@@ -110,7 +110,7 @@ export function ComparisonView({ propertyIds }: ComparisonViewProps) {
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold tracking-tight text-slate-900">Compare Properties</h2>
+        <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">Compare Properties</h2>
         <button
           onClick={() => navigate("/")}
           className="px-4 py-2 text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 text-sm font-medium"
@@ -119,27 +119,27 @@ export function ComparisonView({ propertyIds }: ComparisonViewProps) {
         </button>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm overflow-auto">
+      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm dark:shadow-slate-900/20 overflow-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="bg-slate-50">
-              <th className="px-4 py-3 text-left text-slate-600 font-semibold w-48"></th>
+            <tr className="bg-slate-50 dark:bg-slate-700">
+              <th className="px-4 py-3 text-left text-slate-600 dark:text-slate-400 font-semibold w-48"></th>
               {properties.map((p) => (
                 <th key={p.property_id} className="px-4 py-3 text-center min-w-40">
-                  <div className="font-semibold text-slate-900">{p.property_name}</div>
-                  <div className="text-xs text-slate-500 mt-1">
+                  <div className="font-semibold text-slate-900 dark:text-slate-100">{p.property_name}</div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                     {p.city} | {p.scenario_name}
                   </div>
                 </th>
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
             {METRIC_ROWS.map((row) => {
               const bestIdx = getBestIndex(properties, row.key, row.higherIsBetter);
               return (
-                <tr key={row.key} className="hover:bg-slate-50/50">
-                  <td className="px-4 py-3 font-medium text-slate-700">{row.label}</td>
+                <tr key={row.key} className="hover:bg-slate-50/50 dark:hover:bg-slate-700/50">
+                  <td className="px-4 py-3 font-medium text-slate-700 dark:text-slate-300">{row.label}</td>
                   {properties.map((p, i) => {
                     const val = getValue(p, row.key);
                     const isBest = i === bestIdx && properties.length > 1;
@@ -160,8 +160,8 @@ export function ComparisonView({ propertyIds }: ComparisonViewProps) {
             })}
 
             {/* Verdict row */}
-            <tr className="bg-slate-50 border-t-2 border-slate-200">
-              <td className="px-4 py-3 font-semibold text-slate-700">Verdict</td>
+            <tr className="bg-slate-50 dark:bg-slate-700 border-t-2 border-slate-200 dark:border-slate-600">
+              <td className="px-4 py-3 font-semibold text-slate-700 dark:text-slate-300">Verdict</td>
               {properties.map((p) => {
                 const verdict = getVerdict(p);
                 return (

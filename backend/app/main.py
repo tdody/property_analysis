@@ -17,20 +17,21 @@ app = FastAPI(title="STR Profitability Calculator", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origin_regex=r"http://localhost:\d+",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 
-from app.routers import properties, scenarios, assumptions, compute, ltr_assumptions
+from app.routers import properties, scenarios, assumptions, compute, ltr_assumptions, settings
 
 app.include_router(properties.router)
 app.include_router(scenarios.router)
 app.include_router(assumptions.router)
 app.include_router(compute.router)
 app.include_router(ltr_assumptions.router)
+app.include_router(settings.router)
 
 
 @app.get("/api/health")

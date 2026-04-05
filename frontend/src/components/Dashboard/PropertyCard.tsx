@@ -8,6 +8,7 @@ interface PropertyCardProps {
   selected: boolean;
   onToggleSelect: (id: string) => void;
   onDelete: (id: string) => void;
+  onTogglePortfolio: (id: string, current: boolean) => void;
 }
 
 function formatCurrency(value: number | null): string {
@@ -37,13 +38,15 @@ const gradientBarMap = {
   marginal: "bg-gradient-to-r from-amber-400 to-yellow-400",
 };
 
-export function PropertyCard({ property, selected, onToggleSelect, onDelete }: PropertyCardProps) {
+export function PropertyCard({ property, selected, onToggleSelect, onDelete, onTogglePortfolio }: PropertyCardProps) {
   const navigate = useNavigate();
   const variant = getCashflowVariant(property.monthly_cashflow);
   const [imgError, setImgError] = useState(false);
 
   return (
-    <div className="bg-white rounded-2xl overflow-hidden shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.03)] hover:shadow-md transition-all flex flex-col">
+    <div className={`bg-white dark:bg-slate-800 rounded-2xl overflow-hidden shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.03)] hover:shadow-md transition-all flex flex-col ${
+      property.in_portfolio ? "ring-[6px] ring-emerald-400/60 dark:ring-emerald-500/40" : ""
+    }`}>
       {/* Property image or type icon */}
       {property.image_url && !imgError ? (
         <img
@@ -63,7 +66,7 @@ export function PropertyCard({ property, selected, onToggleSelect, onDelete }: P
         <div className="flex items-start justify-between">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <h3 className="text-lg font-semibold tracking-tight text-slate-900 truncate">{property.name}</h3>
+              <h3 className="text-lg font-semibold tracking-tight text-slate-900 dark:text-slate-100 truncate">{property.name}</h3>
               <span className={`text-xs font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0 ${
                 property.active_rental_type === 'ltr'
                   ? 'bg-violet-100 text-violet-700'
@@ -72,7 +75,7 @@ export function PropertyCard({ property, selected, onToggleSelect, onDelete }: P
                 {property.active_rental_type === 'ltr' ? 'LTR' : 'STR'}
               </span>
             </div>
-            <p className="text-sm text-slate-500 truncate">
+            <p className="text-sm text-slate-500 dark:text-slate-400 truncate">
               {property.city}, {property.state}
             </p>
           </div>
@@ -80,16 +83,16 @@ export function PropertyCard({ property, selected, onToggleSelect, onDelete }: P
             type="checkbox"
             checked={selected}
             onChange={() => onToggleSelect(property.id)}
-            className="mt-1 h-4 w-4 text-indigo-600 rounded border-slate-300 cursor-pointer"
+            className="mt-1 h-4 w-4 text-indigo-600 rounded border-slate-300 dark:border-slate-600 cursor-pointer"
             title="Select for comparison"
           />
         </div>
 
-        <div className="text-xl font-bold tracking-tight text-slate-900">
+        <div className="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
           {formatCurrency(property.listing_price)}
         </div>
 
-        <div className="text-sm text-slate-600">
+        <div className="text-sm text-slate-600 dark:text-slate-400">
           {property.beds} bd / {property.baths} ba
           {property.sqft > 0 && <span className="ml-2">{property.sqft.toLocaleString()} sqft</span>}
         </div>
@@ -112,13 +115,24 @@ export function PropertyCard({ property, selected, onToggleSelect, onDelete }: P
         <div className="flex gap-2 mt-auto pt-2">
           <button
             onClick={() => navigate(`/property/${property.id}`)}
-            className="flex-1 px-3 py-2 text-sm font-semibold text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors"
+            className="flex-1 px-3 py-2 text-sm font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
           >
             View
           </button>
           <button
+            onClick={() => onTogglePortfolio(property.id, property.in_portfolio)}
+            className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+              property.in_portfolio
+                ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/30"
+                : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
+            }`}
+            title={property.in_portfolio ? "Remove from portfolio" : "Add to portfolio"}
+          >
+            {property.in_portfolio ? "★" : "☆"}
+          </button>
+          <button
             onClick={() => onDelete(property.id)}
-            className="px-3 py-2 text-sm font-medium text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+            className="px-3 py-2 text-sm font-medium text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
           >
             Delete
           </button>
