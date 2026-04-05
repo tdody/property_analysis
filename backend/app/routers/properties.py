@@ -1,3 +1,5 @@
+import json
+
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
@@ -98,6 +100,17 @@ def scrape_property_endpoint(data: ScrapeRequest, db: Session = Depends(get_db))
         annual_taxes=scraped.annual_taxes or 0,
     )
     db.add(prop)
+
+    # Build scraped snapshot from fields_found
+    snapshot = {}
+    for field_name in result.fields_found:
+        if field_name in ("property_type", "image_url"):
+            continue
+        val = getattr(result.data, field_name, None)
+        if val is not None:
+            snapshot[field_name] = val
+    prop.scraped_snapshot = json.dumps(snapshot) if snapshot else None
+
     db.flush()
 
     # Create default assumptions with user's seasonal defaults

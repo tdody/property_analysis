@@ -91,6 +91,41 @@ class TestScrapeEndpoint:
         assert data["scraper_result"]["scrape_succeeded"] is False
         assert "403" in data["scraper_result"]["error_message"]
 
+    @patch("app.routers.properties.scrape_redfin_property")
+    def test_scrape_success_stores_snapshot(self, mock_scrape, client):
+        mock_scrape.return_value = MOCK_SCRAPER_RESULT_SUCCESS
+
+        resp = client.post("/api/properties/scrape", json={"url": "https://www.redfin.com/VT/Burlington/123-Lake-St/home/12345"})
+        pid = resp.json()["property_id"]
+
+        prop = client.get(f"/api/properties/{pid}").json()
+        snapshot = prop["scraped_snapshot"]
+
+        assert snapshot is not None
+        assert snapshot["address"] == "123 Lake St"
+        assert snapshot["city"] == "Burlington"
+        assert snapshot["listing_price"] == 425000
+        assert snapshot["beds"] == 3
+        assert snapshot["baths"] == 2.5
+        assert snapshot["sqft"] == 1800
+
+        # Fields that were missing should NOT be in the snapshot
+        assert "lot_sqft" not in snapshot
+        assert "year_built" not in snapshot
+        assert "hoa_monthly" not in snapshot
+        assert "annual_taxes" not in snapshot
+        assert "estimated_value" not in snapshot
+
+        # image_url and property_type are not trackable fields in the snapshot
+        assert "image_url" not in snapshot
+        assert "property_type" not in snapshot
+
+    def test_manual_property_has_no_snapshot(self, client):
+        resp = client.post("/api/properties", json={"name": "Manual Property", "listing_price": 300000})
+        assert resp.status_code == 201
+        prop = client.get(f"/api/properties/{resp.json()['id']}").json()
+        assert prop["scraped_snapshot"] is None
+
     def test_scrape_invalid_url(self, client):
         resp = client.post("/api/properties/scrape", json={"url": "https://www.zillow.com/something"})
         assert resp.status_code == 422

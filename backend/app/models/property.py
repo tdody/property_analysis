@@ -44,6 +44,7 @@ class Property(Base):
     is_homestead_tax: Mapped[bool] = mapped_column(Boolean, default=True)
     nonhomestead_annual_taxes: Mapped[float | None] = mapped_column(Numeric(10, 2), nullable=True)
     notes: Mapped[str] = mapped_column(Text, default="")
+    scraped_snapshot: Mapped[str | None] = mapped_column(Text, nullable=True)
     is_archived: Mapped[bool] = mapped_column(Boolean, default=False)
     in_portfolio: Mapped[bool] = mapped_column(Boolean, default=False)
     cached_monthly_cashflow: Mapped[float | None] = mapped_column(Numeric(10, 2), nullable=True)

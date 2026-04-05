@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
-import { useLocation } from "react-router-dom";
 import type { Property } from "../../types/index.ts";
 import { CurrencyInput } from "../shared/CurrencyInput.tsx";
+import type { FieldTag } from "../shared/CurrencyInput.tsx";
 import { PercentInput } from "../shared/PercentInput.tsx";
 import { TooltipIcon } from "../shared/TooltipIcon.tsx";
 
@@ -30,58 +30,56 @@ const TOOLTIPS = {
     "Monthly HOA or condo association fee. Common for condos and townhouses. Verify whether the HOA allows short-term rentals -- many don't.",
 };
 
-/** Derive which fields are "missing" (at default values) when no router state is available. */
-function deriveMissingFields(property: Property): string[] {
-  const missing: string[] = [];
-  if (!property.address) missing.push("address");
-  if (!property.city) missing.push("city");
-  if (!property.state) missing.push("state");
-  if (!property.zip_code) missing.push("zip_code");
-  if (!property.listing_price) missing.push("listing_price");
-  if (property.estimated_value == null) missing.push("estimated_value");
-  if (!property.beds) missing.push("beds");
-  if (!property.baths) missing.push("baths");
-  if (!property.sqft) missing.push("sqft");
-  if (property.lot_sqft == null) missing.push("lot_sqft");
-  if (property.year_built == null) missing.push("year_built");
-  if (!property.hoa_monthly) missing.push("hoa_monthly");
-  if (!property.annual_taxes) missing.push("annual_taxes");
-  return missing;
+function getFieldTag(
+  field: string,
+  currentValue: string | number | boolean | null | undefined,
+  snapshot: Record<string, string | number | null> | null
+): FieldTag {
+  if (!snapshot) return null;
+  if (!(field in snapshot)) return "missing";
+  if (String(snapshot[field]) === String(currentValue)) return "redfin";
+  return "redfin-edited";
 }
 
 export function PropertyInfoTab({ property, onUpdate }: PropertyInfoTabProps) {
-  const location = useLocation();
-  const locationState = location.state as { fieldsMissing?: string[] } | null;
-
   const [form, setForm] = useState<Property>({ ...property });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [bannerDismissed, setBannerDismissed] = useState(false);
 
-  const isScraped = Boolean(property.source_url);
+  const snapshot = property.scraped_snapshot;
+  const isScraped = snapshot !== null && snapshot !== undefined;
 
-  // Use router state if available, otherwise derive from defaults
-  const fieldsMissing: string[] = isScraped
-    ? (locationState?.fieldsMissing ?? deriveMissingFields(property))
-    : [];
+  const tag = (field: string) => getFieldTag(field, form[field as keyof Property] as string | number | boolean | null | undefined, snapshot);
 
-  const isMissing = (field: string) => fieldsMissing.includes(field);
-  const isFound = (field: string) => isScraped && !isMissing(field);
-
-  const fieldClass = (field: string) =>
-    `w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-slate-700 dark:text-slate-100 ${
-      isMissing(field) ? "border-amber-300 dark:border-amber-500" : "border-slate-200 dark:border-slate-600"
+  const fieldClass = (field: string) => {
+    const t = tag(field);
+    return `w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-slate-700 dark:text-slate-100 ${
+      t === "missing" ? "border-amber-300 dark:border-amber-500" : "border-slate-200 dark:border-slate-600"
     }`;
+  };
 
-  const RedfinBadge = ({ field }: { field: string }) =>
-    isFound(field) ? (
-      <span className="ml-1.5 text-[10px] bg-indigo-50 dark:bg-indigo-900/30 text-indigo-500 dark:text-indigo-400 px-1.5 py-0.5 rounded font-medium">
-        Redfin
-      </span>
-    ) : null;
+  const RedfinBadge = ({ field }: { field: string }) => {
+    const t = tag(field);
+    if (t === "redfin") {
+      return (
+        <span className="ml-1.5 text-[10px] bg-indigo-50 dark:bg-indigo-900/30 text-indigo-500 dark:text-indigo-400 px-1.5 py-0.5 rounded font-medium">
+          Redfin
+        </span>
+      );
+    }
+    if (t === "redfin-edited") {
+      return (
+        <span className="ml-1.5 text-[10px] bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 px-1.5 py-0.5 rounded font-medium">
+          Redfin (edited)
+        </span>
+      );
+    }
+    return null;
+  };
 
   const MissingHelper = ({ field }: { field: string }) =>
-    isMissing(field) ? (
+    tag(field) === "missing" ? (
       <p className="text-xs text-amber-500 mt-1">Not found — enter manually</p>
     ) : null;
 
@@ -301,24 +299,21 @@ export function PropertyInfoTab({ property, onUpdate }: PropertyInfoTabProps) {
             value={form.listing_price}
             onChange={(v) => updateField("listing_price", v)}
             tooltip={TOOLTIPS.listing_price}
-            missing={isMissing("listing_price")}
-            scraped={isFound("listing_price")}
+            tag={tag("listing_price")}
           />
           <CurrencyInput
             label="Estimated Value"
             value={form.estimated_value ?? 0}
             onChange={(v) => updateField("estimated_value", v || null)}
             tooltip={TOOLTIPS.estimated_value}
-            missing={isMissing("estimated_value")}
-            scraped={isFound("estimated_value")}
+            tag={tag("estimated_value")}
           />
           <CurrencyInput
             label="Annual Taxes (Listing)"
             value={form.annual_taxes}
             onChange={(v) => updateField("annual_taxes", v)}
             tooltip={TOOLTIPS.annual_taxes}
-            missing={isMissing("annual_taxes")}
-            scraped={isFound("annual_taxes")}
+            tag={tag("annual_taxes")}
           />
           <CurrencyInput
             label="Non-Homestead Annual Taxes"
@@ -354,8 +349,7 @@ export function PropertyInfoTab({ property, onUpdate }: PropertyInfoTabProps) {
             value={form.hoa_monthly}
             onChange={(v) => updateField("hoa_monthly", v)}
             tooltip={TOOLTIPS.hoa_monthly}
-            missing={isMissing("hoa_monthly")}
-            scraped={isFound("hoa_monthly")}
+            tag={tag("hoa_monthly")}
           />
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Source URL</label>

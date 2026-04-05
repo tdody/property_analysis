@@ -1,5 +1,6 @@
+import json
 from datetime import datetime
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class PropertyCreate(BaseModel):
@@ -100,6 +101,16 @@ class PropertyResponse(BaseModel):
     notes: str
     is_archived: bool
     active_rental_type: str = "str"
+    scraped_snapshot: dict | None = None
+
+    @field_validator("scraped_snapshot", mode="before")
+    @classmethod
+    def parse_snapshot(cls, v: str | dict | None) -> dict | None:
+        if v is None:
+            return None
+        if isinstance(v, str):
+            return json.loads(v)
+        return v
 
     model_config = {"from_attributes": True}
 
