@@ -86,6 +86,13 @@ const TOOLTIPS = {
     "Expected annual expense growth rate for multi-year projections. Covers inflation on operating costs (cleaning, utilities, supplies, maintenance). General inflation: 2-4%.",
 };
 
+const SHARED_KEYS = [
+  'insurance_annual', 'maintenance_reserve_pct', 'capex_reserve_pct',
+  'lawn_snow_monthly', 'other_monthly_expense', 'accounting_annual',
+  'legal_annual', 'land_value_pct', 'property_appreciation_pct_annual',
+  'revenue_growth_pct', 'expense_growth_pct', 'marginal_tax_rate_pct',
+] as const;
+
 export function RevenueExpensesTab({ assumptions, onUpdate, ltrAssumptions, onUpdateLTR, activeRentalType, onChangeRentalType }: RevenueExpensesTabProps) {
   const [form, setForm] = useState<STRAssumptions>({ ...assumptions });
   const [ltrForm, setLtrForm] = useState<LTRAssumptions | null>(ltrAssumptions ? { ...ltrAssumptions } : null);
@@ -101,14 +108,6 @@ export function RevenueExpensesTab({ assumptions, onUpdate, ltrAssumptions, onUp
     setLtrForm((prev) => prev ? ({ ...prev, [key]: value }) : prev);
     setSaved(false);
   }, []);
-
-  // Shared fields that get synced to both STR and LTR on save
-  const SHARED_KEYS = [
-    'insurance_annual', 'maintenance_reserve_pct', 'capex_reserve_pct',
-    'lawn_snow_monthly', 'other_monthly_expense', 'accounting_annual',
-    'legal_annual', 'land_value_pct', 'property_appreciation_pct_annual',
-    'revenue_growth_pct', 'expense_growth_pct', 'marginal_tax_rate_pct',
-  ] as const;
 
   // Update a shared field in both form states
   const updateSharedField = useCallback(<K extends typeof SHARED_KEYS[number]>(key: K, value: number) => {
@@ -126,18 +125,16 @@ export function RevenueExpensesTab({ assumptions, onUpdate, ltrAssumptions, onUp
         sharedValues[key] = form[key] as number;
       }
 
-      // Always sync shared fields to both endpoints
-      const promises: Promise<unknown>[] = [];
+      // Save active type first (triggers cache recompute), then sync shared fields to the other
       if (activeRentalType === 'ltr' && ltrForm) {
-        promises.push(onUpdateLTR({ ...ltrForm, ...sharedValues }));
-        promises.push(onUpdate(sharedValues as Partial<STRAssumptions>));
+        await onUpdateLTR({ ...ltrForm, ...sharedValues });
+        await onUpdate(sharedValues as Partial<STRAssumptions>);
       } else {
-        promises.push(onUpdate(form));
+        await onUpdate(form);
         if (ltrForm) {
-          promises.push(onUpdateLTR(sharedValues as Partial<LTRAssumptions>));
+          await onUpdateLTR(sharedValues as Partial<LTRAssumptions>);
         }
       }
-      await Promise.all(promises);
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } catch {

@@ -143,11 +143,12 @@ def get_property(property_id: str, db: Session = Depends(get_db)):
 
 
 # Fields that don't affect financial calculations — no need to invalidate cache
+# Fields that don't affect financial calculations — no need to recompute cache
 _NON_FINANCIAL_FIELDS = {
     "name", "source_url", "image_url", "address", "city", "state",
     "zip_code", "notes", "property_type", "in_portfolio",
     "beds", "baths", "sqft", "lot_sqft", "year_built",
-    "estimated_value", "is_homestead_tax", "tax_rate",
+    "estimated_value", "active_rental_type",
 }
 
 
