@@ -3,6 +3,7 @@ import { DashboardPage } from "./pages/DashboardPage.tsx";
 import { PropertyPage } from "./pages/PropertyPage.tsx";
 import { ComparePage } from "./pages/ComparePage.tsx";
 import { SettingsPage } from "./pages/SettingsPage.tsx";
+import { GlossaryPage } from "./pages/GlossaryPage.tsx";
 import { ThemeProvider, useTheme } from "./context/ThemeContext.tsx";
 import { ErrorBoundary } from "./components/shared/ErrorBoundary.tsx";
 
@@ -44,6 +45,12 @@ function App() {
                 <div className="flex items-center gap-3">
                   <ThemeToggle />
                   <Link
+                    to="/glossary"
+                    className="text-sm font-medium text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors"
+                  >
+                    Glossary
+                  </Link>
+                  <Link
                     to="/settings"
                     className="text-sm font-medium text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors"
                   >
@@ -57,6 +64,7 @@ function App() {
                 <Route path="/" element={<DashboardPage />} />
                 <Route path="/property/:id" element={<PropertyPage />} />
                 <Route path="/compare" element={<ComparePage />} />
+                <Route path="/glossary" element={<GlossaryPage />} />
                 <Route path="/settings" element={<SettingsPage />} />
               </Routes>
             </main>
