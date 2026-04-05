@@ -6,6 +6,7 @@ from app.database import get_db
 from app.models.property import Property
 from app.models.scenario import MortgageScenario
 from app.models.assumptions import STRAssumptions
+from app.models.ltr_assumptions import LTRAssumptions
 from app.routers.settings import get_or_create_settings
 from app.schemas.property import (
     PropertyCreate,
@@ -47,6 +48,9 @@ def create_property(data: PropertyCreate, db: Session = Depends(get_db)):
         off_peak_occupancy_pct=user_settings.default_off_peak_occupancy_pct,
     )
     db.add(assumptions)
+    # Auto-create default LTR assumptions
+    ltr_assumptions = LTRAssumptions(property_id=prop.id)
+    db.add(ltr_assumptions)
     db.commit()
     db.refresh(prop)
     return prop
@@ -104,6 +108,10 @@ def scrape_property_endpoint(data: ScrapeRequest, db: Session = Depends(get_db))
         off_peak_occupancy_pct=user_settings.default_off_peak_occupancy_pct,
     )
     db.add(assumptions)
+
+    # Create default LTR assumptions
+    ltr_assumptions = LTRAssumptions(property_id=prop.id)
+    db.add(ltr_assumptions)
 
     # Create default scenario with listing price as purchase price
     scenario = MortgageScenario(

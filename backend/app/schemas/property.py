@@ -48,6 +48,7 @@ class PropertyUpdate(BaseModel):
     is_homestead_tax: bool | None = None
     nonhomestead_annual_taxes: float | None = None
     notes: str | None = None
+    active_rental_type: str | None = None
 
 
 class PropertySummary(BaseModel):
@@ -65,6 +66,7 @@ class PropertySummary(BaseModel):
     image_url: str | None = None
     monthly_cashflow: float | None = None
     cash_on_cash_return: float | None = None
+    active_rental_type: str = "str"
 
     model_config = {"from_attributes": True}
 
@@ -95,6 +97,7 @@ class PropertyResponse(BaseModel):
     nonhomestead_annual_taxes: float | None
     notes: str
     is_archived: bool
+    active_rental_type: str = "str"
 
     model_config = {"from_attributes": True}
 

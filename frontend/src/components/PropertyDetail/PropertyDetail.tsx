@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { Property } from "../../types/index.ts";
-import type { MortgageScenario, STRAssumptions } from "../../types/index.ts";
+import type { MortgageScenario, STRAssumptions, LTRAssumptions } from "../../types/index.ts";
 import { PropertyInfoTab } from "./PropertyInfoTab.tsx";
 import { FinancingTab } from "./FinancingTab.tsx";
 import { RevenueExpensesTab } from "./RevenueExpensesTab.tsx";
@@ -23,6 +23,9 @@ interface PropertyDetailProps {
   assumptions: STRAssumptions | null;
   assumptionsLoading: boolean;
   onUpdateAssumptions: (updates: Partial<STRAssumptions>) => Promise<STRAssumptions>;
+  ltrAssumptions: LTRAssumptions | null;
+  ltrLoading: boolean;
+  onUpdateLTRAssumptions: (updates: Partial<LTRAssumptions>) => Promise<LTRAssumptions>;
 }
 
 export function PropertyDetail({
@@ -38,6 +41,9 @@ export function PropertyDetail({
   assumptions,
   assumptionsLoading,
   onUpdateAssumptions,
+  ltrAssumptions,
+  ltrLoading,
+  onUpdateLTRAssumptions,
 }: PropertyDetailProps) {
   const [activeTab, setActiveTab] = useState<TabName>("Property Info");
   const navigate = useNavigate();
@@ -53,7 +59,16 @@ export function PropertyDetail({
           >
             &larr; Back to Dashboard
           </button>
-          <h2 className="text-2xl font-bold tracking-tight text-slate-900">{property.name}</h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-2xl font-bold tracking-tight text-slate-900">{property.name}</h2>
+            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+              property.active_rental_type === 'ltr'
+                ? 'bg-violet-100 text-violet-700'
+                : 'bg-sky-100 text-sky-700'
+            }`}>
+              {property.active_rental_type === 'ltr' ? 'LTR' : 'STR'}
+            </span>
+          </div>
           {property.address && (
             <p className="text-sm text-slate-500">
               {property.address}, {property.city}, {property.state} {property.zip_code}
@@ -102,16 +117,23 @@ export function PropertyDetail({
           )
         )}
         {activeTab === "Revenue & Expenses" && (
-          assumptionsLoading ? (
+          (assumptionsLoading || ltrLoading) ? (
             <div className="text-center py-12 text-slate-500">Loading assumptions...</div>
           ) : assumptions ? (
-            <RevenueExpensesTab assumptions={assumptions} onUpdate={onUpdateAssumptions} />
+            <RevenueExpensesTab
+              assumptions={assumptions}
+              onUpdate={onUpdateAssumptions}
+              ltrAssumptions={ltrAssumptions}
+              onUpdateLTR={onUpdateLTRAssumptions}
+              activeRentalType={property.active_rental_type}
+              onChangeRentalType={(type) => onUpdateProperty({ active_rental_type: type })}
+            />
           ) : (
             <div className="text-center py-12 text-slate-500">No assumptions data available</div>
           )
         )}
         {activeTab === "Results" && (
-          <ResultsTab propertyId={property.id} scenarios={scenarios} />
+          <ResultsTab propertyId={property.id} scenarios={scenarios} activeRentalType={property.active_rental_type} />
         )}
       </div>
     </div>

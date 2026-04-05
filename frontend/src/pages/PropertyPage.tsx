@@ -2,6 +2,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useProperty } from "../hooks/useProperty.ts";
 import { useScenarios } from "../hooks/useScenarios.ts";
 import { useAssumptions } from "../hooks/useAssumptions.ts";
+import { useLTRAssumptions } from "../hooks/useLTRAssumptions.ts";
 import { PropertyDetail } from "../components/PropertyDetail/PropertyDetail.tsx";
 
 export function PropertyPage() {
@@ -32,6 +33,11 @@ function PropertyPageInner({ id }: { id: string }) {
     loading: assumptionsLoading,
     updateAssumptions,
   } = useAssumptions(id);
+  const {
+    ltrAssumptions,
+    loading: ltrLoading,
+    updateLTRAssumptions,
+  } = useLTRAssumptions(id);
 
   if (loading) {
     return (
@@ -63,6 +69,9 @@ function PropertyPageInner({ id }: { id: string }) {
       assumptions={assumptions}
       assumptionsLoading={assumptionsLoading}
       onUpdateAssumptions={updateAssumptions}
+      ltrAssumptions={ltrAssumptions}
+      ltrLoading={ltrLoading}
+      onUpdateLTRAssumptions={updateLTRAssumptions}
     />
   );
 }

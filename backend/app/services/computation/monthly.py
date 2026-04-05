@@ -48,3 +48,42 @@ def compute_monthly_breakdown(
         })
 
     return months
+
+
+def compute_ltr_monthly_breakdown(
+    monthly_rent: float,
+    pet_rent_monthly: float,
+    late_fee_monthly: float,
+    vacancy_rate_pct: float,
+    total_annual_opex: float,
+    total_monthly_housing: float,
+    lease_up_period_months: int = 0,
+) -> list[dict]:
+    """Compute month-by-month LTR cashflow.
+
+    For Year 1: months 1..lease_up_period show zero revenue.
+    Fixed expenses apply every month.
+    """
+    monthly_opex = total_annual_opex / 12
+    monthly_total_rent = (monthly_rent + pet_rent_monthly + late_fee_monthly)
+
+    months = []
+    for m in range(1, 13):
+        if m <= lease_up_period_months:
+            monthly_revenue = 0
+        else:
+            monthly_revenue = monthly_total_rent * (1 - vacancy_rate_pct / 100)
+
+        noi = monthly_revenue - monthly_opex
+        cashflow = noi - total_monthly_housing
+
+        months.append({
+            "month": m,
+            "is_peak": m > lease_up_period_months,  # "is_peak" means actively rented
+            "gross_revenue": monthly_revenue,
+            "total_expenses": monthly_opex,
+            "noi": noi,
+            "cashflow": cashflow,
+        })
+
+    return months
