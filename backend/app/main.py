@@ -24,7 +24,7 @@ app.add_middleware(
 )
 
 
-from app.routers import properties, scenarios, assumptions, compute, ltr_assumptions, settings
+from app.routers import properties, scenarios, assumptions, compute, ltr_assumptions, settings, quick_test
 
 app.include_router(properties.router)
 app.include_router(scenarios.router)
@@ -32,6 +32,7 @@ app.include_router(assumptions.router)
 app.include_router(compute.router)
 app.include_router(ltr_assumptions.router)
 app.include_router(settings.router)
+app.include_router(quick_test.router)
 
 
 @app.get("/api/health")

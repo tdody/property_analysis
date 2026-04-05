@@ -13,6 +13,8 @@ import type {
   ComparisonProperty,
   ProjectionSummary,
   MonthlyDetail,
+  QuickTestRequest,
+  QuickTestResult,
 } from "../types";
 
 const api = axios.create({ baseURL: "/api" });
@@ -56,6 +58,10 @@ export const getLTRSensitivity = (propertyId: string) => api.get<LTRSensitivityD
 // Settings
 export const getSettings = () => api.get("/settings").then((r) => r.data);
 export const updateSettings = (data: Record<string, unknown>) => api.put("/settings", data).then((r) => r.data);
+
+// Quick Test
+export const quickTest = (data: QuickTestRequest) =>
+  api.post<QuickTestResult>("/quick-test", data).then((r) => r.data);
 
 // Scraper
 export interface ScrapeResponse {
