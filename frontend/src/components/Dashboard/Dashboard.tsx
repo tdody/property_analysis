@@ -186,7 +186,7 @@ export function Dashboard() {
         <p className="text-red-600 mb-4">{error}</p>
         <button
           onClick={() => void fetchProperties()}
-          className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-indigo-500 shadow-md shadow-indigo-200 text-white rounded-lg hover:from-indigo-700 hover:to-indigo-600"
+          className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-indigo-500 shadow-md shadow-indigo-200 dark:shadow-none text-white rounded-lg hover:from-indigo-700 hover:to-indigo-600"
         >
           Retry
         </button>
@@ -207,14 +207,14 @@ export function Dashboard() {
           {selectedIds.size >= 2 && (
             <button
               onClick={handleCompare}
-              className="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition-colors text-sm font-medium"
+              className="px-4 py-2 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors text-sm font-medium"
             >
               Compare Selected ({selectedIds.size})
             </button>
           )}
           <button
             onClick={() => setShowNewForm(true)}
-            className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-indigo-500 shadow-md shadow-indigo-200 text-white rounded-lg hover:from-indigo-700 hover:to-indigo-600 transition-colors text-sm font-medium"
+            className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-indigo-500 shadow-md shadow-indigo-200 dark:shadow-none text-white rounded-lg hover:from-indigo-700 hover:to-indigo-600 transition-colors text-sm font-medium"
           >
             + New Property
           </button>
@@ -285,7 +285,7 @@ export function Dashboard() {
 
       {showNewForm && (
         <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 mb-6 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.03)]">
-          <h3 className="text-lg font-semibold tracking-tight mb-4">New Property</h3>
+          <h3 className="text-lg font-semibold tracking-tight mb-4 dark:text-slate-100">New Property</h3>
 
           {/* URL scrape flow */}
           <div className="mb-4">
@@ -300,13 +300,13 @@ export function Dashboard() {
                 onKeyDown={(e) => { if (e.key === "Enter") void handleScrape(); }}
                 placeholder="Paste a Redfin URL..."
                 disabled={scraping}
-                className="flex-1 px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:opacity-50"
+                className="flex-1 px-3 py-2 border border-slate-200 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 dark:placeholder-slate-400 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:opacity-50"
                 autoFocus
               />
               <button
                 onClick={() => void handleScrape()}
                 disabled={scraping || !scrapeUrl.trim()}
-                className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-indigo-500 shadow-md shadow-indigo-200 text-white rounded-lg hover:from-indigo-700 hover:to-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium whitespace-nowrap"
+                className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-indigo-500 shadow-md shadow-indigo-200 dark:shadow-none text-white rounded-lg hover:from-indigo-700 hover:to-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium whitespace-nowrap"
               >
                 {scraping ? "Fetching..." : "Fetch"}
               </button>
@@ -337,7 +337,7 @@ export function Dashboard() {
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
                 placeholder='e.g., "Lake House"'
-                className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 dark:placeholder-slate-400 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
               />
             </div>
             <div className="w-48">
@@ -351,14 +351,14 @@ export function Dashboard() {
                   value={newPrice}
                   onChange={(e) => setNewPrice(e.target.value)}
                   placeholder="0"
-                  className="w-full pl-7 pr-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  className="w-full pl-7 pr-3 py-2 border border-slate-200 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 dark:placeholder-slate-400 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 />
               </div>
             </div>
             <button
               onClick={() => void handleCreate()}
               disabled={creating || !newName.trim()}
-              className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-indigo-500 shadow-md shadow-indigo-200 text-white rounded-lg hover:from-indigo-700 hover:to-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium"
+              className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-indigo-500 shadow-md shadow-indigo-200 dark:shadow-none text-white rounded-lg hover:from-indigo-700 hover:to-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium"
             >
               {creating ? "Creating..." : "Create"}
             </button>
@@ -378,7 +378,7 @@ export function Dashboard() {
           <p className="text-slate-400 text-sm mb-6">Create your first property to get started</p>
           <button
             onClick={() => setShowNewForm(true)}
-            className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-indigo-500 shadow-md shadow-indigo-200 text-white rounded-lg hover:from-indigo-700 hover:to-indigo-600 transition-colors text-sm font-medium"
+            className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-indigo-500 shadow-md shadow-indigo-200 dark:shadow-none text-white rounded-lg hover:from-indigo-700 hover:to-indigo-600 transition-colors text-sm font-medium"
           >
             + New Property
           </button>
