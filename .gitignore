@@ -1,3 +1,4 @@
 .worktrees/
 .claude/
-docs/superpowers/plans/
+backend/data/*.db
+docs/*
