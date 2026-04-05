@@ -109,8 +109,7 @@ export function Dashboard() {
       setScrapeError(null);
       const result = await scrapeProperty(scrapeUrl.trim());
       if (result.property_id) {
-        const fieldsMissing = result.scraper_result.fields_missing;
-        navigate(`/property/${result.property_id}`, { state: { fieldsMissing } });
+        navigate(`/property/${result.property_id}`);
       } else {
         setScrapeError(result.scraper_result.error_message ?? "Scrape failed — try creating manually.");
       }

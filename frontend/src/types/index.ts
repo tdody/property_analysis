@@ -44,6 +44,7 @@ export interface Property {
   notes: string;
   is_archived: boolean;
   active_rental_type: 'str' | 'ltr';
+  scraped_snapshot: Record<string, string | number | null> | null;
 }
 
 export interface MortgageScenario {
