@@ -115,6 +115,8 @@ npm run dev
 
 Or: `./start.sh`
 
+> Note: The database is auto-created on first startup via `create_all` — no manual migration step is required.
+
 ### 6. Project Structure
 
 Trimmed tree showing key directories with inline comments explaining purpose. Covers:
