@@ -58,6 +58,15 @@ export const getLTRSensitivity = (propertyId: string) => api.get<LTRSensitivityD
 // Settings
 export const getSettings = () => api.get("/settings").then((r) => r.data);
 export const updateSettings = (data: Record<string, unknown>) => api.put("/settings", data).then((r) => r.data);
+export const uploadLogo = (file: File) => {
+  const formData = new FormData();
+  formData.append("file", file);
+  return api.post("/settings/logo", formData).then((r) => r.data);
+};
+
+// PDF Export
+export const exportPDF = (propertyId: string): Promise<Blob> =>
+  api.get(`/properties/${propertyId}/export/pdf`, { responseType: "blob" }).then((r) => r.data);
 
 // Quick Test
 export const quickTest = (data: QuickTestRequest) =>

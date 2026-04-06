@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { Property } from "../../types/index.ts";
 import type { MortgageScenario, STRAssumptions, LTRAssumptions } from "../../types/index.ts";
+import { exportPDF } from "../../api/client.ts";
 import { PropertyInfoTab } from "./PropertyInfoTab.tsx";
 import { FinancingTab } from "./FinancingTab.tsx";
 import { RevenueExpensesTab } from "./RevenueExpensesTab.tsx";
@@ -46,7 +47,28 @@ export function PropertyDetail({
   onUpdateLTRAssumptions,
 }: PropertyDetailProps) {
   const [activeTab, setActiveTab] = useState<TabName>("Property Info");
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState(false);
   const navigate = useNavigate();
+
+  const handleExportPDF = async () => {
+    setExporting(true);
+    setExportError(false);
+    try {
+      const blob = await exportPDF(property.id);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${property.name.replace(/ /g, "_")}_lender_packet.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      setExportError(true);
+      setTimeout(() => setExportError(false), 4000);
+    } finally {
+      setExporting(false);
+    }
+  };
 
   return (
     <div>
@@ -74,6 +96,21 @@ export function PropertyDetail({
               {property.address}, {property.city}, {property.state} {property.zip_code}
             </p>
           )}
+        </div>
+        <div className="flex items-center gap-3">
+          {exportError && (
+            <span className="text-sm text-red-600 dark:text-red-400">Export failed</span>
+          )}
+          <button
+            onClick={() => void handleExportPDF()}
+            disabled={exporting}
+            className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-indigo-500 shadow-md shadow-indigo-200 dark:shadow-indigo-900/30 text-white rounded-lg hover:from-indigo-700 hover:to-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium flex items-center gap-2"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            {exporting ? "Generating PDF..." : "Export PDF"}
+          </button>
         </div>
       </div>
 

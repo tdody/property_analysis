@@ -32,6 +32,7 @@ from app.routers import (
     ltr_assumptions,
     settings,
     quick_test,
+    export,
 )
 
 app.include_router(properties.router)
@@ -41,6 +42,7 @@ app.include_router(compute.router)
 app.include_router(ltr_assumptions.router)
 app.include_router(settings.router)
 app.include_router(quick_test.router)
+app.include_router(export.router)
 
 
 @app.get("/api/health")
