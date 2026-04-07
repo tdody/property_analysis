@@ -80,7 +80,10 @@ def get_logo(db: Session = Depends(get_db)):
     settings = get_or_create_settings(db)
     if not settings.logo_filename:
         raise HTTPException(status_code=404, detail="No logo uploaded")
-    filepath = LOGO_DIR / settings.logo_filename
+    logo_root = LOGO_DIR.resolve()
+    filepath = (LOGO_DIR / settings.logo_filename).resolve()
+    if not filepath.is_relative_to(logo_root):
+        raise HTTPException(status_code=404, detail="Logo file not found")
     if not filepath.exists():
         raise HTTPException(status_code=404, detail="Logo file not found")
     return FileResponse(filepath)

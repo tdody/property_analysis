@@ -35,8 +35,9 @@ class LenderPacketPDF(FPDF):
         self.company_name = company_name
         self.logo_path: Path | None = None
         if logo_filename:
-            p = LOGO_DIR / logo_filename
-            if p.exists():
+            logo_root = LOGO_DIR.resolve()
+            p = (LOGO_DIR / logo_filename).resolve()
+            if p.is_relative_to(logo_root) and p.exists():
                 self.logo_path = p
         self.set_auto_page_break(auto=True, margin=20)
 
