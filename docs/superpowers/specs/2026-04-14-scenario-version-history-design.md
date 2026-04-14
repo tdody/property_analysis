@@ -145,16 +145,24 @@ class DiffChange(BaseModel):
     new_value: Any
     format: str  # "currency", "percent", "number", "text"
     direction: Optional[str] = None  # "increased", "decreased", None for text
+    favorable: Optional[bool] = None  # True = good change, False = bad, None = neutral
 
 class DiffResponse(BaseModel):
+    snapshot_id: str  # ID of the snapshot being compared
     snapshot_name: str
     snapshot_date: datetime
     total_changes: int
     changes: list[DiffChange]
+    unchanged: list[DiffChange] = []  # Unchanged fields for "Show all" toggle
     unchanged_count: int
     rental_type_changed: bool = False
     snapshot_rental_type: Optional[str] = None
     current_rental_type: Optional[str] = None
+
+class RestoreResponse(BaseModel):
+    status: str
+    auto_snapshot_id: str
+    auto_snapshot_name: str
 ```
 
 ### Current State Computation

@@ -53,23 +53,33 @@ from app.models.snapshot import ScenarioSnapshot
 
 And add `ScenarioSnapshot` to the `__all__` list.
 
-- [ ] **Step 3: Import model in `main.py` for table auto-creation**
+- [ ] **Step 3: Generate Alembic migration**
+
+Run: `cd backend && alembic revision --autogenerate -m "add scenario_snapshots table"`
+
+Verify the generated migration creates the `scenario_snapshots` table with columns: id, scenario_id, name, snapshot_data, created_at and a foreign key to mortgage_scenarios.
+
+Run: `cd backend && alembic upgrade head`
+
+This keeps migrations in sync with the existing 3 migrations (`0ba6456e1927`, `a1b2c3d4e5f6`, `b2c3d4e5f6g7`). The `create_all()` in main.py will still work for dev, but the migration ensures production compatibility.
+
+- [ ] **Step 4: Import model in `main.py` for table auto-creation**
 
 Add `ScenarioSnapshot` to the import in `backend/app/main.py` line 7:
 ```python
 from app.models import Property, MortgageScenario, STRAssumptions, LTRAssumptions, ScenarioSnapshot  # noqa: F401
 ```
 
-- [ ] **Step 4: Verify table creation**
+- [ ] **Step 5: Verify table creation**
 
 Run: `cd backend && python -c "from app.main import app; print('OK')"`
 Expected: `OK` (no import errors)
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
-git add backend/app/models/snapshot.py backend/app/models/__init__.py backend/app/main.py
-git commit -m "feat(snapshot): add ScenarioSnapshot ORM model"
+git add backend/app/models/snapshot.py backend/app/models/__init__.py backend/app/main.py backend/alembic/versions/
+git commit -m "feat(snapshot): add ScenarioSnapshot ORM model with Alembic migration"
 ```
 
 ---
@@ -100,8 +110,7 @@ class SnapshotListItem(BaseModel):
     created_at: datetime
     monthly_cashflow: float | None = None
     cash_on_cash_return: float | None = None
-
-    model_config = {"from_attributes": True}
+    # No model_config — this is manually constructed in the router, not from ORM
 
 
 class SnapshotResponse(BaseModel):
@@ -122,17 +131,26 @@ class DiffChange(BaseModel):
     new_value: Any
     format: str  # "currency", "percent", "number", "text"
     direction: str | None = None  # "increased", "decreased", None
+    favorable: bool | None = None  # True = good change, False = bad, None = neutral
 
 
 class DiffResponse(BaseModel):
+    snapshot_id: str  # ID of the snapshot being compared
     snapshot_name: str
     snapshot_date: datetime
     total_changes: int
     changes: list[DiffChange]
+    unchanged: list[DiffChange] = []  # Unchanged fields for "Show all" toggle
     unchanged_count: int
     rental_type_changed: bool = False
     snapshot_rental_type: str | None = None
     current_rental_type: str | None = None
+
+
+class RestoreResponse(BaseModel):
+    status: str
+    auto_snapshot_id: str
+    auto_snapshot_name: str
 ```
 
 - [ ] **Step 2: Commit**
@@ -149,6 +167,13 @@ git commit -m "feat(snapshot): add Pydantic schemas for snapshots"
 **Files:**
 - Create: `backend/app/services/snapshot.py`
 - Test: `backend/tests/test_snapshot_service.py`
+
+- [ ] **Step 0: Extract `_recompute_cache` from router to services**
+
+Move `_recompute_cache` from `backend/app/routers/properties.py` into `backend/app/services/analysis.py` (where `compute_and_cache_summary` and `compute_and_cache_ltr_summary` already live). Rename to `recompute_cache` (drop the leading underscore since it's now a public service function). Update the import in `backend/app/routers/properties.py`:
+```python
+from app.services.analysis import recompute_cache
+```
 
 - [ ] **Step 1: Write tests for the diff utility**
 
@@ -221,92 +246,93 @@ from app.services.analysis import compute_for_scenario, compute_for_scenario_ltr
 MAX_SNAPSHOTS = 20
 
 # --- Field registry for diff labeling ---
-# Maps dotted field paths to (label, category, format)
-FIELD_REGISTRY: dict[str, tuple[str, str, str]] = {
+# Maps dotted field paths to (label, category, format, favorable_direction)
+# favorable_direction: "up" = increase is good, "down" = decrease is good, None = neutral
+FIELD_REGISTRY: dict[str, tuple[str, str, str, str | None]] = {
     # Scenario / Mortgage fields
-    "scenario.loan_type": ("Loan Type", "Mortgage", "text"),
-    "scenario.purchase_price": ("Purchase Price", "Mortgage", "currency"),
-    "scenario.down_payment_pct": ("Down Payment %", "Mortgage", "percent"),
-    "scenario.down_payment_amt": ("Down Payment $", "Mortgage", "currency"),
-    "scenario.interest_rate": ("Interest Rate", "Mortgage", "percent"),
-    "scenario.loan_term_years": ("Loan Term", "Mortgage", "number"),
-    "scenario.io_period_years": ("IO Period", "Mortgage", "number"),
-    "scenario.closing_cost_pct": ("Closing Costs %", "Mortgage", "percent"),
-    "scenario.closing_cost_amt": ("Closing Costs $", "Mortgage", "currency"),
-    "scenario.renovation_cost": ("Renovation Cost", "Mortgage", "currency"),
-    "scenario.furniture_cost": ("Furniture Cost", "Mortgage", "currency"),
-    "scenario.other_upfront_costs": ("Other Upfront Costs", "Mortgage", "currency"),
-    "scenario.pmi_monthly": ("PMI Monthly", "Mortgage", "currency"),
-    "scenario.origination_points_pct": ("Origination Points %", "Mortgage", "percent"),
+    "scenario.loan_type": ("Loan Type", "Mortgage", "text", None),
+    "scenario.purchase_price": ("Purchase Price", "Mortgage", "currency", None),
+    "scenario.down_payment_pct": ("Down Payment %", "Mortgage", "percent", None),
+    "scenario.down_payment_amt": ("Down Payment $", "Mortgage", "currency", None),
+    "scenario.interest_rate": ("Interest Rate", "Mortgage", "percent", "down"),
+    "scenario.loan_term_years": ("Loan Term", "Mortgage", "number", None),
+    "scenario.io_period_years": ("IO Period", "Mortgage", "number", None),
+    "scenario.closing_cost_pct": ("Closing Costs %", "Mortgage", "percent", "down"),
+    "scenario.closing_cost_amt": ("Closing Costs $", "Mortgage", "currency", "down"),
+    "scenario.renovation_cost": ("Renovation Cost", "Mortgage", "currency", "down"),
+    "scenario.furniture_cost": ("Furniture Cost", "Mortgage", "currency", "down"),
+    "scenario.other_upfront_costs": ("Other Upfront Costs", "Mortgage", "currency", "down"),
+    "scenario.pmi_monthly": ("PMI Monthly", "Mortgage", "currency", "down"),
+    "scenario.origination_points_pct": ("Origination Points %", "Mortgage", "percent", "down"),
     # STR Revenue & Occupancy
-    "assumptions.avg_nightly_rate": ("Avg Nightly Rate", "Revenue & Occupancy", "currency"),
-    "assumptions.occupancy_pct": ("Occupancy %", "Revenue & Occupancy", "percent"),
-    "assumptions.cleaning_fee_per_stay": ("Cleaning Fee / Stay", "Revenue & Occupancy", "currency"),
-    "assumptions.avg_stay_length_nights": ("Avg Stay Length", "Revenue & Occupancy", "number"),
-    "assumptions.platform_fee_pct": ("Platform Fee %", "Revenue & Occupancy", "percent"),
-    "assumptions.use_seasonal_occupancy": ("Seasonal Occupancy", "Revenue & Occupancy", "text"),
-    "assumptions.peak_months": ("Peak Months", "Revenue & Occupancy", "number"),
-    "assumptions.peak_occupancy_pct": ("Peak Occupancy %", "Revenue & Occupancy", "percent"),
-    "assumptions.off_peak_occupancy_pct": ("Off-Peak Occupancy %", "Revenue & Occupancy", "percent"),
+    "assumptions.avg_nightly_rate": ("Avg Nightly Rate", "Revenue & Occupancy", "currency", "up"),
+    "assumptions.occupancy_pct": ("Occupancy %", "Revenue & Occupancy", "percent", "up"),
+    "assumptions.cleaning_fee_per_stay": ("Cleaning Fee / Stay", "Revenue & Occupancy", "currency", "up"),
+    "assumptions.avg_stay_length_nights": ("Avg Stay Length", "Revenue & Occupancy", "number", "up"),
+    "assumptions.platform_fee_pct": ("Platform Fee %", "Revenue & Occupancy", "percent", "down"),
+    "assumptions.use_seasonal_occupancy": ("Seasonal Occupancy", "Revenue & Occupancy", "text", None),
+    "assumptions.peak_months": ("Peak Months", "Revenue & Occupancy", "number", "up"),
+    "assumptions.peak_occupancy_pct": ("Peak Occupancy %", "Revenue & Occupancy", "percent", "up"),
+    "assumptions.off_peak_occupancy_pct": ("Off-Peak Occupancy %", "Revenue & Occupancy", "percent", "up"),
     # LTR Revenue
-    "assumptions.monthly_rent": ("Monthly Rent", "Revenue & Occupancy", "currency"),
-    "assumptions.lease_duration_months": ("Lease Duration", "Revenue & Occupancy", "number"),
-    "assumptions.pet_rent_monthly": ("Pet Rent", "Revenue & Occupancy", "currency"),
-    "assumptions.late_fee_monthly": ("Late Fee", "Revenue & Occupancy", "currency"),
-    "assumptions.vacancy_rate_pct": ("Vacancy Rate %", "Revenue & Occupancy", "percent"),
-    "assumptions.lease_up_period_months": ("Lease-Up Period", "Revenue & Occupancy", "number"),
+    "assumptions.monthly_rent": ("Monthly Rent", "Revenue & Occupancy", "currency", "up"),
+    "assumptions.lease_duration_months": ("Lease Duration", "Revenue & Occupancy", "number", None),
+    "assumptions.pet_rent_monthly": ("Pet Rent", "Revenue & Occupancy", "currency", "up"),
+    "assumptions.late_fee_monthly": ("Late Fee", "Revenue & Occupancy", "currency", "up"),
+    "assumptions.vacancy_rate_pct": ("Vacancy Rate %", "Revenue & Occupancy", "percent", "down"),
+    "assumptions.lease_up_period_months": ("Lease-Up Period", "Revenue & Occupancy", "number", "down"),
     # STR Expenses
-    "assumptions.cleaning_cost_per_turn": ("Cleaning Cost / Turn", "Expenses", "currency"),
-    "assumptions.property_mgmt_pct": ("Property Mgmt %", "Expenses", "percent"),
-    "assumptions.utilities_monthly": ("Utilities / Month", "Expenses", "currency"),
-    "assumptions.insurance_annual": ("Insurance / Year", "Expenses", "currency"),
-    "assumptions.maintenance_reserve_pct": ("Maintenance Reserve %", "Expenses", "percent"),
-    "assumptions.capex_reserve_pct": ("CapEx Reserve %", "Expenses", "percent"),
-    "assumptions.damage_reserve_pct": ("Damage Reserve %", "Expenses", "percent"),
-    "assumptions.supplies_monthly": ("Supplies / Month", "Expenses", "currency"),
-    "assumptions.lawn_snow_monthly": ("Lawn & Snow / Month", "Expenses", "currency"),
-    "assumptions.other_monthly_expense": ("Other Monthly", "Expenses", "currency"),
-    "assumptions.marketing_monthly": ("Marketing / Month", "Expenses", "currency"),
-    "assumptions.software_monthly": ("Software / Month", "Expenses", "currency"),
-    "assumptions.accounting_annual": ("Accounting / Year", "Expenses", "currency"),
-    "assumptions.legal_annual": ("Legal / Year", "Expenses", "currency"),
-    "assumptions.vacancy_reserve_pct": ("Vacancy Reserve %", "Expenses", "percent"),
-    "assumptions.rental_delay_months": ("Rental Delay", "Expenses", "number"),
+    "assumptions.cleaning_cost_per_turn": ("Cleaning Cost / Turn", "Expenses", "currency", "down"),
+    "assumptions.property_mgmt_pct": ("Property Mgmt %", "Expenses", "percent", "down"),
+    "assumptions.utilities_monthly": ("Utilities / Month", "Expenses", "currency", "down"),
+    "assumptions.insurance_annual": ("Insurance / Year", "Expenses", "currency", "down"),
+    "assumptions.maintenance_reserve_pct": ("Maintenance Reserve %", "Expenses", "percent", "down"),
+    "assumptions.capex_reserve_pct": ("CapEx Reserve %", "Expenses", "percent", "down"),
+    "assumptions.damage_reserve_pct": ("Damage Reserve %", "Expenses", "percent", "down"),
+    "assumptions.supplies_monthly": ("Supplies / Month", "Expenses", "currency", "down"),
+    "assumptions.lawn_snow_monthly": ("Lawn & Snow / Month", "Expenses", "currency", "down"),
+    "assumptions.other_monthly_expense": ("Other Monthly", "Expenses", "currency", "down"),
+    "assumptions.marketing_monthly": ("Marketing / Month", "Expenses", "currency", "down"),
+    "assumptions.software_monthly": ("Software / Month", "Expenses", "currency", "down"),
+    "assumptions.accounting_annual": ("Accounting / Year", "Expenses", "currency", "down"),
+    "assumptions.legal_annual": ("Legal / Year", "Expenses", "currency", "down"),
+    "assumptions.vacancy_reserve_pct": ("Vacancy Reserve %", "Expenses", "percent", "down"),
+    "assumptions.rental_delay_months": ("Rental Delay", "Expenses", "number", "down"),
     # LTR-specific Expenses
-    "assumptions.landlord_repairs_annual": ("Repairs / Year", "Expenses", "currency"),
-    "assumptions.tenant_turnover_cost": ("Tenant Turnover Cost", "Expenses", "currency"),
+    "assumptions.landlord_repairs_annual": ("Repairs / Year", "Expenses", "currency", "down"),
+    "assumptions.tenant_turnover_cost": ("Tenant Turnover Cost", "Expenses", "currency", "down"),
     # Tax fields (STR)
-    "assumptions.state_rooms_tax_pct": ("State Rooms Tax %", "Expenses", "percent"),
-    "assumptions.str_surcharge_pct": ("STR Surcharge %", "Expenses", "percent"),
-    "assumptions.local_option_tax_pct": ("Local Option Tax %", "Expenses", "percent"),
-    "assumptions.local_str_registration_fee": ("Registration Fee", "Expenses", "currency"),
-    "assumptions.local_gross_receipts_tax_pct": ("Gross Receipts Tax %", "Expenses", "percent"),
-    "assumptions.platform_remits_tax": ("Platform Remits Tax", "Expenses", "text"),
+    "assumptions.state_rooms_tax_pct": ("State Rooms Tax %", "Expenses", "percent", "down"),
+    "assumptions.str_surcharge_pct": ("STR Surcharge %", "Expenses", "percent", "down"),
+    "assumptions.local_option_tax_pct": ("Local Option Tax %", "Expenses", "percent", "down"),
+    "assumptions.local_str_registration_fee": ("Registration Fee", "Expenses", "currency", "down"),
+    "assumptions.local_gross_receipts_tax_pct": ("Gross Receipts Tax %", "Expenses", "percent", "down"),
+    "assumptions.platform_remits_tax": ("Platform Remits Tax", "Expenses", "text", None),
     # Growth / Depreciation / Tax
-    "assumptions.land_value_pct": ("Land Value %", "Expenses", "percent"),
-    "assumptions.property_appreciation_pct_annual": ("Appreciation %", "Expenses", "percent"),
-    "assumptions.revenue_growth_pct": ("Revenue Growth %", "Expenses", "percent"),
-    "assumptions.expense_growth_pct": ("Expense Growth %", "Expenses", "percent"),
-    "assumptions.marginal_tax_rate_pct": ("Marginal Tax Rate %", "Expenses", "percent"),
+    "assumptions.land_value_pct": ("Land Value %", "Expenses", "percent", None),
+    "assumptions.property_appreciation_pct_annual": ("Appreciation %", "Expenses", "percent", "up"),
+    "assumptions.revenue_growth_pct": ("Revenue Growth %", "Expenses", "percent", "up"),
+    "assumptions.expense_growth_pct": ("Expense Growth %", "Expenses", "percent", "down"),
+    "assumptions.marginal_tax_rate_pct": ("Marginal Tax Rate %", "Expenses", "percent", "down"),
     # Computed Metrics (flat key metrics from results)
-    "results.metrics.monthly_cashflow": ("Monthly Cashflow", "Metrics", "currency"),
-    "results.metrics.annual_cashflow": ("Annual Cashflow", "Metrics", "currency"),
-    "results.metrics.cash_on_cash_return": ("Cash-on-Cash Return", "Metrics", "percent"),
-    "results.metrics.cap_rate": ("Cap Rate", "Metrics", "percent"),
-    "results.metrics.noi": ("NOI", "Metrics", "currency"),
-    "results.metrics.dscr": ("DSCR", "Metrics", "number"),
-    "results.metrics.gross_yield": ("Gross Yield", "Metrics", "percent"),
-    "results.metrics.total_roi_year1": ("Total ROI Year 1", "Metrics", "percent"),
-    "results.metrics.break_even_occupancy": ("Break-Even Occupancy", "Metrics", "percent"),
-    "results.metrics.break_even_vacancy_pct": ("Break-Even Vacancy", "Metrics", "percent"),
-    "results.mortgage.loan_amount": ("Loan Amount", "Metrics", "currency"),
-    "results.mortgage.monthly_pi": ("Monthly P&I", "Metrics", "currency"),
-    "results.mortgage.total_monthly_housing": ("Total Monthly Housing", "Metrics", "currency"),
-    "results.mortgage.total_cash_invested": ("Total Cash Invested", "Metrics", "currency"),
-    "results.revenue.gross_annual": ("Gross Revenue", "Metrics", "currency"),
-    "results.revenue.net_annual": ("Net Revenue", "Metrics", "currency"),
-    "results.revenue.effective_annual": ("Effective Revenue", "Metrics", "currency"),
-    "results.expenses.total_annual_operating": ("Total Operating Expenses", "Metrics", "currency"),
+    "results.metrics.monthly_cashflow": ("Monthly Cashflow", "Metrics", "currency", "up"),
+    "results.metrics.annual_cashflow": ("Annual Cashflow", "Metrics", "currency", "up"),
+    "results.metrics.cash_on_cash_return": ("Cash-on-Cash Return", "Metrics", "percent", "up"),
+    "results.metrics.cap_rate": ("Cap Rate", "Metrics", "percent", "up"),
+    "results.metrics.noi": ("NOI", "Metrics", "currency", "up"),
+    "results.metrics.dscr": ("DSCR", "Metrics", "number", "up"),
+    "results.metrics.gross_yield": ("Gross Yield", "Metrics", "percent", "up"),
+    "results.metrics.total_roi_year1": ("Total ROI Year 1", "Metrics", "percent", "up"),
+    "results.metrics.break_even_occupancy": ("Break-Even Occupancy", "Metrics", "percent", "down"),
+    "results.metrics.break_even_vacancy_pct": ("Break-Even Vacancy", "Metrics", "percent", "up"),
+    "results.mortgage.loan_amount": ("Loan Amount", "Metrics", "currency", None),
+    "results.mortgage.monthly_pi": ("Monthly P&I", "Metrics", "currency", "down"),
+    "results.mortgage.total_monthly_housing": ("Total Monthly Housing", "Metrics", "currency", "down"),
+    "results.mortgage.total_cash_invested": ("Total Cash Invested", "Metrics", "currency", "down"),
+    "results.revenue.gross_annual": ("Gross Revenue", "Metrics", "currency", "up"),
+    "results.revenue.net_annual": ("Net Revenue", "Metrics", "currency", "up"),
+    "results.revenue.effective_annual": ("Effective Revenue", "Metrics", "currency", "up"),
+    "results.expenses.total_annual_operating": ("Total Operating Expenses", "Metrics", "currency", "down"),
 }
 
 
@@ -326,7 +352,9 @@ def compute_diff(old_state: dict, new_state: dict) -> dict:
     rental_type_changed = old_state.get("rental_type") != new_state.get("rental_type")
     changes = []
 
-    for field_path, (label, category, fmt) in FIELD_REGISTRY.items():
+    unchanged = []
+
+    for field_path, (label, category, fmt, fav_dir) in FIELD_REGISTRY.items():
         # Skip assumption fields when rental types differ
         if rental_type_changed and field_path.startswith("assumptions."):
             continue
@@ -343,6 +371,12 @@ def compute_diff(old_state: dict, new_state: dict) -> dict:
             if isinstance(old_val, (int, float)) and isinstance(new_val, (int, float)):
                 direction = "increased" if new_val > old_val else "decreased"
 
+            # Compute favorability based on field's favorable_direction
+            favorable = None
+            if fav_dir and direction:
+                favorable = (direction == "increased" and fav_dir == "up") or \
+                            (direction == "decreased" and fav_dir == "down")
+
             changes.append({
                 "field": field_path,
                 "label": label,
@@ -351,22 +385,26 @@ def compute_diff(old_state: dict, new_state: dict) -> dict:
                 "new_value": new_val,
                 "format": fmt,
                 "direction": direction,
+                "favorable": favorable,
             })
-
-    # Count unchanged registered fields that exist in both states
-    all_present = 0
-    for field_path in FIELD_REGISTRY:
-        if rental_type_changed and field_path.startswith("assumptions."):
-            continue
-        old_val = _get_nested(old_state, field_path)
-        new_val = _get_nested(new_state, field_path)
-        if old_val is not None or new_val is not None:
-            all_present += 1
+        else:
+            # Track unchanged fields for "Show all" toggle
+            unchanged.append({
+                "field": field_path,
+                "label": label,
+                "category": category,
+                "old_value": old_val,
+                "new_value": new_val,
+                "format": fmt,
+                "direction": None,
+                "favorable": None,
+            })
 
     return {
         "total_changes": len(changes),
         "changes": changes,
-        "unchanged_count": all_present - len(changes),
+        "unchanged": unchanged,
+        "unchanged_count": len(unchanged),
         "rental_type_changed": rental_type_changed,
         "snapshot_rental_type": old_state.get("rental_type"),
         "current_rental_type": new_state.get("rental_type"),
@@ -441,8 +479,19 @@ def create_snapshot(
         if is_auto:
             name = f"Before restore - {datetime.now(timezone.utc).strftime('%b %d, %Y')}"
         else:
-            count = db.query(ScenarioSnapshot).filter(ScenarioSnapshot.scenario_id == scenario.id).count()
-            name = f"Snapshot #{count + 1} - {datetime.now(timezone.utc).strftime('%b %d, %Y')}"
+            # Use MAX(name sequence number) to avoid numbering gaps after deletions
+            existing = db.query(ScenarioSnapshot.name).filter(
+                ScenarioSnapshot.scenario_id == scenario.id,
+                ScenarioSnapshot.name.like("Snapshot #%"),
+            ).all()
+            max_num = 0
+            for (n,) in existing:
+                try:
+                    num = int(n.split("#")[1].split(" ")[0])
+                    max_num = max(max_num, num)
+                except (IndexError, ValueError):
+                    pass
+            name = f"Snapshot #{max_num + 1} - {datetime.now(timezone.utc).strftime('%b %d, %Y')}"
 
     data = build_snapshot_data(prop, scenario, db)
 
@@ -475,33 +524,38 @@ def restore_snapshot(
     assumptions_data = data.get("assumptions", {})
     rental_type = data.get("rental_type", "str")
 
-    # Overwrite scenario fields (skip id, property_id)
-    skip_fields = {"id", "property_id"}
+    # Overwrite scenario fields (allow-list from ScenarioUpdate schema)
+    from app.schemas.scenario import ScenarioUpdate
+    from app.schemas.assumptions import AssumptionsUpdate
+    from app.schemas.ltr_assumptions import LTRAssumptionsUpdate
+
+    writable_scenario_fields = set(ScenarioUpdate.model_fields.keys())
     for field, value in scenario_data.items():
-        if field not in skip_fields:
+        if field in writable_scenario_fields:
             setattr(scenario, field, value)
 
-    # Overwrite assumptions
-    skip_assumption_fields = {"id", "property_id"}
+    # Overwrite assumptions (allow-list from respective update schema)
     if rental_type == "ltr":
+        writable_fields = set(LTRAssumptionsUpdate.model_fields.keys())
         ltr = db.query(LTRAssumptions).filter(LTRAssumptions.property_id == prop.id).first()
         if ltr:
             for field, value in assumptions_data.items():
-                if field not in skip_assumption_fields:
+                if field in writable_fields:
                     setattr(ltr, field, value)
     else:
+        writable_fields = set(AssumptionsUpdate.model_fields.keys())
         str_a = db.query(STRAssumptions).filter(STRAssumptions.property_id == prop.id).first()
         if str_a:
             for field, value in assumptions_data.items():
-                if field not in skip_assumption_fields:
+                if field in writable_fields:
                     setattr(str_a, field, value)
 
     # Update rental type on property
     prop.active_rental_type = rental_type
 
-    # Recompute cached metrics
-    from app.routers.properties import _recompute_cache
-    _recompute_cache(prop, db)
+    # Recompute cached metrics (imported from services, not router)
+    from app.services.analysis import recompute_cache
+    recompute_cache(prop, db)
 
     db.flush()
     return auto
@@ -677,6 +731,7 @@ from app.schemas.snapshot import (
     SnapshotResponse,
     DiffResponse,
     DiffChange,
+    RestoreResponse,
 )
 from app.services.snapshot import (
     create_snapshot,
@@ -819,10 +874,12 @@ def diff_snapshot(
     diff = compute_diff(old_state, new_state)
 
     return DiffResponse(
+        snapshot_id=snapshot.id,
         snapshot_name=snapshot.name,
         snapshot_date=snapshot.created_at,
         total_changes=diff["total_changes"],
         changes=[DiffChange(**c) for c in diff["changes"]],
+        unchanged=[DiffChange(**c) for c in diff["unchanged"]],
         unchanged_count=diff["unchanged_count"],
         rental_type_changed=diff["rental_type_changed"],
         snapshot_rental_type=diff["snapshot_rental_type"],
@@ -830,7 +887,7 @@ def diff_snapshot(
     )
 
 
-@router.post("/{snapshot_id}/restore")
+@router.post("/{snapshot_id}/restore", response_model=RestoreResponse)
 def restore_snapshot_endpoint(
     property_id: str,
     scenario_id: str,
@@ -847,7 +904,11 @@ def restore_snapshot_endpoint(
 
     auto_snapshot = restore_snapshot(prop, scenario, snapshot, db)
     db.commit()
-    return {"status": "restored", "auto_snapshot_id": auto_snapshot.id, "auto_snapshot_name": auto_snapshot.name}
+    return RestoreResponse(
+        status="restored",
+        auto_snapshot_id=auto_snapshot.id,
+        auto_snapshot_name=auto_snapshot.name,
+    )
 ```
 
 - [ ] **Step 4: Register router in `main.py`**
@@ -916,13 +977,16 @@ export interface DiffChange {
   new_value: unknown;
   format: string;
   direction: string | null;
+  favorable: boolean | null;
 }
 
 export interface DiffResponse {
+  snapshot_id: string;
   snapshot_name: string;
   snapshot_date: string;
   total_changes: number;
   changes: DiffChange[];
+  unchanged: DiffChange[];
   unchanged_count: number;
   rental_type_changed: boolean;
   snapshot_rental_type: string | null;
@@ -1124,6 +1188,8 @@ export function HistoryDrawer({ propertyId, scenarioId, scenarioName, open, onCl
   const [confirmRestore, setConfirmRestore] = useState<SnapshotListItem | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<SnapshotListItem | null>(null);
   const [restoring, setRestoring] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [showAll, setShowAll] = useState(false);
 
   const loadSnapshots = useCallback(async () => {
     setLoading(true);
@@ -1154,21 +1220,31 @@ export function HistoryDrawer({ propertyId, scenarioId, scenarioName, open, onCl
 
   const handleRestore = async (snapshot: SnapshotListItem) => {
     setRestoring(true);
+    setError(null);
     try {
       await restoreSnapshot(propertyId, scenarioId, snapshot.id);
       setConfirmRestore(null);
       setDiff(null);
       onRestored();
       onClose();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to restore snapshot";
+      setError(msg);
     } finally {
       setRestoring(false);
     }
   };
 
   const handleDelete = async (snapshot: SnapshotListItem) => {
-    await deleteSnapshot(propertyId, scenarioId, snapshot.id);
-    setConfirmDelete(null);
-    loadSnapshots();
+    setError(null);
+    try {
+      await deleteSnapshot(propertyId, scenarioId, snapshot.id);
+      setConfirmDelete(null);
+      loadSnapshots();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to delete snapshot";
+      setError(msg);
+    }
   };
 
   if (!open) return null;
@@ -1191,6 +1267,14 @@ export function HistoryDrawer({ propertyId, scenarioId, scenarioName, open, onCl
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 text-xl">✕</button>
         </div>
+
+        {/* Error banner */}
+        {error && (
+          <div className="px-4 py-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm flex justify-between items-center">
+            <span>{error}</span>
+            <button onClick={() => setError(null)} className="text-red-400 hover:text-red-600">✕</button>
+          </div>
+        )}
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto">
@@ -1229,7 +1313,7 @@ export function HistoryDrawer({ propertyId, scenarioId, scenarioName, open, onCl
                           <td className="py-2 px-1 font-medium text-slate-700 dark:text-slate-300">{c.label}</td>
                           <td className="py-2 px-1 text-slate-500 dark:text-slate-400">{formatValue(c.old_value, c.format)}</td>
                           <td className="py-2 px-1 font-semibold text-slate-900 dark:text-slate-100">{formatValue(c.new_value, c.format)}</td>
-                          <td className={`py-2 px-1 text-right ${c.direction === "increased" ? "text-green-600" : c.direction === "decreased" ? "text-red-500" : "text-slate-400"}`}>
+                          <td className={`py-2 px-1 text-right ${c.favorable === true ? "text-green-600" : c.favorable === false ? "text-red-500" : "text-slate-400"}`}>
                             {formatDelta(c.old_value, c.new_value, c.format, c.direction)}
                           </td>
                         </tr>
@@ -1238,9 +1322,22 @@ export function HistoryDrawer({ propertyId, scenarioId, scenarioName, open, onCl
                   </table>
 
                   {diff.unchanged_count > 0 && (
-                    <p className="mt-3 w-full text-center text-sm text-slate-400 dark:text-slate-500">
-                      {diff.unchanged_count} unchanged field{diff.unchanged_count !== 1 ? "s" : ""} hidden
-                    </p>
+                    <div className="mt-3 text-center">
+                      <button
+                        onClick={() => setShowAll(!showAll)}
+                        className="text-sm text-blue-600 hover:text-blue-700"
+                      >
+                        {showAll ? "Hide unchanged" : `Show all (${diff.unchanged_count} unchanged)`}
+                      </button>
+                      {showAll && diff.unchanged.map((c) => (
+                        <tr key={c.field} className="text-slate-400 dark:text-slate-500">
+                          <td className="py-1.5 px-1">{c.label}</td>
+                          <td className="py-1.5 px-1">{formatValue(c.old_value, c.format)}</td>
+                          <td className="py-1.5 px-1">{formatValue(c.new_value, c.format)}</td>
+                          <td className="py-1.5 px-1 text-right">—</td>
+                        </tr>
+                      ))}
+                    </div>
                   )}
                 </div>
               )}
@@ -1288,7 +1385,7 @@ export function HistoryDrawer({ propertyId, scenarioId, scenarioName, open, onCl
         <div className="p-3 border-t border-slate-200 dark:border-slate-700 text-center text-xs text-slate-400 dark:text-slate-500">
           {diff ? (
             <button
-              onClick={() => { const snap = snapshots.find((s) => s.name === diff.snapshot_name); if (snap) setConfirmRestore(snap); }}
+              onClick={() => { const snap = snapshots.find((s) => s.id === diff.snapshot_id); if (snap) setConfirmRestore(snap); }}
               className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm font-medium"
             >
               Restore This Snapshot
@@ -1358,7 +1455,7 @@ interface ScenarioCardProps {
   onDelete: (id: string) => void;
   onDuplicate: (id: string) => void;
   onActivate: (id: string) => void;
-  onRestored?: () => void;
+  onRestored: () => void;  // Required — triggers parent data refresh after restore
 }
 ```
 
@@ -1410,7 +1507,10 @@ useEffect(() => { loadSnapshotCount(); }, [loadSnapshotCount]);
   scenarioName={form.name || "Untitled Scenario"}
   open={drawerOpen}
   onClose={() => setDrawerOpen(false)}
-  onRestored={() => { loadSnapshotCount(); onRestored?.(); }}
+  onRestored={() => {
+    loadSnapshotCount();
+    onRestored();  // Required: refreshes scenario data in parent
+  }}
 />
 ```
 
@@ -1429,7 +1529,7 @@ interface FinancingTabProps {
   onDeleteScenario: (id: string) => Promise<void>;
   onDuplicateScenario: (id: string) => Promise<MortgageScenario>;
   onActivateScenario: (id: string) => Promise<void>;
-  onRestored?: () => void;
+  onRestored: () => void;  // Required — triggers full scenario data refresh
 }
 ```
 
@@ -1476,10 +1576,14 @@ In `frontend/src/components/PropertyDetail/PropertyDetail.tsx`, update the Finan
   onDeleteScenario={onDeleteScenario}
   onDuplicateScenario={onDuplicateScenario}
   onActivateScenario={onActivateScenario}
+  onRestored={() => {
+    // Refresh scenario list from parent to reflect restored values
+    loadScenarios();  // or equivalent existing refresh callback
+  }}
 />
 ```
 
-Note: `onRestored` is optional. The parent `PropertyPage.tsx` can pass a refresh callback later if full data reload is needed after restore. For now, the ScenarioCard's own state refresh is sufficient.
+Note: `onRestored` is **required** and must trigger a full scenario data refresh. Verify that `PropertyDetail` has access to a `loadScenarios()` or equivalent callback from `PropertyPage.tsx`. If not, thread one through from `PropertyPage` → `PropertyDetail` → `FinancingTab` → `ScenarioCard`.
 
 - [ ] **Step 4: Verify frontend compiles**
 
