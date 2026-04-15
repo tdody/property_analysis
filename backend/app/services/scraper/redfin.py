@@ -1,5 +1,6 @@
 import json
 import re
+from typing import Any
 
 import httpx
 
@@ -44,15 +45,19 @@ def map_property_type(redfin_type: str | None) -> str:
     return "single_family"
 
 
-def _safe_get(d: object, *keys: str) -> object:
+def _safe_get(d: dict[str, Any], *keys: str) -> Any:
     """Safely traverse nested dict keys, returning None if any key is missing."""
+    current: dict[str, Any] = d
     for key in keys:
-        if not isinstance(d, dict):
+        value = current.get(key)
+        if value is None:
             return None
-        d = d.get(key)
-        if d is None:
+        if not isinstance(value, dict):
+            if key == keys[-1]:
+                return value
             return None
-    return d
+        current = value
+    return current
 
 
 def _extract_from_jsonld(html: str) -> dict:

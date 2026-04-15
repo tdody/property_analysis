@@ -235,7 +235,19 @@ def get_projections(property_id: str, scenario_id: str, db: Session = Depends(ge
         scenario_id=scenario.id,
         years=[
             ProjectionYear(
-                **{k: round(v, 2) if isinstance(v, float) else v for k, v in y.items()}  # type: ignore[arg-type]
+                year=y["year"],
+                gross_revenue=round(y["gross_revenue"], 2),
+                net_revenue=round(y["net_revenue"], 2),
+                total_opex=round(y["total_opex"], 2),
+                noi=round(y["noi"], 2),
+                annual_housing_cost=round(y["annual_housing_cost"], 2),
+                annual_cashflow=round(y["annual_cashflow"], 2),
+                cumulative_cashflow=round(y["cumulative_cashflow"], 2),
+                property_value=round(y["property_value"], 2),
+                loan_balance=round(y["loan_balance"], 2),
+                equity=round(y["equity"], 2),
+                cash_on_cash_return=round(y["cash_on_cash_return"], 2),
+                after_tax_cashflow=round(y["after_tax_cashflow"], 2),
             )
             for y in years
         ],
@@ -288,7 +300,12 @@ def get_monthly_breakdown(
         use_seasonal=use_seasonal,
         months=[
             MonthlyDetail(
-                **{k: round(v, 2) if isinstance(v, float) else v for k, v in m.items()}  # type: ignore[arg-type]
+                month=m["month"],
+                is_peak=m["is_peak"],
+                gross_revenue=round(m["gross_revenue"], 2),
+                total_expenses=round(m["total_expenses"], 2),
+                noi=round(m["noi"], 2),
+                cashflow=round(m["cashflow"], 2),
             )
             for m in months
         ],
