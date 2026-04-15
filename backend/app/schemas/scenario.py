@@ -47,7 +47,9 @@ class ScenarioCreate(BaseModel):
     @classmethod
     def loan_type_valid(cls, v: str) -> str:
         if v not in _ALLOWED_LOAN_TYPES:
-            raise ValueError(f"loan_type must be one of: {', '.join(sorted(_ALLOWED_LOAN_TYPES))}")
+            raise ValueError(
+                f"loan_type must be one of: {', '.join(sorted(_ALLOWED_LOAN_TYPES))}"
+            )
         return v
 
     @field_validator("origination_points_pct")
@@ -108,7 +110,9 @@ class ScenarioUpdate(BaseModel):
     @classmethod
     def loan_type_valid(cls, v: str | None) -> str | None:
         if v is not None and v not in _ALLOWED_LOAN_TYPES:
-            raise ValueError(f"loan_type must be one of: {', '.join(sorted(_ALLOWED_LOAN_TYPES))}")
+            raise ValueError(
+                f"loan_type must be one of: {', '.join(sorted(_ALLOWED_LOAN_TYPES))}"
+            )
         return v
 
     @field_validator("origination_points_pct")

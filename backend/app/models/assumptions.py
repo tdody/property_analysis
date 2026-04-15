@@ -1,15 +1,26 @@
+from __future__ import annotations
+
 import uuid
+from typing import TYPE_CHECKING
+
 from sqlalchemy import Boolean, ForeignKey, Integer, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
 
+if TYPE_CHECKING:
+    from app.models.property import Property
+
 
 class STRAssumptions(Base):
     __tablename__ = "str_assumptions"
 
-    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    property_id: Mapped[str] = mapped_column(String(36), ForeignKey("properties.id", ondelete="CASCADE"), unique=True)
+    id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+    property_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("properties.id", ondelete="CASCADE"), unique=True
+    )
 
     # Revenue
     avg_nightly_rate: Mapped[float] = mapped_column(Numeric(10, 2), default=200)
@@ -43,14 +54,18 @@ class STRAssumptions(Base):
     str_surcharge_pct: Mapped[float] = mapped_column(Numeric(6, 2), default=3.0)
     local_option_tax_pct: Mapped[float] = mapped_column(Numeric(6, 2), default=1.0)
     local_str_registration_fee: Mapped[float] = mapped_column(Numeric(10, 2), default=0)
-    local_gross_receipts_tax_pct: Mapped[float] = mapped_column(Numeric(6, 2), default=0)
+    local_gross_receipts_tax_pct: Mapped[float] = mapped_column(
+        Numeric(6, 2), default=0
+    )
     platform_remits_tax: Mapped[bool] = mapped_column(Boolean, default=True)
 
     # Depreciation
     land_value_pct: Mapped[float] = mapped_column(Numeric(6, 2), default=20.0)
 
     # Appreciation
-    property_appreciation_pct_annual: Mapped[float] = mapped_column(Numeric(6, 2), default=2.5)
+    property_appreciation_pct_annual: Mapped[float] = mapped_column(
+        Numeric(6, 2), default=2.5
+    )
 
     # Growth Rates (Multi-Year Projections)
     revenue_growth_pct: Mapped[float] = mapped_column(Numeric(6, 2), default=3.0)

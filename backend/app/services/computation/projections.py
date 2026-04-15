@@ -27,7 +27,9 @@ def compute_five_year_projection(
     annual_housing_cost = total_monthly_housing * 12
 
     # Build amortization schedule to get loan balances and interest at year boundaries
-    schedule = compute_amortization_schedule(loan_amount, interest_rate, loan_term_years, io_period_years=io_period_years)
+    schedule = compute_amortization_schedule(
+        loan_amount, interest_rate, loan_term_years, io_period_years=io_period_years
+    )
 
     def loan_balance_at_year(year: int) -> float:
         month_idx = year * 12 - 1  # 0-indexed
@@ -49,7 +51,7 @@ def compute_five_year_projection(
     tax_rate = marginal_tax_rate_pct / 100
 
     years = []
-    cumulative_cashflow = 0
+    cumulative_cashflow: float = 0
 
     for year in range(1, 6):
         if year == 1:
@@ -75,26 +77,28 @@ def compute_five_year_projection(
         tax = taxable * tax_rate
         after_tax = cashflow - tax
 
-        cumulative_cashflow += cashflow
+        cumulative_cashflow = cumulative_cashflow + cashflow
         prop_value = purchase_price * (1 + appreciation_pct / 100) ** year
         balance = loan_balance_at_year(year)
         equity = prop_value - balance
         coc = (cashflow / total_cash_invested * 100) if total_cash_invested > 0 else 0
 
-        years.append({
-            "year": year,
-            "gross_revenue": gross,
-            "net_revenue": net,
-            "total_opex": opex,
-            "noi": noi,
-            "annual_housing_cost": annual_housing_cost,
-            "annual_cashflow": cashflow,
-            "cumulative_cashflow": cumulative_cashflow,
-            "property_value": prop_value,
-            "loan_balance": balance,
-            "equity": equity,
-            "cash_on_cash_return": coc,
-            "after_tax_cashflow": after_tax,
-        })
+        years.append(
+            {
+                "year": year,
+                "gross_revenue": gross,
+                "net_revenue": net,
+                "total_opex": opex,
+                "noi": noi,
+                "annual_housing_cost": annual_housing_cost,
+                "annual_cashflow": cashflow,
+                "cumulative_cashflow": cumulative_cashflow,
+                "property_value": prop_value,
+                "loan_balance": balance,
+                "equity": equity,
+                "cash_on_cash_return": coc,
+                "after_tax_cashflow": after_tax,
+            }
+        )
 
     return years
