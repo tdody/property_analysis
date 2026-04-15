@@ -4,7 +4,8 @@ import { PropertyPage } from "./pages/PropertyPage.tsx";
 import { ComparePage } from "./pages/ComparePage.tsx";
 import { SettingsPage } from "./pages/SettingsPage.tsx";
 import { GlossaryPage } from "./pages/GlossaryPage.tsx";
-import { ThemeProvider, useTheme } from "./context/ThemeContext.tsx";
+import { ThemeProvider } from "./context/ThemeContext.tsx";
+import { useTheme } from "./context/useTheme";
 import { ErrorBoundary } from "./components/shared/ErrorBoundary.tsx";
 
 function ThemeToggle() {
