@@ -102,9 +102,9 @@ def compute_amortization_schedule(
         interest = balance * monthly_rate
         if month <= io_months:
             # Interest-only period: no principal reduction
-            principal = 0
+            principal: float = 0
         else:
-            principal = amort_pi - interest  # type: ignore[assignment]
+            principal = amort_pi - interest
 
         balance -= principal
         if month == n_payments:

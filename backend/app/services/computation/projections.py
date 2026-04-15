@@ -51,7 +51,7 @@ def compute_five_year_projection(
     tax_rate = marginal_tax_rate_pct / 100
 
     years = []
-    cumulative_cashflow = 0
+    cumulative_cashflow: float = 0
 
     for year in range(1, 6):
         if year == 1:
@@ -77,7 +77,7 @@ def compute_five_year_projection(
         tax = taxable * tax_rate
         after_tax = cashflow - tax
 
-        cumulative_cashflow = cumulative_cashflow + cashflow  # type: ignore[assignment]
+        cumulative_cashflow = cumulative_cashflow + cashflow
         prop_value = purchase_price * (1 + appreciation_pct / 100) ** year
         balance = loan_balance_at_year(year)
         equity = prop_value - balance

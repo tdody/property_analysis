@@ -40,12 +40,11 @@ check = { composite = ["_check_format", "_check_lint"], keep_going = true }
 fix_and_check = { composite = ["format_mypy", "check"], keep_going = true }
 
 [tool.ruff.lint]
-ignore = ["E712"]
+ignore = []
 
 [tool.ruff.lint.per-file-ignores]
-"app/models/*.py" = ["F821"]
+"app/routers/*.py" = ["E712"]
 "app/main.py" = ["E402"]
-"app/services/analysis.py" = ["E402"]
 
 [tool.mypy]
 check_untyped_defs = true

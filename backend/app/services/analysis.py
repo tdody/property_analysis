@@ -41,8 +41,23 @@ from app.services.computation.metrics import (
     compute_appreciation_year1,
     compute_total_roi_year1_with_appreciation,
     compute_tax_analysis,
+    compute_break_even_vacancy,
+    compute_noi,
+    compute_cashflow,
+    compute_cash_on_cash_return,
+    compute_cap_rate,
+    compute_dscr,
+    compute_gross_yield,
+    compute_total_roi_year1,
 )
 from app.services.computation.depreciation import compute_depreciation
+from app.models.ltr_assumptions import LTRAssumptions
+from app.services.computation.ltr_revenue import (
+    compute_ltr_gross_revenue,
+    compute_ltr_effective_revenue,
+    compute_ltr_year1_revenue,
+)
+from app.services.computation.ltr_expenses import compute_ltr_operating_expenses
 
 
 def get_occupancy(assumptions: STRAssumptions) -> float:
@@ -186,7 +201,6 @@ def compute_for_scenario(
         int(assumptions.rental_delay_months) if assumptions.rental_delay_months else 0
     )
     if rental_delay > 0:
-        compute_year1_revenue(gross["total_gross_revenue"], rental_delay)
         year1_net = compute_year1_revenue(net["net_revenue"], rental_delay)
         # Variable expenses scale with revenue; fixed expenses stay the same
         year1_opex_variable = total_opex - fixed_opex
@@ -370,14 +384,6 @@ def compute_and_cache_summary(
 # ---------------------------------------------------------------------------
 # LTR analysis
 # ---------------------------------------------------------------------------
-from app.models.ltr_assumptions import LTRAssumptions
-from app.services.computation.ltr_revenue import (
-    compute_ltr_gross_revenue,
-    compute_ltr_effective_revenue,
-    compute_ltr_year1_revenue,
-)
-from app.services.computation.ltr_expenses import compute_ltr_operating_expenses
-from app.services.computation.metrics import compute_break_even_vacancy
 
 
 def compute_ltr_fixed_opex(ltr: LTRAssumptions) -> float:
@@ -478,17 +484,7 @@ def compute_for_scenario_ltr(
     )
     year1_equity = sum(m["principal"] for m in schedule[:12]) if schedule else 0
 
-    # Core metrics (reuse existing functions)
-    from app.services.computation.metrics import (
-        compute_noi,
-        compute_cashflow,
-        compute_cash_on_cash_return,
-        compute_cap_rate,
-        compute_dscr,
-        compute_gross_yield,
-        compute_total_roi_year1,
-    )
-
+    # Core metrics
     noi = compute_noi(effective_annual, total_opex)
     cashflow = compute_cashflow(noi, total_monthly_housing)
     annual_debt_service = monthly_pi * 12

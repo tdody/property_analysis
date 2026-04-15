@@ -6,18 +6,18 @@ from app.services.computation.metrics import compute_noi, compute_cashflow
 
 
 def _compute_cashflow_for_params(
-    avg_nightly_rate,
-    occupancy_pct,
-    cleaning_fee_per_stay,
-    avg_stay_length_nights,
-    platform_fee_pct,
-    cleaning_cost_per_turn,
-    property_mgmt_pct,
-    maintenance_reserve_pct,
-    capex_reserve_pct,
-    fixed_opex_annual,
-    total_monthly_housing,
-):
+    avg_nightly_rate: float,
+    occupancy_pct: float,
+    cleaning_fee_per_stay: float,
+    avg_stay_length_nights: float,
+    platform_fee_pct: float,
+    cleaning_cost_per_turn: float,
+    property_mgmt_pct: float,
+    maintenance_reserve_pct: float,
+    capex_reserve_pct: float,
+    fixed_opex_annual: float,
+    total_monthly_housing: float,
+) -> float:
     gross = compute_gross_revenue(
         avg_nightly_rate, occupancy_pct, cleaning_fee_per_stay, avg_stay_length_nights
     )
@@ -43,18 +43,18 @@ def _compute_cashflow_for_params(
 
 
 def compute_sensitivity(
-    avg_nightly_rate,
-    base_occupancy_pct,
-    cleaning_fee_per_stay,
-    avg_stay_length_nights,
-    platform_fee_pct,
-    cleaning_cost_per_turn,
-    property_mgmt_pct,
-    maintenance_reserve_pct,
-    capex_reserve_pct,
-    fixed_opex_annual,
-    total_monthly_housing,
-):
+    avg_nightly_rate: float,
+    base_occupancy_pct: float,
+    cleaning_fee_per_stay: float,
+    avg_stay_length_nights: float,
+    platform_fee_pct: float,
+    cleaning_cost_per_turn: float,
+    property_mgmt_pct: float,
+    maintenance_reserve_pct: float,
+    capex_reserve_pct: float,
+    fixed_opex_annual: float,
+    total_monthly_housing: float,
+) -> dict:
     common = dict(
         cleaning_fee_per_stay=cleaning_fee_per_stay,
         avg_stay_length_nights=avg_stay_length_nights,

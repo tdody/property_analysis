@@ -22,10 +22,10 @@ def compute_monthly_breakdown(
         is_peak = m <= peak_months
 
         if effective_occ <= 0 or gross_annual_revenue <= 0:
-            gross = 0
+            gross: float = 0
         else:
             occ = peak_occupancy_pct if is_peak else off_peak_occupancy_pct
-            gross = gross_annual_revenue / 12 * (occ / effective_occ)  # type: ignore[assignment]
+            gross = gross_annual_revenue / 12 * (occ / effective_occ)
 
         net = gross * (1 - platform_fee_pct / 100)
 
@@ -73,9 +73,9 @@ def compute_ltr_monthly_breakdown(
     months = []
     for m in range(1, 13):
         if m <= lease_up_period_months:
-            monthly_revenue = 0
+            monthly_revenue: float = 0
         else:
-            monthly_revenue = monthly_total_rent * (1 - vacancy_rate_pct / 100)  # type: ignore[assignment]
+            monthly_revenue = monthly_total_rent * (1 - vacancy_rate_pct / 100)
 
         noi = monthly_revenue - monthly_opex
         cashflow = noi - total_monthly_housing
