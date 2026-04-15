@@ -1,4 +1,9 @@
 .worktrees/
 .claude/
+.mcp.json
+.superpowers/
 backend/data/*.db
 docs/*
+__pycache__/
+*.py[cod]
+.venv/

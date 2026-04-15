@@ -16,23 +16,23 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.13"
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
 
       - name: Install dependencies
-        run: |
-          pip install pdm
-          pdm install -G dev -G lint
+        run: uv sync
 
       - name: Check formatting
-        run: pdm run check
+        run: uv run ruff format --check .
+
+      - name: Check linting
+        run: uv run ruff check .
 
       - name: Type check
-        run: pdm run _mypy
+        run: uv run ty check
 
       - name: Run tests
-        run: pdm run pytest
+        run: uv run pytest
 
   frontend:
     runs-on: ubuntu-latest
