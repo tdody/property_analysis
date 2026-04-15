@@ -14,7 +14,7 @@ HEADERS = {
 
 def parse_redfin_url(url: str) -> tuple[str, str]:
     """Extract (property_id, url_path) from a Redfin URL."""
-    match = re.search(r'redfin\.com(/[^?#]+/home/(\d+))', url)
+    match = re.search(r"redfin\.com(/[^?#]+/home/(\d+))", url)
     if not match:
         raise ValueError("Not a valid Redfin property URL")
     return match.group(2), match.group(1)
@@ -24,7 +24,7 @@ def parse_redfin_json(text: str) -> dict:
     """Strip Redfin's JSON hijacking prefix and parse."""
     prefix = "{}&&"
     if text.startswith(prefix):
-        text = text[len(prefix):]
+        text = text[len(prefix) :]
     return json.loads(text)
 
 
@@ -44,7 +44,7 @@ def map_property_type(redfin_type: str | None) -> str:
     return "single_family"
 
 
-def _safe_get(d: dict, *keys):
+def _safe_get(d: object, *keys: str) -> object:
     """Safely traverse nested dict keys, returning None if any key is missing."""
     for key in keys:
         if not isinstance(d, dict):
@@ -79,7 +79,7 @@ def _extract_from_html_embedded(html: str) -> dict:
     Redfin embeds JSON data in the page in various forms — sometimes with
     regular quotes, sometimes with escaped quotes (\\"). We handle both.
     """
-    result = {}
+    result: dict[str, float | int | str] = {}
 
     # Extract taxesDue (handles both "taxesDue": and \"taxesDue\":)
     tax_match = re.search(r'\\?"taxesDue\\?"\s*:\s*([\d.]+)', html)
@@ -100,7 +100,9 @@ def _extract_from_html_embedded(html: str) -> dict:
     # Extract lotSqFt or lotSize.value
     lot_match = re.search(r'\\?"lotSqFt\\?"\s*:\s*(\d+)', html)
     if not lot_match:
-        lot_match = re.search(r'\\?"lotSize\\?"\s*:\s*\{\\?"value\\?"\s*:\s*(\d+)', html)
+        lot_match = re.search(
+            r'\\?"lotSize\\?"\s*:\s*\{\\?"value\\?"\s*:\s*(\d+)', html
+        )
     if lot_match:
         try:
             result["lot_sqft"] = int(lot_match.group(1))
@@ -108,7 +110,10 @@ def _extract_from_html_embedded(html: str) -> dict:
             pass
 
     # Extract first property photo from CDN URLs
-    photo_match = re.search(r'(https?://ssl\.cdn-redfin\.com/photo/[^\"\\\s,\)]+\.(?:jpg|jpeg|png|webp))', html)
+    photo_match = re.search(
+        r"(https?://ssl\.cdn-redfin\.com/photo/[^\"\\\s,\)]+\.(?:jpg|jpeg|png|webp))",
+        html,
+    )
     if photo_match:
         result["image_url"] = photo_match.group(1)
 
@@ -206,7 +211,9 @@ def scrape_redfin_property(url: str) -> ScraperResult:
 
         # Compute fields_found and fields_missing
         # Exclude property_type since it always gets a default
-        trackable_fields = [f for f in ScrapedPropertyData.model_fields if f != "property_type"]
+        trackable_fields = [
+            f for f in ScrapedPropertyData.model_fields if f != "property_type"
+        ]
         fields_found = [f for f in trackable_fields if getattr(data, f) is not None]
         fields_missing = [f for f in trackable_fields if getattr(data, f) is None]
 

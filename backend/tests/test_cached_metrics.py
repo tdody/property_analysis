@@ -8,10 +8,15 @@ def test_dashboard_uses_cached_metrics(client):
     prop = next(p for p in resp.json() if p["id"] == pid)
     assert prop["monthly_cashflow"] is None
 
-    client.post(f"/api/properties/{pid}/scenarios", json={
-        "name": "Test", "purchase_price": 300000, "down_payment_amt": 75000,
-        "closing_cost_amt": 9000,
-    })
+    client.post(
+        f"/api/properties/{pid}/scenarios",
+        json={
+            "name": "Test",
+            "purchase_price": 300000,
+            "down_payment_amt": 75000,
+            "closing_cost_amt": 9000,
+        },
+    )
     resp = client.get(f"/api/properties/{pid}/results")
     assert resp.status_code == 200
 

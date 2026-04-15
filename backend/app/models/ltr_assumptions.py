@@ -1,15 +1,26 @@
+from __future__ import annotations
+
 import uuid
+from typing import TYPE_CHECKING
+
 from sqlalchemy import ForeignKey, Integer, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
 
+if TYPE_CHECKING:
+    from app.models.property import Property
+
 
 class LTRAssumptions(Base):
     __tablename__ = "ltr_assumptions"
 
-    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    property_id: Mapped[str] = mapped_column(String(36), ForeignKey("properties.id", ondelete="CASCADE"), unique=True)
+    id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+    property_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("properties.id", ondelete="CASCADE"), unique=True
+    )
 
     # Revenue
     monthly_rent: Mapped[float] = mapped_column(Numeric(10, 2), default=1500)
@@ -34,7 +45,9 @@ class LTRAssumptions(Base):
 
     # Shared / Depreciation / Growth
     land_value_pct: Mapped[float] = mapped_column(Numeric(6, 2), default=20.0)
-    property_appreciation_pct_annual: Mapped[float] = mapped_column(Numeric(6, 2), default=2.5)
+    property_appreciation_pct_annual: Mapped[float] = mapped_column(
+        Numeric(6, 2), default=2.5
+    )
     revenue_growth_pct: Mapped[float] = mapped_column(Numeric(6, 2), default=3.0)
     expense_growth_pct: Mapped[float] = mapped_column(Numeric(6, 2), default=3.0)
     marginal_tax_rate_pct: Mapped[float] = mapped_column(Numeric(6, 2), default=0)

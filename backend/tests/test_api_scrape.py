@@ -16,8 +16,24 @@ MOCK_SCRAPER_RESULT_SUCCESS = ScraperResult(
     ),
     source="redfin",
     source_url="https://www.redfin.com/VT/Burlington/123-Lake-St/home/12345",
-    fields_found=["address", "city", "state", "zip_code", "listing_price", "beds", "baths", "sqft", "property_type"],
-    fields_missing=["lot_sqft", "year_built", "hoa_monthly", "annual_taxes", "estimated_value"],
+    fields_found=[
+        "address",
+        "city",
+        "state",
+        "zip_code",
+        "listing_price",
+        "beds",
+        "baths",
+        "sqft",
+        "property_type",
+    ],
+    fields_missing=[
+        "lot_sqft",
+        "year_built",
+        "hoa_monthly",
+        "annual_taxes",
+        "estimated_value",
+    ],
     scrape_succeeded=True,
 )
 
@@ -37,7 +53,10 @@ class TestScrapeEndpoint:
     def test_scrape_success_creates_property(self, mock_scrape, client):
         mock_scrape.return_value = MOCK_SCRAPER_RESULT_SUCCESS
 
-        resp = client.post("/api/properties/scrape", json={"url": "https://www.redfin.com/VT/Burlington/123-Lake-St/home/12345"})
+        resp = client.post(
+            "/api/properties/scrape",
+            json={"url": "https://www.redfin.com/VT/Burlington/123-Lake-St/home/12345"},
+        )
 
         assert resp.status_code == 201
         data = resp.json()
@@ -53,13 +72,19 @@ class TestScrapeEndpoint:
         assert prop["city"] == "Burlington"
         assert prop["listing_price"] == 425000
         assert prop["beds"] == 3
-        assert prop["source_url"] == "https://www.redfin.com/VT/Burlington/123-Lake-St/home/12345"
+        assert (
+            prop["source_url"]
+            == "https://www.redfin.com/VT/Burlington/123-Lake-St/home/12345"
+        )
 
     @patch("app.routers.properties.scrape_redfin_property")
     def test_scrape_success_creates_scenario(self, mock_scrape, client):
         mock_scrape.return_value = MOCK_SCRAPER_RESULT_SUCCESS
 
-        resp = client.post("/api/properties/scrape", json={"url": "https://www.redfin.com/VT/Burlington/123/home/12345"})
+        resp = client.post(
+            "/api/properties/scrape",
+            json={"url": "https://www.redfin.com/VT/Burlington/123/home/12345"},
+        )
         pid = resp.json()["property_id"]
 
         # Verify default scenario was created with listing price
@@ -72,7 +97,10 @@ class TestScrapeEndpoint:
     def test_scrape_success_creates_assumptions(self, mock_scrape, client):
         mock_scrape.return_value = MOCK_SCRAPER_RESULT_SUCCESS
 
-        resp = client.post("/api/properties/scrape", json={"url": "https://www.redfin.com/VT/Burlington/123/home/12345"})
+        resp = client.post(
+            "/api/properties/scrape",
+            json={"url": "https://www.redfin.com/VT/Burlington/123/home/12345"},
+        )
         pid = resp.json()["property_id"]
 
         # Verify default assumptions were created
@@ -83,7 +111,10 @@ class TestScrapeEndpoint:
     def test_scrape_failure_returns_error(self, mock_scrape, client):
         mock_scrape.return_value = MOCK_SCRAPER_RESULT_FAILURE
 
-        resp = client.post("/api/properties/scrape", json={"url": "https://www.redfin.com/VT/Burlington/123/home/99999"})
+        resp = client.post(
+            "/api/properties/scrape",
+            json={"url": "https://www.redfin.com/VT/Burlington/123/home/99999"},
+        )
 
         assert resp.status_code == 200
         data = resp.json()
@@ -95,7 +126,10 @@ class TestScrapeEndpoint:
     def test_scrape_success_stores_snapshot(self, mock_scrape, client):
         mock_scrape.return_value = MOCK_SCRAPER_RESULT_SUCCESS
 
-        resp = client.post("/api/properties/scrape", json={"url": "https://www.redfin.com/VT/Burlington/123-Lake-St/home/12345"})
+        resp = client.post(
+            "/api/properties/scrape",
+            json={"url": "https://www.redfin.com/VT/Burlington/123-Lake-St/home/12345"},
+        )
         pid = resp.json()["property_id"]
 
         prop = client.get(f"/api/properties/{pid}").json()
@@ -121,11 +155,15 @@ class TestScrapeEndpoint:
         assert "property_type" not in snapshot
 
     def test_manual_property_has_no_snapshot(self, client):
-        resp = client.post("/api/properties", json={"name": "Manual Property", "listing_price": 300000})
+        resp = client.post(
+            "/api/properties", json={"name": "Manual Property", "listing_price": 300000}
+        )
         assert resp.status_code == 201
         prop = client.get(f"/api/properties/{resp.json()['id']}").json()
         assert prop["scraped_snapshot"] is None
 
     def test_scrape_invalid_url(self, client):
-        resp = client.post("/api/properties/scrape", json={"url": "https://www.zillow.com/something"})
+        resp = client.post(
+            "/api/properties/scrape", json={"url": "https://www.zillow.com/something"}
+        )
         assert resp.status_code == 422

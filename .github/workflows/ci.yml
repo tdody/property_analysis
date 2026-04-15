@@ -23,7 +23,13 @@ jobs:
       - name: Install dependencies
         run: |
           pip install pdm
-          pdm install -G dev
+          pdm install -G dev -G lint
+
+      - name: Check formatting
+        run: pdm run check
+
+      - name: Type check
+        run: pdm run _mypy
 
       - name: Run tests
         run: pdm run pytest
