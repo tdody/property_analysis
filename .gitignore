@@ -1,6 +1,7 @@
 .worktrees/
 .claude/
 .mcp.json
+.superpowers/
 backend/data/*.db
 docs/*
 __pycache__/
