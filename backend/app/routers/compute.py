@@ -40,22 +40,16 @@ from app.services.computation.irr import (
 )
 from app.services.computation.monthly import (
     compute_monthly_breakdown,
-    compute_ltr_monthly_breakdown,
 )
 from app.services.computation.sensitivity import (
     compute_sensitivity,
     compute_ltr_sensitivity,
-)
-from app.services.computation.ltr_revenue import (
-    compute_ltr_gross_revenue,
-    compute_ltr_effective_revenue,
 )
 from app.services.analysis import (
     compute_for_scenario,
     compute_and_cache_summary,
     get_occupancy,
     compute_fixed_opex,
-    compute_for_scenario_ltr,
     compute_and_cache_ltr_summary,
     compute_ltr_fixed_opex,
 )
@@ -271,10 +265,22 @@ def get_projections(property_id: str, scenario_id: str, db: Session = Depends(ge
     )
 
     annual_cfs = [y["annual_cashflow"] for y in years]
-    irr_exit = compute_irr_with_exit(annual_cfs, total_cash_invested, exit_info["net_exit_proceeds"])
-    eq_multiple_exit = (cumulative_cf + exit_info["net_exit_proceeds"]) / total_cash_invested if total_cash_invested > 0 else 0
+    irr_exit = compute_irr_with_exit(
+        annual_cfs, total_cash_invested, exit_info["net_exit_proceeds"]
+    )
+    eq_multiple_exit = (
+        (cumulative_cf + exit_info["net_exit_proceeds"]) / total_cash_invested
+        if total_cash_invested > 0
+        else 0
+    )
     total_profit = cumulative_cf + exit_info["net_exit_proceeds"] - total_cash_invested
-    cashflow_series = [-total_cash_invested] + annual_cfs[:-1] + [annual_cfs[-1] + exit_info["net_exit_proceeds"]] if annual_cfs else []
+    cashflow_series = (
+        [-total_cash_invested]
+        + annual_cfs[:-1]
+        + [annual_cfs[-1] + exit_info["net_exit_proceeds"]]
+        if annual_cfs
+        else []
+    )
 
     irr_with_exit_result = IRRResult(
         irr_with_exit=round(irr_exit, 2) if irr_exit is not None else None,

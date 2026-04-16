@@ -166,7 +166,7 @@ class TestProjectionLength:
     def test_ten_years_growth_compounds(self):
         years = _base_projection(num_years=10, revenue_growth_pct=3.0)
         y10 = years[9]
-        expected = 58_400 * 1.03 ** 9
+        expected = 58_400 * 1.03**9
         assert abs(y10["gross_revenue"] - expected) < 0.01
 
 

@@ -75,7 +75,7 @@ class TestExitProceeds:
             capital_gains_rate_pct=20.0,
             depreciation_recapture_rate_pct=25.0,
         )
-        expected_sale = 400_000 * (1.03 ** 5)
+        expected_sale = 400_000 * (1.03**5)
         assert abs(result["sale_price"] - expected_sale) < 0.01
         assert result["selling_costs"] > 0
         assert result["depreciation_recapture_tax"] == 50_000 * 0.25

@@ -1,4 +1,4 @@
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 
 
 def compute_irr(
@@ -54,8 +54,12 @@ def compute_exit_proceeds(
     selling_costs = sale_price * selling_cost_pct / 100
     cost_basis = purchase_price - total_depreciation
     capital_gain = sale_price - selling_costs - cost_basis
-    depreciation_recapture_tax = total_depreciation * depreciation_recapture_rate_pct / 100
-    capital_gains_on_appreciation = max(0, capital_gain - total_depreciation) * capital_gains_rate_pct / 100
+    depreciation_recapture_tax = (
+        total_depreciation * depreciation_recapture_rate_pct / 100
+    )
+    capital_gains_on_appreciation = (
+        max(0, capital_gain - total_depreciation) * capital_gains_rate_pct / 100
+    )
     net_proceeds = (
         sale_price
         - selling_costs
@@ -76,7 +80,7 @@ def compute_exit_proceeds(
 
 
 def compute_irr_with_exit(
-    annual_cashflows: list[float],
+    annual_cashflows: Sequence[float],
     total_cash_invested: float,
     net_exit_proceeds: float,
 ) -> float | None:
@@ -98,8 +102,8 @@ def compute_hold_period_sweep(
     loan_amount: float,
     interest_rate: float,
     loan_term_years: int,
-    annual_cashflows_15: list[float],
-    get_remaining_mortgage: callable,
+    annual_cashflows_15: Sequence[float],
+    get_remaining_mortgage: Callable[[int], float],
 ) -> list[dict]:
     results = []
     for hold in range(3, 16):
@@ -109,9 +113,19 @@ def compute_hold_period_sweep(
         remaining = get_remaining_mortgage(hold)
         total_dep = depreciation_annual * hold
         exit_info = compute_exit_proceeds(
-            purchase_price, appreciation_pct, hold, selling_cost_pct,
-            remaining, total_dep, capital_gains_rate_pct, depreciation_recapture_rate_pct,
+            purchase_price,
+            appreciation_pct,
+            hold,
+            selling_cost_pct,
+            remaining,
+            total_dep,
+            capital_gains_rate_pct,
+            depreciation_recapture_rate_pct,
         )
-        irr = compute_irr_with_exit(cfs, total_cash_invested, exit_info["net_exit_proceeds"])
-        results.append({"hold_period": hold, "irr": round(irr, 2) if irr is not None else None})
+        irr = compute_irr_with_exit(
+            cfs, total_cash_invested, exit_info["net_exit_proceeds"]
+        )
+        results.append(
+            {"hold_period": hold, "irr": round(irr, 2) if irr is not None else None}
+        )
     return results
