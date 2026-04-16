@@ -1,5 +1,6 @@
 from app.services.computation.expenses import compute_operating_expenses
 
+
 class TestOperatingExpenses:
     def test_full_expenses(self):
         result = compute_operating_expenses(
@@ -65,24 +66,36 @@ class TestOperatingExpenses:
 class TestGrossReceiptsTax:
     def test_zero_tax(self):
         result = compute_operating_expenses(
-            annual_turnovers=79, cleaning_cost_per_turn=120,
-            net_annual_revenue=56_648, gross_annual_revenue=58_400,
-            property_mgmt_pct=0, maintenance_reserve_pct=5,
-            capex_reserve_pct=5, utilities_monthly=250,
-            supplies_monthly=100, lawn_snow_monthly=0,
-            other_monthly_expense=0, local_str_registration_fee=0,
+            annual_turnovers=79,
+            cleaning_cost_per_turn=120,
+            net_annual_revenue=56_648,
+            gross_annual_revenue=58_400,
+            property_mgmt_pct=0,
+            maintenance_reserve_pct=5,
+            capex_reserve_pct=5,
+            utilities_monthly=250,
+            supplies_monthly=100,
+            lawn_snow_monthly=0,
+            other_monthly_expense=0,
+            local_str_registration_fee=0,
             local_gross_receipts_tax_pct=0,
         )
         assert result.get("gross_receipts_tax", 0) == 0
 
     def test_burlington_nine_pct(self):
         result = compute_operating_expenses(
-            annual_turnovers=79, cleaning_cost_per_turn=120,
-            net_annual_revenue=56_648, gross_annual_revenue=58_400,
-            property_mgmt_pct=0, maintenance_reserve_pct=5,
-            capex_reserve_pct=5, utilities_monthly=250,
-            supplies_monthly=100, lawn_snow_monthly=0,
-            other_monthly_expense=0, local_str_registration_fee=0,
+            annual_turnovers=79,
+            cleaning_cost_per_turn=120,
+            net_annual_revenue=56_648,
+            gross_annual_revenue=58_400,
+            property_mgmt_pct=0,
+            maintenance_reserve_pct=5,
+            capex_reserve_pct=5,
+            utilities_monthly=250,
+            supplies_monthly=100,
+            lawn_snow_monthly=0,
+            other_monthly_expense=0,
+            local_str_registration_fee=0,
             local_gross_receipts_tax_pct=9.0,
         )
         expected_tax = 58_400 * 0.09
@@ -94,12 +107,18 @@ class TestGrossReceiptsTax:
 class TestDamageReserve:
     def test_default_two_pct(self):
         result = compute_operating_expenses(
-            annual_turnovers=79, cleaning_cost_per_turn=120,
-            net_annual_revenue=56_648, gross_annual_revenue=58_400,
-            property_mgmt_pct=0, maintenance_reserve_pct=5,
-            capex_reserve_pct=5, utilities_monthly=250,
-            supplies_monthly=100, lawn_snow_monthly=0,
-            other_monthly_expense=0, local_str_registration_fee=0,
+            annual_turnovers=79,
+            cleaning_cost_per_turn=120,
+            net_annual_revenue=56_648,
+            gross_annual_revenue=58_400,
+            property_mgmt_pct=0,
+            maintenance_reserve_pct=5,
+            capex_reserve_pct=5,
+            utilities_monthly=250,
+            supplies_monthly=100,
+            lawn_snow_monthly=0,
+            other_monthly_expense=0,
+            local_str_registration_fee=0,
             damage_reserve_pct=2.0,
         )
         expected = 58_400 * 0.02
@@ -108,35 +127,56 @@ class TestDamageReserve:
 
     def test_zero_damage_reserve(self):
         result = compute_operating_expenses(
-            annual_turnovers=79, cleaning_cost_per_turn=120,
-            net_annual_revenue=56_648, gross_annual_revenue=58_400,
-            property_mgmt_pct=0, maintenance_reserve_pct=5,
-            capex_reserve_pct=5, utilities_monthly=250,
-            supplies_monthly=100, lawn_snow_monthly=0,
-            other_monthly_expense=0, local_str_registration_fee=0,
+            annual_turnovers=79,
+            cleaning_cost_per_turn=120,
+            net_annual_revenue=56_648,
+            gross_annual_revenue=58_400,
+            property_mgmt_pct=0,
+            maintenance_reserve_pct=5,
+            capex_reserve_pct=5,
+            utilities_monthly=250,
+            supplies_monthly=100,
+            lawn_snow_monthly=0,
+            other_monthly_expense=0,
+            local_str_registration_fee=0,
             damage_reserve_pct=0,
         )
         assert result["damage_reserve"] == 0
 
     def test_damage_reserve_included_in_total(self):
         without = compute_operating_expenses(
-            annual_turnovers=50, cleaning_cost_per_turn=100,
-            net_annual_revenue=50_000, gross_annual_revenue=52_000,
-            property_mgmt_pct=0, maintenance_reserve_pct=0,
-            capex_reserve_pct=0, utilities_monthly=0,
-            supplies_monthly=0, lawn_snow_monthly=0,
-            other_monthly_expense=0, local_str_registration_fee=0,
+            annual_turnovers=50,
+            cleaning_cost_per_turn=100,
+            net_annual_revenue=50_000,
+            gross_annual_revenue=52_000,
+            property_mgmt_pct=0,
+            maintenance_reserve_pct=0,
+            capex_reserve_pct=0,
+            utilities_monthly=0,
+            supplies_monthly=0,
+            lawn_snow_monthly=0,
+            other_monthly_expense=0,
+            local_str_registration_fee=0,
             damage_reserve_pct=0,
         )
         with_damage = compute_operating_expenses(
-            annual_turnovers=50, cleaning_cost_per_turn=100,
-            net_annual_revenue=50_000, gross_annual_revenue=52_000,
-            property_mgmt_pct=0, maintenance_reserve_pct=0,
-            capex_reserve_pct=0, utilities_monthly=0,
-            supplies_monthly=0, lawn_snow_monthly=0,
-            other_monthly_expense=0, local_str_registration_fee=0,
+            annual_turnovers=50,
+            cleaning_cost_per_turn=100,
+            net_annual_revenue=50_000,
+            gross_annual_revenue=52_000,
+            property_mgmt_pct=0,
+            maintenance_reserve_pct=0,
+            capex_reserve_pct=0,
+            utilities_monthly=0,
+            supplies_monthly=0,
+            lawn_snow_monthly=0,
+            other_monthly_expense=0,
+            local_str_registration_fee=0,
             damage_reserve_pct=5.0,
         )
         expected_diff = 52_000 * 0.05
-        actual_diff = with_damage["total_annual_operating_exp"] - without["total_annual_operating_exp"]
+        actual_diff = (
+            with_damage["total_annual_operating_exp"]
+            - without["total_annual_operating_exp"]
+        )
         assert abs(actual_diff - expected_diff) < 0.01

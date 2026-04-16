@@ -41,8 +41,23 @@ from app.services.computation.metrics import (
     compute_appreciation_year1,
     compute_total_roi_year1_with_appreciation,
     compute_tax_analysis,
+    compute_break_even_vacancy,
+    compute_noi,
+    compute_cashflow,
+    compute_cash_on_cash_return,
+    compute_cap_rate,
+    compute_dscr,
+    compute_gross_yield,
+    compute_total_roi_year1,
 )
 from app.services.computation.depreciation import compute_depreciation
+from app.models.ltr_assumptions import LTRAssumptions
+from app.services.computation.ltr_revenue import (
+    compute_ltr_gross_revenue,
+    compute_ltr_effective_revenue,
+    compute_ltr_year1_revenue,
+)
+from app.services.computation.ltr_expenses import compute_ltr_operating_expenses
 
 
 def get_occupancy(assumptions: STRAssumptions) -> float:
@@ -69,28 +84,47 @@ def compute_fixed_opex(assumptions: STRAssumptions) -> float:
     )
 
 
-def compute_for_scenario(prop: Property, scenario: MortgageScenario, assumptions: STRAssumptions) -> dict:
+def compute_for_scenario(
+    prop: Property, scenario: MortgageScenario, assumptions: STRAssumptions
+) -> dict:
     # Mortgage
-    loan_amount = compute_loan_amount(float(scenario.purchase_price), float(scenario.down_payment_amt))
+    loan_amount = compute_loan_amount(
+        float(scenario.purchase_price), float(scenario.down_payment_amt)
+    )
     io_years = scenario.io_period_years or 0
     # During IO period, monthly payment is interest-only
     if io_years > 0:
-        monthly_pi = compute_io_monthly_payment(loan_amount, float(scenario.interest_rate))
+        monthly_pi = compute_io_monthly_payment(
+            loan_amount, float(scenario.interest_rate)
+        )
     else:
-        monthly_pi = compute_monthly_pi(loan_amount, float(scenario.interest_rate), scenario.loan_term_years)
+        monthly_pi = compute_monthly_pi(
+            loan_amount, float(scenario.interest_rate), scenario.loan_term_years
+        )
     monthly_pmi = compute_pmi(
-        loan_amount, scenario.loan_type, float(scenario.down_payment_pct),
+        loan_amount,
+        scenario.loan_type,
+        float(scenario.down_payment_pct),
         pmi_override=float(scenario.pmi_monthly) if scenario.pmi_monthly else None,
     )
     total_monthly_housing = compute_total_monthly_housing(
-        monthly_pi, monthly_pmi, float(prop.annual_taxes),
-        float(assumptions.insurance_annual), float(prop.hoa_monthly),
-        float(prop.nonhomestead_annual_taxes) if prop.nonhomestead_annual_taxes else None,
+        monthly_pi,
+        monthly_pmi,
+        float(prop.annual_taxes),
+        float(assumptions.insurance_annual),
+        float(prop.hoa_monthly),
+        float(prop.nonhomestead_annual_taxes)
+        if prop.nonhomestead_annual_taxes
+        else None,
     )
-    origination_fee = compute_origination_fee(loan_amount, float(scenario.origination_points_pct))
+    origination_fee = compute_origination_fee(
+        loan_amount, float(scenario.origination_points_pct)
+    )
     total_cash = compute_total_cash_invested(
-        float(scenario.down_payment_amt), float(scenario.closing_cost_amt),
-        float(scenario.renovation_cost), float(scenario.furniture_cost),
+        float(scenario.down_payment_amt),
+        float(scenario.closing_cost_amt),
+        float(scenario.renovation_cost),
+        float(scenario.furniture_cost),
         float(scenario.other_upfront_costs),
         origination_fee=origination_fee,
     )
@@ -98,10 +132,14 @@ def compute_for_scenario(prop: Property, scenario: MortgageScenario, assumptions
     # Revenue (uses effective occupancy when seasonal mode is on)
     occupancy = get_occupancy(assumptions)
     gross = compute_gross_revenue(
-        float(assumptions.avg_nightly_rate), occupancy,
-        float(assumptions.cleaning_fee_per_stay), float(assumptions.avg_stay_length_nights),
+        float(assumptions.avg_nightly_rate),
+        occupancy,
+        float(assumptions.cleaning_fee_per_stay),
+        float(assumptions.avg_stay_length_nights),
     )
-    net = compute_net_revenue(gross["total_gross_revenue"], float(assumptions.platform_fee_pct))
+    net = compute_net_revenue(
+        gross["total_gross_revenue"], float(assumptions.platform_fee_pct)
+    )
 
     # Expenses
     expenses = compute_operating_expenses(
@@ -129,7 +167,12 @@ def compute_for_scenario(prop: Property, scenario: MortgageScenario, assumptions
     fixed_opex = compute_fixed_opex(assumptions)
 
     # Year-1 equity
-    schedule = compute_amortization_schedule(loan_amount, float(scenario.interest_rate), scenario.loan_term_years, io_period_years=io_years)
+    schedule = compute_amortization_schedule(
+        loan_amount,
+        float(scenario.interest_rate),
+        scenario.loan_term_years,
+        io_period_years=io_years,
+    )
     year1_equity = sum(m["principal"] for m in schedule[:12]) if schedule else 0
 
     # Metrics
@@ -154,9 +197,10 @@ def compute_for_scenario(prop: Property, scenario: MortgageScenario, assumptions
     )
 
     # Rental delay adjustments for Year-1
-    rental_delay = int(assumptions.rental_delay_months) if assumptions.rental_delay_months else 0
+    rental_delay = (
+        int(assumptions.rental_delay_months) if assumptions.rental_delay_months else 0
+    )
     if rental_delay > 0:
-        year1_gross = compute_year1_revenue(gross["total_gross_revenue"], rental_delay)
         year1_net = compute_year1_revenue(net["net_revenue"], rental_delay)
         # Variable expenses scale with revenue; fixed expenses stay the same
         year1_opex_variable = total_opex - fixed_opex
@@ -165,10 +209,20 @@ def compute_for_scenario(prop: Property, scenario: MortgageScenario, assumptions
         year1_fixed_costs = total_monthly_housing * 12
         year1_annual_cashflow = year1_noi - year1_fixed_costs
         year1_monthly_cashflow = year1_annual_cashflow / 12
-        carrying_costs = compute_delay_carrying_costs(total_monthly_housing, rental_delay)
+        carrying_costs = compute_delay_carrying_costs(
+            total_monthly_housing, rental_delay
+        )
         year1_total_cash = total_cash + carrying_costs
-        year1_coc = (year1_annual_cashflow / year1_total_cash * 100) if year1_total_cash > 0 else 0
-        year1_roi = ((year1_annual_cashflow + year1_equity) / year1_total_cash * 100) if year1_total_cash > 0 else 0
+        year1_coc = (
+            (year1_annual_cashflow / year1_total_cash * 100)
+            if year1_total_cash > 0
+            else 0
+        )
+        year1_roi = (
+            ((year1_annual_cashflow + year1_equity) / year1_total_cash * 100)
+            if year1_total_cash > 0
+            else 0
+        )
         # Override metrics with Year-1 adjusted values
         metrics["monthly_cashflow"] = year1_monthly_cashflow
         metrics["annual_cashflow"] = year1_annual_cashflow
@@ -179,9 +233,14 @@ def compute_for_scenario(prop: Property, scenario: MortgageScenario, assumptions
 
     # Appreciation
     appreciation_pct = float(assumptions.property_appreciation_pct_annual)
-    appreciation_year1 = compute_appreciation_year1(float(scenario.purchase_price), appreciation_pct)
+    appreciation_year1 = compute_appreciation_year1(
+        float(scenario.purchase_price), appreciation_pct
+    )
     roi_with_appreciation = compute_total_roi_year1_with_appreciation(
-        metrics["annual_cashflow"], year1_equity, appreciation_year1, total_cash,
+        metrics["annual_cashflow"],
+        year1_equity,
+        appreciation_year1,
+        total_cash,
     )
 
     dscr_warning = None
@@ -198,7 +257,9 @@ def compute_for_scenario(prop: Property, scenario: MortgageScenario, assumptions
 
     # Guest cost per night (cleaning fee amortized over stay length)
     stay_len = float(assumptions.avg_stay_length_nights)
-    cleaning_per_night = float(assumptions.cleaning_fee_per_stay) / stay_len if stay_len > 0 else 0
+    cleaning_per_night = (
+        float(assumptions.cleaning_fee_per_stay) / stay_len if stay_len > 0 else 0
+    )
     guest_cost_per_night = float(assumptions.avg_nightly_rate) + cleaning_per_night
 
     total_tax_pct = (
@@ -211,7 +272,9 @@ def compute_for_scenario(prop: Property, scenario: MortgageScenario, assumptions
         tax_impact = TaxImpactInfo(
             guest_facing_tax_pct=total_tax_pct,
             platform_remits=bool(assumptions.platform_remits_tax),
-            effective_nightly_rate_with_tax=round(float(assumptions.avg_nightly_rate) * (1 + total_tax_pct / 100), 2),
+            effective_nightly_rate_with_tax=round(
+                float(assumptions.avg_nightly_rate) * (1 + total_tax_pct / 100), 2
+            ),
         )
 
     # Depreciation
@@ -294,14 +357,22 @@ def compute_for_scenario(prop: Property, scenario: MortgageScenario, assumptions
         "tax_impact": tax_impact,
         "depreciation": DepreciationInfo(
             building_value=round(depreciation["building_value"], 2),
-            building_depreciation_annual=round(depreciation["building_depreciation_annual"], 2),
-            furniture_depreciation_annual=round(depreciation["furniture_depreciation_annual"], 2),
-            total_depreciation_annual=round(depreciation["total_depreciation_annual"], 2),
+            building_depreciation_annual=round(
+                depreciation["building_depreciation_annual"], 2
+            ),
+            furniture_depreciation_annual=round(
+                depreciation["furniture_depreciation_annual"], 2
+            ),
+            total_depreciation_annual=round(
+                depreciation["total_depreciation_annual"], 2
+            ),
         ),
     }
 
 
-def compute_and_cache_summary(prop: Property, scenario: MortgageScenario, assumptions: STRAssumptions, db: Session) -> dict:
+def compute_and_cache_summary(
+    prop: Property, scenario: MortgageScenario, assumptions: STRAssumptions, db: Session
+) -> dict:
     """Compute full results and update cached metrics on the property."""
     result = compute_for_scenario(prop, scenario, assumptions)
     prop.cached_monthly_cashflow = result["metrics"].monthly_cashflow
@@ -313,14 +384,6 @@ def compute_and_cache_summary(prop: Property, scenario: MortgageScenario, assump
 # ---------------------------------------------------------------------------
 # LTR analysis
 # ---------------------------------------------------------------------------
-from app.models.ltr_assumptions import LTRAssumptions
-from app.services.computation.ltr_revenue import (
-    compute_ltr_gross_revenue,
-    compute_ltr_effective_revenue,
-    compute_ltr_year1_revenue,
-)
-from app.services.computation.ltr_expenses import compute_ltr_operating_expenses
-from app.services.computation.metrics import compute_break_even_vacancy
 
 
 def compute_ltr_fixed_opex(ltr: LTRAssumptions) -> float:
@@ -336,37 +399,60 @@ def compute_ltr_fixed_opex(ltr: LTRAssumptions) -> float:
     )
 
 
-def compute_for_scenario_ltr(prop: Property, scenario: MortgageScenario, ltr: LTRAssumptions) -> dict:
+def compute_for_scenario_ltr(
+    prop: Property, scenario: MortgageScenario, ltr: LTRAssumptions
+) -> dict:
     """Compute full analysis for an LTR scenario, parallel to compute_for_scenario()."""
     # Mortgage (identical to STR)
-    loan_amount = compute_loan_amount(float(scenario.purchase_price), float(scenario.down_payment_amt))
+    loan_amount = compute_loan_amount(
+        float(scenario.purchase_price), float(scenario.down_payment_amt)
+    )
     io_years = scenario.io_period_years or 0
     if io_years > 0:
-        monthly_pi = compute_io_monthly_payment(loan_amount, float(scenario.interest_rate))
+        monthly_pi = compute_io_monthly_payment(
+            loan_amount, float(scenario.interest_rate)
+        )
     else:
-        monthly_pi = compute_monthly_pi(loan_amount, float(scenario.interest_rate), scenario.loan_term_years)
+        monthly_pi = compute_monthly_pi(
+            loan_amount, float(scenario.interest_rate), scenario.loan_term_years
+        )
     monthly_pmi = compute_pmi(
-        loan_amount, scenario.loan_type, float(scenario.down_payment_pct),
+        loan_amount,
+        scenario.loan_type,
+        float(scenario.down_payment_pct),
         pmi_override=float(scenario.pmi_monthly) if scenario.pmi_monthly else None,
     )
     total_monthly_housing = compute_total_monthly_housing(
-        monthly_pi, monthly_pmi, float(prop.annual_taxes),
-        float(ltr.insurance_annual), float(prop.hoa_monthly),
-        float(prop.nonhomestead_annual_taxes) if prop.nonhomestead_annual_taxes else None,
+        monthly_pi,
+        monthly_pmi,
+        float(prop.annual_taxes),
+        float(ltr.insurance_annual),
+        float(prop.hoa_monthly),
+        float(prop.nonhomestead_annual_taxes)
+        if prop.nonhomestead_annual_taxes
+        else None,
     )
-    origination_fee = compute_origination_fee(loan_amount, float(scenario.origination_points_pct))
+    origination_fee = compute_origination_fee(
+        loan_amount, float(scenario.origination_points_pct)
+    )
     total_cash = compute_total_cash_invested(
-        float(scenario.down_payment_amt), float(scenario.closing_cost_amt),
-        float(scenario.renovation_cost), float(scenario.furniture_cost),
+        float(scenario.down_payment_amt),
+        float(scenario.closing_cost_amt),
+        float(scenario.renovation_cost),
+        float(scenario.furniture_cost),
         float(scenario.other_upfront_costs),
         origination_fee=origination_fee,
     )
 
     # Revenue
     gross_annual = compute_ltr_gross_revenue(
-        float(ltr.monthly_rent), float(ltr.pet_rent_monthly), float(ltr.late_fee_monthly),
+        float(ltr.monthly_rent),
+        float(ltr.pet_rent_monthly),
+        float(ltr.late_fee_monthly),
     )
-    effective_annual = compute_ltr_effective_revenue(gross_annual, float(ltr.vacancy_rate_pct))
+    effective_annual = compute_ltr_effective_revenue(
+        gross_annual, float(ltr.vacancy_rate_pct)
+    )
     vacancy_loss = gross_annual - effective_annual
 
     # Expenses
@@ -390,15 +476,15 @@ def compute_for_scenario_ltr(prop: Property, scenario: MortgageScenario, ltr: LT
     fixed_opex = compute_ltr_fixed_opex(ltr)
 
     # Year-1 equity
-    schedule = compute_amortization_schedule(loan_amount, float(scenario.interest_rate), scenario.loan_term_years, io_period_years=io_years)
+    schedule = compute_amortization_schedule(
+        loan_amount,
+        float(scenario.interest_rate),
+        scenario.loan_term_years,
+        io_period_years=io_years,
+    )
     year1_equity = sum(m["principal"] for m in schedule[:12]) if schedule else 0
 
-    # Core metrics (reuse existing functions)
-    from app.services.computation.metrics import (
-        compute_noi, compute_cashflow, compute_cash_on_cash_return,
-        compute_cap_rate, compute_dscr, compute_gross_yield,
-        compute_total_roi_year1,
-    )
+    # Core metrics
     noi = compute_noi(effective_annual, total_opex)
     cashflow = compute_cashflow(noi, total_monthly_housing)
     annual_debt_service = monthly_pi * 12
@@ -413,20 +499,29 @@ def compute_for_scenario_ltr(prop: Property, scenario: MortgageScenario, ltr: LT
         "noi": noi,
         "monthly_cashflow": cashflow["monthly_cashflow"],
         "annual_cashflow": cashflow["annual_cashflow"],
-        "cash_on_cash_return": compute_cash_on_cash_return(cashflow["annual_cashflow"], total_cash),
+        "cash_on_cash_return": compute_cash_on_cash_return(
+            cashflow["annual_cashflow"], total_cash
+        ),
         "cap_rate": compute_cap_rate(noi, float(scenario.purchase_price)),
         "dscr": compute_dscr(noi, annual_debt_service),
-        "gross_yield": compute_gross_yield(gross_annual, float(scenario.purchase_price)),
+        "gross_yield": compute_gross_yield(
+            gross_annual, float(scenario.purchase_price)
+        ),
         "break_even_vacancy_pct": break_even_vac,
-        "total_roi_year1": compute_total_roi_year1(cashflow["annual_cashflow"], year1_equity, total_cash),
+        "total_roi_year1": compute_total_roi_year1(
+            cashflow["annual_cashflow"], year1_equity, total_cash
+        ),
     }
 
     # Lease-up adjustments for Year-1
     lease_up = int(ltr.lease_up_period_months) if ltr.lease_up_period_months else 0
     if lease_up > 0:
         year1_rev = compute_ltr_year1_revenue(
-            float(ltr.monthly_rent), float(ltr.pet_rent_monthly),
-            float(ltr.late_fee_monthly), float(ltr.vacancy_rate_pct), lease_up,
+            float(ltr.monthly_rent),
+            float(ltr.pet_rent_monthly),
+            float(ltr.late_fee_monthly),
+            float(ltr.vacancy_rate_pct),
+            lease_up,
         )
         year1_effective = year1_rev["year1_effective"]
         year1_opex_variable = total_opex - fixed_opex
@@ -437,8 +532,14 @@ def compute_for_scenario_ltr(prop: Property, scenario: MortgageScenario, ltr: LT
         year1_monthly_cf = year1_annual_cf / 12
         carrying_costs = compute_delay_carrying_costs(total_monthly_housing, lease_up)
         year1_total_cash = total_cash + carrying_costs
-        year1_coc = (year1_annual_cf / year1_total_cash * 100) if year1_total_cash > 0 else 0
-        year1_roi = ((year1_annual_cf + year1_equity) / year1_total_cash * 100) if year1_total_cash > 0 else 0
+        year1_coc = (
+            (year1_annual_cf / year1_total_cash * 100) if year1_total_cash > 0 else 0
+        )
+        year1_roi = (
+            ((year1_annual_cf + year1_equity) / year1_total_cash * 100)
+            if year1_total_cash > 0
+            else 0
+        )
         metrics["monthly_cashflow"] = year1_monthly_cf
         metrics["annual_cashflow"] = year1_annual_cf
         metrics["cash_on_cash_return"] = year1_coc
@@ -448,9 +549,14 @@ def compute_for_scenario_ltr(prop: Property, scenario: MortgageScenario, ltr: LT
 
     # Appreciation
     appreciation_pct = float(ltr.property_appreciation_pct_annual)
-    appreciation_year1 = compute_appreciation_year1(float(scenario.purchase_price), appreciation_pct)
+    appreciation_year1 = compute_appreciation_year1(
+        float(scenario.purchase_price), appreciation_pct
+    )
     roi_with_appreciation = compute_total_roi_year1_with_appreciation(
-        metrics["annual_cashflow"], year1_equity, appreciation_year1, total_cash,
+        metrics["annual_cashflow"],
+        year1_equity,
+        appreciation_year1,
+        total_cash,
     )
 
     dscr_warning = None
@@ -504,7 +610,9 @@ def compute_for_scenario_ltr(prop: Property, scenario: MortgageScenario, ltr: LT
                 "capex_reserve": round(expenses["capex_reserve"], 2),
                 "turnover_amortized": round(expenses["turnover_amortized"], 2),
                 "insurance_annual": round(expenses["insurance_annual"], 2),
-                "landlord_repairs_annual": round(expenses["landlord_repairs_annual"], 2),
+                "landlord_repairs_annual": round(
+                    expenses["landlord_repairs_annual"], 2
+                ),
                 "utilities_annual": round(expenses["utilities_annual"], 2),
                 "lawn_snow_annual": round(expenses["lawn_snow_annual"], 2),
                 "other_annual": round(expenses["other_annual"], 2),
@@ -527,20 +635,32 @@ def compute_for_scenario_ltr(prop: Property, scenario: MortgageScenario, ltr: LT
             "total_roi_year1_with_appreciation": round(roi_with_appreciation, 2),
             "taxable_income": round(tax_info["taxable_income"], 2),
             "tax_liability": round(tax_info["tax_liability"], 2),
-            "after_tax_annual_cashflow": round(tax_info["after_tax_annual_cashflow"], 2),
-            "after_tax_monthly_cashflow": round(tax_info["after_tax_monthly_cashflow"], 2),
+            "after_tax_annual_cashflow": round(
+                tax_info["after_tax_annual_cashflow"], 2
+            ),
+            "after_tax_monthly_cashflow": round(
+                tax_info["after_tax_monthly_cashflow"], 2
+            ),
         },
         "lease_up_period_months": lease_up,
         "depreciation": DepreciationInfo(
             building_value=round(depreciation["building_value"], 2),
-            building_depreciation_annual=round(depreciation["building_depreciation_annual"], 2),
-            furniture_depreciation_annual=round(depreciation["furniture_depreciation_annual"], 2),
-            total_depreciation_annual=round(depreciation["total_depreciation_annual"], 2),
+            building_depreciation_annual=round(
+                depreciation["building_depreciation_annual"], 2
+            ),
+            furniture_depreciation_annual=round(
+                depreciation["furniture_depreciation_annual"], 2
+            ),
+            total_depreciation_annual=round(
+                depreciation["total_depreciation_annual"], 2
+            ),
         ),
     }
 
 
-def compute_and_cache_ltr_summary(prop: Property, scenario: MortgageScenario, ltr: LTRAssumptions, db: Session) -> dict:
+def compute_and_cache_ltr_summary(
+    prop: Property, scenario: MortgageScenario, ltr: LTRAssumptions, db: Session
+) -> dict:
     """Compute full LTR results and update cached metrics on the property."""
     result = compute_for_scenario_ltr(prop, scenario, ltr)
     prop.cached_monthly_cashflow = result["metrics"]["monthly_cashflow"]

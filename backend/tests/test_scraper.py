@@ -10,26 +10,34 @@ from app.services.scraper.redfin import (
     _extract_from_jsonld,
     _extract_from_html_embedded,
 )
-from app.services.scraper.models import ScrapedPropertyData, ScraperResult
+from app.services.scraper.models import ScrapedPropertyData
 
 
 class TestParseRedfinUrl:
     def test_standard_url(self):
-        pid, path = parse_redfin_url("https://www.redfin.com/VT/Burlington/123-Lake-St-05401/home/12345678")
+        pid, path = parse_redfin_url(
+            "https://www.redfin.com/VT/Burlington/123-Lake-St-05401/home/12345678"
+        )
         assert pid == "12345678"
         assert path == "/VT/Burlington/123-Lake-St-05401/home/12345678"
 
     def test_url_with_query_params(self):
-        pid, path = parse_redfin_url("https://www.redfin.com/VT/Stowe/456-Mountain-Rd/home/99887766?utm_source=foo")
+        pid, path = parse_redfin_url(
+            "https://www.redfin.com/VT/Stowe/456-Mountain-Rd/home/99887766?utm_source=foo"
+        )
         assert pid == "99887766"
         assert path == "/VT/Stowe/456-Mountain-Rd/home/99887766"
 
     def test_url_with_hash(self):
-        pid, path = parse_redfin_url("https://www.redfin.com/TX/Austin/789-Main/home/55555#section")
+        pid, path = parse_redfin_url(
+            "https://www.redfin.com/TX/Austin/789-Main/home/55555#section"
+        )
         assert pid == "55555"
 
     def test_url_without_www(self):
-        pid, path = parse_redfin_url("https://redfin.com/VT/Burlington/123-Lake/home/11111")
+        pid, path = parse_redfin_url(
+            "https://redfin.com/VT/Burlington/123-Lake/home/11111"
+        )
         assert pid == "11111"
 
     def test_invalid_url_no_home(self):
@@ -55,7 +63,7 @@ class TestParseRedfinJson:
         assert result == {"payload": {"key": "value"}}
 
     def test_empty_payload(self):
-        result = parse_redfin_json('{}&&{}')
+        result = parse_redfin_json("{}&&{}")
         assert result == {}
 
 
@@ -82,28 +90,34 @@ class TestMapPropertyType:
 
 # --- Mock HTML page with JSON-LD and embedded data ---
 
-MOCK_JSONLD = json.dumps({
-    "@context": "https://schema.org",
-    "@type": ["Product", "RealEstateListing"],
-    "name": "123 Lake St",
-    "photo": "https://ssl.cdn-redfin.com/photo/123/bigphoto/456/photo.jpg",
-    "offers": {"@type": "Offer", "priceCurrency": "USD", "price": 425000},
-    "mainEntity": {
-        "@type": "SingleFamilyResidence",
-        "address": {
-            "@type": "PostalAddress",
-            "streetAddress": "123 Lake St",
-            "addressLocality": "Burlington",
-            "addressRegion": "VT",
-            "postalCode": "05401",
+MOCK_JSONLD = json.dumps(
+    {
+        "@context": "https://schema.org",
+        "@type": ["Product", "RealEstateListing"],
+        "name": "123 Lake St",
+        "photo": "https://ssl.cdn-redfin.com/photo/123/bigphoto/456/photo.jpg",
+        "offers": {"@type": "Offer", "priceCurrency": "USD", "price": 425000},
+        "mainEntity": {
+            "@type": "SingleFamilyResidence",
+            "address": {
+                "@type": "PostalAddress",
+                "streetAddress": "123 Lake St",
+                "addressLocality": "Burlington",
+                "addressRegion": "VT",
+                "postalCode": "05401",
+            },
+            "numberOfBedrooms": 3,
+            "numberOfBathroomsTotal": 2.5,
+            "floorSize": {
+                "@type": "QuantitativeValue",
+                "value": 1800,
+                "unitText": "FTK",
+            },
+            "yearBuilt": 1995,
+            "accommodationCategory": "Single Family Residential",
         },
-        "numberOfBedrooms": 3,
-        "numberOfBathroomsTotal": 2.5,
-        "floorSize": {"@type": "QuantitativeValue", "value": 1800, "unitText": "FTK"},
-        "yearBuilt": 1995,
-        "accommodationCategory": "Single Family Residential",
-    },
-})
+    }
+)
 
 MOCK_HTML_FULL = f"""
 <html>
@@ -115,23 +129,25 @@ MOCK_HTML_FULL = f"""
 </html>
 """
 
-MOCK_JSONLD_PARTIAL = json.dumps({
-    "@context": "https://schema.org",
-    "@type": ["Product", "RealEstateListing"],
-    "offers": {"price": 289000},
-    "mainEntity": {
-        "@type": "Apartment",
-        "address": {
-            "streetAddress": "456 Main St",
-            "addressLocality": "Stowe",
-            "addressRegion": "VT",
-            "postalCode": "05672",
+MOCK_JSONLD_PARTIAL = json.dumps(
+    {
+        "@context": "https://schema.org",
+        "@type": ["Product", "RealEstateListing"],
+        "offers": {"price": 289000},
+        "mainEntity": {
+            "@type": "Apartment",
+            "address": {
+                "streetAddress": "456 Main St",
+                "addressLocality": "Stowe",
+                "addressRegion": "VT",
+                "postalCode": "05672",
+            },
+            "numberOfBedrooms": 2,
+            "numberOfBathroomsTotal": 1.0,
+            "accommodationCategory": "Condominium",
         },
-        "numberOfBedrooms": 2,
-        "numberOfBathroomsTotal": 1.0,
-        "accommodationCategory": "Condominium",
-    },
-})
+    }
+)
 
 MOCK_HTML_PARTIAL = f"""
 <html><body>
@@ -169,11 +185,21 @@ class TestExtractFromHtmlEmbedded:
 class TestScraperResult:
     def test_fields_found_and_missing(self):
         data = ScrapedPropertyData(
-            address="123 Lake St", city="Burlington", state="VT",
-            zip_code="05401", listing_price=425000, beds=3, baths=2.0, sqft=1800,
+            address="123 Lake St",
+            city="Burlington",
+            state="VT",
+            zip_code="05401",
+            listing_price=425000,
+            beds=3,
+            baths=2.0,
+            sqft=1800,
         )
-        found = [f for f in ScrapedPropertyData.model_fields if getattr(data, f) is not None]
-        missing = [f for f in ScrapedPropertyData.model_fields if getattr(data, f) is None]
+        found = [
+            f for f in ScrapedPropertyData.model_fields if getattr(data, f) is not None
+        ]
+        missing = [
+            f for f in ScrapedPropertyData.model_fields if getattr(data, f) is None
+        ]
         assert "address" in found
         assert "listing_price" in found
         assert "lot_sqft" in missing
@@ -185,7 +211,9 @@ class TestScrapeRedfinProperty:
     def test_full_scrape(self, mock_get):
         mock_get.return_value = MagicMock(status_code=200, text=MOCK_HTML_FULL)
 
-        result = scrape_redfin_property("https://www.redfin.com/VT/Burlington/123-Lake-St-05401/home/12345678")
+        result = scrape_redfin_property(
+            "https://www.redfin.com/VT/Burlington/123-Lake-St-05401/home/12345678"
+        )
 
         assert result.scrape_succeeded is True
         assert result.data.address == "123 Lake St"
@@ -201,14 +229,19 @@ class TestScrapeRedfinProperty:
         assert result.data.annual_taxes == 6200
         assert result.data.hoa_monthly == 150
         assert result.data.property_type == "single_family"
-        assert result.data.image_url == "https://ssl.cdn-redfin.com/photo/123/bigphoto/456/photo.jpg"
+        assert (
+            result.data.image_url
+            == "https://ssl.cdn-redfin.com/photo/123/bigphoto/456/photo.jpg"
+        )
         assert "address" in result.fields_found
 
     @patch("app.services.scraper.redfin.httpx.get")
     def test_partial_scrape(self, mock_get):
         mock_get.return_value = MagicMock(status_code=200, text=MOCK_HTML_PARTIAL)
 
-        result = scrape_redfin_property("https://www.redfin.com/VT/Stowe/456-Main/home/99999")
+        result = scrape_redfin_property(
+            "https://www.redfin.com/VT/Stowe/456-Main/home/99999"
+        )
 
         assert result.scrape_succeeded is True
         assert result.data.address == "456 Main St"
@@ -223,25 +256,34 @@ class TestScrapeRedfinProperty:
     def test_scrape_http_error(self, mock_get):
         mock_get.side_effect = Exception("Connection refused")
 
-        result = scrape_redfin_property("https://www.redfin.com/VT/Burlington/123/home/11111")
+        result = scrape_redfin_property(
+            "https://www.redfin.com/VT/Burlington/123/home/11111"
+        )
 
         assert result.scrape_succeeded is False
-        assert "Connection refused" in result.error_message
+        assert (
+            result.error_message is not None
+            and "Connection refused" in result.error_message
+        )
 
     @patch("app.services.scraper.redfin.httpx.get")
     def test_scrape_403_forbidden(self, mock_get):
         mock_get.return_value = MagicMock(status_code=403, text="Forbidden")
 
-        result = scrape_redfin_property("https://www.redfin.com/VT/Burlington/123/home/11111")
+        result = scrape_redfin_property(
+            "https://www.redfin.com/VT/Burlington/123/home/11111"
+        )
 
         assert result.scrape_succeeded is False
-        assert "403" in result.error_message
+        assert result.error_message is not None and "403" in result.error_message
 
     @patch("app.services.scraper.redfin.httpx.get")
     def test_scrape_no_jsonld(self, mock_get):
         mock_get.return_value = MagicMock(status_code=200, text=MOCK_HTML_NO_JSONLD)
 
-        result = scrape_redfin_property("https://www.redfin.com/VT/Burlington/123/home/11111")
+        result = scrape_redfin_property(
+            "https://www.redfin.com/VT/Burlington/123/home/11111"
+        )
 
         assert result.scrape_succeeded is False
-        assert "No data" in result.error_message
+        assert result.error_message is not None and "No data" in result.error_message

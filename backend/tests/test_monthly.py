@@ -1,3 +1,5 @@
+from typing import Any
+
 from app.services.computation.monthly import compute_monthly_breakdown
 from app.services.computation.revenue import compute_effective_occupancy
 
@@ -22,8 +24,8 @@ class TestEffectiveOccupancy:
         assert result == 65.0
 
 
-def _base_monthly(**overrides):
-    defaults = dict(
+def _base_monthly(**overrides: Any) -> list[dict[str, Any]]:
+    defaults: dict[str, Any] = dict(
         gross_annual_revenue=58_400,
         total_annual_opex=27_748,
         fixed_opex_annual=4_200,
@@ -44,7 +46,9 @@ class TestMonthlyRevenueSums:
         assert abs(total - 58_400) < 0.01
 
     def test_sums_to_annual_with_different_split(self):
-        months = _base_monthly(peak_months=3, peak_occupancy_pct=90.0, off_peak_occupancy_pct=50.0)
+        months = _base_monthly(
+            peak_months=3, peak_occupancy_pct=90.0, off_peak_occupancy_pct=50.0
+        )
         total = sum(m["gross_revenue"] for m in months)
         assert abs(total - 58_400) < 0.01
 

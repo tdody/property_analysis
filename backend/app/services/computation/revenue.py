@@ -2,7 +2,9 @@ def compute_occupied_nights(occupancy_pct: float) -> float:
     return 365 * (occupancy_pct / 100)
 
 
-def compute_annual_turnovers(occupied_nights: float, avg_stay_length_nights: float) -> float:
+def compute_annual_turnovers(
+    occupied_nights: float, avg_stay_length_nights: float
+) -> float:
     if avg_stay_length_nights <= 0:
         return 0
     return occupied_nights / avg_stay_length_nights
@@ -32,8 +34,12 @@ def compute_net_revenue(total_gross_revenue: float, platform_fee_pct: float) -> 
     return {"platform_fees": fees, "net_revenue": total_gross_revenue - fees}
 
 
-def compute_effective_occupancy(peak_months: int, peak_occupancy_pct: float, off_peak_occupancy_pct: float) -> float:
-    return (peak_months * peak_occupancy_pct + (12 - peak_months) * off_peak_occupancy_pct) / 12
+def compute_effective_occupancy(
+    peak_months: int, peak_occupancy_pct: float, off_peak_occupancy_pct: float
+) -> float:
+    return (
+        peak_months * peak_occupancy_pct + (12 - peak_months) * off_peak_occupancy_pct
+    ) / 12
 
 
 def compute_year1_revenue(annual_revenue: float, rental_delay_months: int) -> float:

@@ -13,11 +13,17 @@ router = APIRouter(prefix="/api/properties/{property_id}/scenarios", tags=["scen
 
 @router.get("", response_model=list[ScenarioResponse])
 def list_scenarios(property_id: str, db: Session = Depends(get_db)):
-    return db.query(MortgageScenario).filter(MortgageScenario.property_id == property_id).all()
+    return (
+        db.query(MortgageScenario)
+        .filter(MortgageScenario.property_id == property_id)
+        .all()
+    )
 
 
 @router.post("", response_model=ScenarioResponse, status_code=201)
-def create_scenario(property_id: str, data: ScenarioCreate, db: Session = Depends(get_db)):
+def create_scenario(
+    property_id: str, data: ScenarioCreate, db: Session = Depends(get_db)
+):
     scenario = MortgageScenario(property_id=property_id, **data.model_dump())
     db.add(scenario)
     prop = db.query(Property).filter(Property.id == property_id).first()
@@ -29,11 +35,20 @@ def create_scenario(property_id: str, data: ScenarioCreate, db: Session = Depend
 
 
 @router.put("/{scenario_id}", response_model=ScenarioResponse)
-def update_scenario(property_id: str, scenario_id: str, data: ScenarioUpdate, db: Session = Depends(get_db)):
-    scenario = db.query(MortgageScenario).filter(
-        MortgageScenario.id == scenario_id,
-        MortgageScenario.property_id == property_id,
-    ).first()
+def update_scenario(
+    property_id: str,
+    scenario_id: str,
+    data: ScenarioUpdate,
+    db: Session = Depends(get_db),
+):
+    scenario = (
+        db.query(MortgageScenario)
+        .filter(
+            MortgageScenario.id == scenario_id,
+            MortgageScenario.property_id == property_id,
+        )
+        .first()
+    )
     if not scenario:
         raise HTTPException(status_code=404, detail="Scenario not found")
     for field, value in data.model_dump(exclude_unset=True).items():
@@ -48,10 +63,14 @@ def update_scenario(property_id: str, scenario_id: str, data: ScenarioUpdate, db
 
 @router.delete("/{scenario_id}")
 def delete_scenario(property_id: str, scenario_id: str, db: Session = Depends(get_db)):
-    scenario = db.query(MortgageScenario).filter(
-        MortgageScenario.id == scenario_id,
-        MortgageScenario.property_id == property_id,
-    ).first()
+    scenario = (
+        db.query(MortgageScenario)
+        .filter(
+            MortgageScenario.id == scenario_id,
+            MortgageScenario.property_id == property_id,
+        )
+        .first()
+    )
     if not scenario:
         raise HTTPException(status_code=404, detail="Scenario not found")
     db.delete(scenario)
@@ -62,12 +81,20 @@ def delete_scenario(property_id: str, scenario_id: str, db: Session = Depends(ge
     return {"status": "deleted"}
 
 
-@router.post("/{scenario_id}/duplicate", response_model=ScenarioResponse, status_code=201)
-def duplicate_scenario(property_id: str, scenario_id: str, db: Session = Depends(get_db)):
-    original = db.query(MortgageScenario).filter(
-        MortgageScenario.id == scenario_id,
-        MortgageScenario.property_id == property_id,
-    ).first()
+@router.post(
+    "/{scenario_id}/duplicate", response_model=ScenarioResponse, status_code=201
+)
+def duplicate_scenario(
+    property_id: str, scenario_id: str, db: Session = Depends(get_db)
+):
+    original = (
+        db.query(MortgageScenario)
+        .filter(
+            MortgageScenario.id == scenario_id,
+            MortgageScenario.property_id == property_id,
+        )
+        .first()
+    )
     if not original:
         raise HTTPException(status_code=404, detail="Scenario not found")
 
@@ -101,16 +128,22 @@ def duplicate_scenario(property_id: str, scenario_id: str, db: Session = Depends
 
 
 @router.put("/{scenario_id}/activate", response_model=ScenarioResponse)
-def activate_scenario(property_id: str, scenario_id: str, db: Session = Depends(get_db)):
+def activate_scenario(
+    property_id: str, scenario_id: str, db: Session = Depends(get_db)
+):
     # Deactivate all scenarios for this property
     db.query(MortgageScenario).filter(
         MortgageScenario.property_id == property_id
     ).update({"is_active": False})
     # Activate the target
-    scenario = db.query(MortgageScenario).filter(
-        MortgageScenario.id == scenario_id,
-        MortgageScenario.property_id == property_id,
-    ).first()
+    scenario = (
+        db.query(MortgageScenario)
+        .filter(
+            MortgageScenario.id == scenario_id,
+            MortgageScenario.property_id == property_id,
+        )
+        .first()
+    )
     if not scenario:
         raise HTTPException(status_code=404, detail="Scenario not found")
     scenario.is_active = True

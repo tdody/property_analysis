@@ -1,4 +1,9 @@
-def compute_irr(cashflows: list[float], max_iterations: int = 100, tolerance: float = 1e-7) -> float | None:
+from collections.abc import Sequence
+
+
+def compute_irr(
+    cashflows: Sequence[float], max_iterations: int = 100, tolerance: float = 1e-7
+) -> float | None:
     """Compute IRR using Newton-Raphson method. Returns None if it doesn't converge."""
     if not cashflows or len(cashflows) < 2:
         return None
@@ -27,7 +32,9 @@ def compute_irr(cashflows: list[float], max_iterations: int = 100, tolerance: fl
     return None
 
 
-def compute_equity_multiple(cumulative_cashflow: float, total_cash_invested: float) -> float:
+def compute_equity_multiple(
+    cumulative_cashflow: float, total_cash_invested: float
+) -> float:
     if total_cash_invested <= 0:
         return 0
     return cumulative_cashflow / total_cash_invested

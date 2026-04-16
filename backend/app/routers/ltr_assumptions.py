@@ -7,12 +7,18 @@ from app.models.ltr_assumptions import LTRAssumptions
 from app.schemas.ltr_assumptions import LTRAssumptionsUpdate, LTRAssumptionsResponse
 from app.routers.properties import _recompute_cache
 
-router = APIRouter(prefix="/api/properties/{property_id}/ltr-assumptions", tags=["ltr-assumptions"])
+router = APIRouter(
+    prefix="/api/properties/{property_id}/ltr-assumptions", tags=["ltr-assumptions"]
+)
 
 
 def _get_or_create_ltr(property_id: str, db: Session) -> LTRAssumptions:
     """Get LTR assumptions, auto-creating with defaults if missing."""
-    ltr = db.query(LTRAssumptions).filter(LTRAssumptions.property_id == property_id).first()
+    ltr = (
+        db.query(LTRAssumptions)
+        .filter(LTRAssumptions.property_id == property_id)
+        .first()
+    )
     if not ltr:
         prop = db.query(Property).filter(Property.id == property_id).first()
         if not prop:
@@ -30,7 +36,9 @@ def get_ltr_assumptions(property_id: str, db: Session = Depends(get_db)):
 
 
 @router.put("", response_model=LTRAssumptionsResponse)
-def update_ltr_assumptions(property_id: str, data: LTRAssumptionsUpdate, db: Session = Depends(get_db)):
+def update_ltr_assumptions(
+    property_id: str, data: LTRAssumptionsUpdate, db: Session = Depends(get_db)
+):
     ltr = _get_or_create_ltr(property_id, db)
     for field, value in data.model_dump(exclude_unset=True).items():
         setattr(ltr, field, value)

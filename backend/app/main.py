@@ -24,7 +24,14 @@ app.add_middleware(
 )
 
 
-from app.routers import properties, scenarios, assumptions, compute, ltr_assumptions, settings
+from app.routers import (
+    properties,
+    scenarios,
+    assumptions,
+    compute,
+    ltr_assumptions,
+    settings,
+)
 
 app.include_router(properties.router)
 app.include_router(scenarios.router)

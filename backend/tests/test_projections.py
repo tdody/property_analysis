@@ -1,8 +1,10 @@
+from typing import Any
+
 from app.services.computation.projections import compute_five_year_projection
 
 
-def _base_projection(**overrides):
-    defaults = dict(
+def _base_projection(**overrides: Any) -> list[dict[str, Any]]:
+    defaults: dict[str, Any] = dict(
         year1_gross_revenue=58_400,
         year1_net_revenue=56_648,
         year1_opex=27_748,
@@ -51,13 +53,13 @@ class TestGrowthCompoundsFromSteadyState:
     def test_year3_compounds(self):
         years = _base_projection(revenue_growth_pct=5.0)
         y3 = years[2]
-        expected = 58_400 * 1.05 ** 2
+        expected = 58_400 * 1.05**2
         assert abs(y3["gross_revenue"] - expected) < 0.01
 
     def test_year5_compounds(self):
         years = _base_projection(revenue_growth_pct=3.0)
         y5 = years[4]
-        expected = 58_400 * 1.03 ** 4
+        expected = 58_400 * 1.03**4
         assert abs(y5["gross_revenue"] - expected) < 0.01
 
     def test_expense_growth_separate(self):
@@ -148,12 +150,16 @@ class TestOutputLength:
 
 class TestAfterTaxProjections:
     def test_zero_tax_rate_equals_pretax(self):
-        years = _base_projection(marginal_tax_rate_pct=0, total_depreciation_annual=12_000)
+        years = _base_projection(
+            marginal_tax_rate_pct=0, total_depreciation_annual=12_000
+        )
         for y in years:
             assert abs(y["after_tax_cashflow"] - y["annual_cashflow"]) < 0.01
 
     def test_interest_decreases_over_time(self):
-        years = _base_projection(marginal_tax_rate_pct=32.0, total_depreciation_annual=12_000)
+        years = _base_projection(
+            marginal_tax_rate_pct=32.0, total_depreciation_annual=12_000
+        )
         # With decreasing interest, taxable income rises, so after-tax cashflow
         # should decrease relative to pre-tax over time (more tax owed)
         diff_y1 = years[0]["annual_cashflow"] - years[0]["after_tax_cashflow"]
@@ -164,11 +170,17 @@ class TestAfterTaxProjections:
 
     def test_cash_purchase_after_tax(self):
         years = _base_projection(
-            loan_amount=0, interest_rate=0, loan_term_years=0,
-            monthly_pi=0, total_monthly_housing=500,
-            marginal_tax_rate_pct=25.0, total_depreciation_annual=12_000,
+            loan_amount=0,
+            interest_rate=0,
+            loan_term_years=0,
+            monthly_pi=0,
+            total_monthly_housing=500,
+            marginal_tax_rate_pct=25.0,
+            total_depreciation_annual=12_000,
         )
         for y in years:
             # No interest deduction, only depreciation
             assert "after_tax_cashflow" in y
-            assert y["after_tax_cashflow"] != y["annual_cashflow"]  # depreciation affects tax
+            assert (
+                y["after_tax_cashflow"] != y["annual_cashflow"]
+            )  # depreciation affects tax

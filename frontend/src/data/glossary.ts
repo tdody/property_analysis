@@ -6,7 +6,7 @@ export interface GlossaryEntry {
   category: "metrics" | "revenue" | "expenses" | "financing" | "tax";
 }
 
-export const GLOSSARY: GlossaryEntry[] = [
+export const GLOSSARY = [
   // ── Metrics ──────────────────────────────────────────────
   {
     term: "Annual Cashflow",
@@ -511,4 +511,6 @@ export const GLOSSARY: GlossaryEntry[] = [
     relatedTerms: ["STR Surcharge", "Local Option Tax", "Platform Remits Tax"],
     category: "tax",
   },
-].sort((a, b) => a.term.localeCompare(b.term));
+] satisfies GlossaryEntry[];
+
+GLOSSARY.sort((a, b) => a.term.localeCompare(b.term));
