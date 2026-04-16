@@ -1,4 +1,3 @@
-import pytest
 from app.services.computation.mortgage import (
     compute_monthly_pi,
     compute_io_monthly_payment,
@@ -69,18 +68,24 @@ class TestPMI:
 class TestTotalMonthlyHousing:
     def test_all_components(self):
         result = compute_total_monthly_housing(
-            monthly_pi=2046.53, monthly_pmi=150.0,
-            annual_taxes=6000, insurance_annual=2500,
-            hoa_monthly=100, nonhomestead_annual_taxes=None,
+            monthly_pi=2046.53,
+            monthly_pmi=150.0,
+            annual_taxes=6000,
+            insurance_annual=2500,
+            hoa_monthly=100,
+            nonhomestead_annual_taxes=None,
         )
         expected = 2046.53 + 150.0 + 500.0 + 208.33 + 100.0
         assert round(result, 2) == round(expected, 2)
 
     def test_nonhomestead_taxes_override(self):
         result = compute_total_monthly_housing(
-            monthly_pi=2046.53, monthly_pmi=0,
-            annual_taxes=5000, insurance_annual=2500,
-            hoa_monthly=0, nonhomestead_annual_taxes=7000,
+            monthly_pi=2046.53,
+            monthly_pmi=0,
+            annual_taxes=5000,
+            insurance_annual=2500,
+            hoa_monthly=0,
+            nonhomestead_annual_taxes=7000,
         )
         expected = 2046.53 + 0 + 7000 / 12 + 2500 / 12 + 0
         assert round(result, 2) == round(expected, 2)
@@ -89,15 +94,21 @@ class TestTotalMonthlyHousing:
 class TestTotalCashInvested:
     def test_all_costs(self):
         result = compute_total_cash_invested(
-            down_payment_amt=100_000, closing_cost_amt=12_000,
-            renovation_cost=20_000, furniture_cost=15_000, other_upfront_costs=3_000,
+            down_payment_amt=100_000,
+            closing_cost_amt=12_000,
+            renovation_cost=20_000,
+            furniture_cost=15_000,
+            other_upfront_costs=3_000,
         )
         assert result == 150_000
 
     def test_with_origination_fee(self):
         result = compute_total_cash_invested(
-            down_payment_amt=100_000, closing_cost_amt=12_000,
-            renovation_cost=20_000, furniture_cost=15_000, other_upfront_costs=3_000,
+            down_payment_amt=100_000,
+            closing_cost_amt=12_000,
+            renovation_cost=20_000,
+            furniture_cost=15_000,
+            other_upfront_costs=3_000,
             origination_fee=6_000,
         )
         assert result == 156_000
@@ -118,7 +129,9 @@ class TestOriginationFee:
 
     def test_added_to_total_cash_invested(self):
         fee = compute_origination_fee(300_000, 2.0)
-        total = compute_total_cash_invested(100_000, 12_000, 0, 0, 0, origination_fee=fee)
+        total = compute_total_cash_invested(
+            100_000, 12_000, 0, 0, 0, origination_fee=fee
+        )
         assert total == 100_000 + 12_000 + 6_000
 
 
@@ -197,6 +210,10 @@ class TestAmortizationWithIO:
 
     def test_no_io_same_as_default(self):
         schedule_default = compute_amortization_schedule(300_000, 7.25, 30)
-        schedule_zero = compute_amortization_schedule(300_000, 7.25, 30, io_period_years=0)
+        schedule_zero = compute_amortization_schedule(
+            300_000, 7.25, 30, io_period_years=0
+        )
         assert len(schedule_default) == len(schedule_zero)
-        assert round(schedule_default[0]["principal"], 2) == round(schedule_zero[0]["principal"], 2)
+        assert round(schedule_default[0]["principal"], 2) == round(
+            schedule_zero[0]["principal"], 2
+        )

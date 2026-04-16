@@ -1,0 +1,14 @@
+#!/bin/sh
+
+cd backend || exit 1
+
+echo "Running ruff format --check..."
+uv run ruff format --check . || { echo "Formatting check failed."; exit 1; }
+
+echo "Running ruff check..."
+uv run ruff check . || { echo "Linting check failed."; exit 1; }
+
+echo "Running ty check..."
+uv run ty check || { echo "Type check failed."; exit 1; }
+
+echo "All pre-push checks passed."

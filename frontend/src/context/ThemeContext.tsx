@@ -1,16 +1,6 @@
-import { createContext, useContext, useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import type { ReactNode } from "react";
-
-interface ThemeContextType {
-  dark: boolean;
-  toggle: () => void;
-}
-
-const ThemeContext = createContext<ThemeContextType>({ dark: false, toggle: () => {} });
-
-export function useTheme() {
-  return useContext(ThemeContext);
-}
+import { ThemeContext } from "./themeContext";
 
 function getInitialTheme(): boolean {
   const stored = localStorage.getItem("theme");

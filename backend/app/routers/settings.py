@@ -11,7 +11,9 @@ CURRENT_USER_ID = "default"
 
 
 def get_or_create_settings(db: Session) -> UserSettings:
-    settings = db.query(UserSettings).filter(UserSettings.user_id == CURRENT_USER_ID).first()
+    settings = (
+        db.query(UserSettings).filter(UserSettings.user_id == CURRENT_USER_ID).first()
+    )
     if not settings:
         settings = UserSettings(user_id=CURRENT_USER_ID)
         db.add(settings)

@@ -7,18 +7,21 @@ class TestCreateProperty:
         assert "id" in data
 
     def test_create_full(self, client):
-        resp = client.post("/api/properties", json={
-            "name": "Mountain Cabin",
-            "address": "123 Mountain Rd",
-            "city": "Stowe",
-            "state": "VT",
-            "zip_code": "05672",
-            "listing_price": 425000,
-            "beds": 3,
-            "baths": 2.5,
-            "sqft": 1800,
-            "property_type": "single_family",
-        })
+        resp = client.post(
+            "/api/properties",
+            json={
+                "name": "Mountain Cabin",
+                "address": "123 Mountain Rd",
+                "city": "Stowe",
+                "state": "VT",
+                "zip_code": "05672",
+                "listing_price": 425000,
+                "beds": 3,
+                "baths": 2.5,
+                "sqft": 1800,
+                "property_type": "single_family",
+            },
+        )
         assert resp.status_code == 201
         data = resp.json()
         assert data["listing_price"] == 425000
@@ -62,7 +65,9 @@ class TestUpdateProperty:
     def test_update_fields(self, client):
         resp = client.post("/api/properties", json={"name": "Old Name"})
         pid = resp.json()["id"]
-        resp = client.put(f"/api/properties/{pid}", json={"name": "New Name", "beds": 4})
+        resp = client.put(
+            f"/api/properties/{pid}", json={"name": "New Name", "beds": 4}
+        )
         assert resp.status_code == 200
         assert resp.json()["name"] == "New Name"
         assert resp.json()["beds"] == 4
