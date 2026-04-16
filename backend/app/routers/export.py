@@ -22,7 +22,7 @@ def export_pdf(property_id: str, db: Session = Depends(get_db)):
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
-    safe_name = re.sub(r'[^\w\-]', '_', prop.name)
+    safe_name = re.sub(r"[^\w\-]", "_", prop.name)
     filename = f"{safe_name}_lender_packet.pdf"
 
     return Response(

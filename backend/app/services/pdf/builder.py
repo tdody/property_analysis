@@ -1,6 +1,5 @@
 """PDF builder for lender packets using fpdf2."""
 
-import io
 import tempfile
 from datetime import date
 from pathlib import Path
@@ -10,11 +9,13 @@ from fpdf import FPDF
 
 # Indigo-600 RGB
 ACCENT = (79, 70, 229)
-DARK = (30, 41, 59)       # slate-800
-MUTED = (100, 116, 139)   # slate-500
-LIGHT_BG = (248, 250, 252) # slate-50
+DARK = (30, 41, 59)  # slate-800
+MUTED = (100, 116, 139)  # slate-500
+LIGHT_BG = (248, 250, 252)  # slate-50
 
-LOGO_DIR = Path(__file__).resolve().parent.parent.parent.parent / "data" / "uploads" / "logos"
+LOGO_DIR = (
+    Path(__file__).resolve().parent.parent.parent.parent / "data" / "uploads" / "logos"
+)
 
 
 def _fmt_currency(val: float) -> str:
@@ -30,7 +31,9 @@ def _fmt_pct(val: float) -> str:
 class LenderPacketPDF(FPDF):
     """Custom FPDF subclass for generating professional lender packets."""
 
-    def __init__(self, company_name: str | None = None, logo_filename: str | None = None):
+    def __init__(
+        self, company_name: str | None = None, logo_filename: str | None = None
+    ):
         super().__init__()
         self.company_name = company_name
         self.logo_path: Path | None = None
@@ -92,7 +95,9 @@ class LenderPacketPDF(FPDF):
             self.cell(w, 6, label, border=0, fill=True, align=align)
         self.ln()
 
-    def _table_row(self, values: list[tuple[str, int]], bold: bool = False, align: str = "L"):
+    def _table_row(
+        self, values: list[tuple[str, int]], bold: bool = False, align: str = "L"
+    ):
         self.set_font("Helvetica", "B" if bold else "", 8)
         self.set_text_color(*DARK)
         for val, w in values:
@@ -125,10 +130,18 @@ class LenderPacketPDF(FPDF):
         # Title
         self.set_font("Helvetica", "B", 18)
         self.set_text_color(*DARK)
-        self.cell(0, 10, "Property Analysis - Lender Packet", new_x="LMARGIN", new_y="NEXT")
+        self.cell(
+            0, 10, "Property Analysis - Lender Packet", new_x="LMARGIN", new_y="NEXT"
+        )
         self.set_font("Helvetica", "", 10)
         self.set_text_color(*MUTED)
-        self.cell(0, 6, f"Generated {date.today().strftime('%B %d, %Y')}  |  Scenario: {scenario.name}", new_x="LMARGIN", new_y="NEXT")
+        self.cell(
+            0,
+            6,
+            f"Generated {date.today().strftime('%B %d, %Y')}  |  Scenario: {scenario.name}",
+            new_x="LMARGIN",
+            new_y="NEXT",
+        )
         self.ln(4)
 
     def add_property_summary(self, prop, scenario):
@@ -140,9 +153,17 @@ class LenderPacketPDF(FPDF):
             tmp_path = None
             try:
                 resp = httpx.get(prop.image_url, timeout=5, follow_redirects=True)
-                if resp.status_code == 200 and resp.headers.get("content-type", "").startswith("image"):
-                    suffix = ".jpg" if "jpeg" in resp.headers.get("content-type", "") else ".png"
-                    with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
+                if resp.status_code == 200 and resp.headers.get(
+                    "content-type", ""
+                ).startswith("image"):
+                    suffix = (
+                        ".jpg"
+                        if "jpeg" in resp.headers.get("content-type", "")
+                        else ".png"
+                    )
+                    with tempfile.NamedTemporaryFile(
+                        suffix=suffix, delete=False
+                    ) as tmp:
                         tmp.write(resp.content)
                         tmp_path = tmp.name
                     self.image(tmp_path, x=self.l_margin, w=60, h=40)
@@ -171,54 +192,117 @@ class LenderPacketPDF(FPDF):
         """Section 2: Financing terms."""
         self._section_title("2. Financing Terms")
         self._label_value_row("Loan Type", scenario.loan_type.upper())
-        self._label_value_row("Purchase Price", _fmt_currency(float(scenario.purchase_price)))
-        self._label_value_row("Down Payment", f"{_fmt_currency(float(scenario.down_payment_amt))} ({float(scenario.down_payment_pct):.0f}%)")
-        self._label_value_row("Loan Amount", _fmt_currency(mortgage_results.loan_amount))
+        self._label_value_row(
+            "Purchase Price", _fmt_currency(float(scenario.purchase_price))
+        )
+        self._label_value_row(
+            "Down Payment",
+            f"{_fmt_currency(float(scenario.down_payment_amt))} ({float(scenario.down_payment_pct):.0f}%)",
+        )
+        self._label_value_row(
+            "Loan Amount", _fmt_currency(mortgage_results.loan_amount)
+        )
         self._label_value_row("Interest Rate", f"{float(scenario.interest_rate):.2f}%")
         self._label_value_row("Loan Term", f"{scenario.loan_term_years} years")
         if scenario.io_period_years and scenario.io_period_years > 0:
-            self._label_value_row("Interest-Only Period", f"{scenario.io_period_years} years")
+            self._label_value_row(
+                "Interest-Only Period", f"{scenario.io_period_years} years"
+            )
         self._label_value_row("Monthly P&I", _fmt_currency(mortgage_results.monthly_pi))
-        self._label_value_row("Total Monthly Housing", _fmt_currency(mortgage_results.total_monthly_housing), bold_value=True)
-        self._label_value_row("Total Cash Invested", _fmt_currency(mortgage_results.total_cash_invested), bold_value=True)
+        self._label_value_row(
+            "Total Monthly Housing",
+            _fmt_currency(mortgage_results.total_monthly_housing),
+            bold_value=True,
+        )
+        self._label_value_row(
+            "Total Cash Invested",
+            _fmt_currency(mortgage_results.total_cash_invested),
+            bold_value=True,
+        )
 
         # Upfront cost breakdown
         if float(scenario.renovation_cost) > 0:
-            self._label_value_row("  Renovation Cost", _fmt_currency(float(scenario.renovation_cost)))
+            self._label_value_row(
+                "  Renovation Cost", _fmt_currency(float(scenario.renovation_cost))
+            )
         if float(scenario.furniture_cost) > 0:
-            self._label_value_row("  Furniture Cost", _fmt_currency(float(scenario.furniture_cost)))
+            self._label_value_row(
+                "  Furniture Cost", _fmt_currency(float(scenario.furniture_cost))
+            )
         if float(scenario.closing_cost_amt) > 0:
-            self._label_value_row("  Closing Costs", _fmt_currency(float(scenario.closing_cost_amt)))
+            self._label_value_row(
+                "  Closing Costs", _fmt_currency(float(scenario.closing_cost_amt))
+            )
         self.ln(4)
 
     def add_revenue_assumptions_str(self, revenue_results, assumptions):
         """Section 3: STR revenue assumptions."""
         self._section_title("3. Revenue Assumptions (STR)")
-        self._label_value_row("Avg Nightly Rate", _fmt_currency(float(assumptions.avg_nightly_rate)))
+        self._label_value_row(
+            "Avg Nightly Rate", _fmt_currency(float(assumptions.avg_nightly_rate))
+        )
         if assumptions.use_seasonal_occupancy:
             self._label_value_row("Occupancy Model", "Seasonal")
             self._label_value_row("  Peak Months", str(assumptions.peak_months))
-            self._label_value_row("  Peak Occupancy", _fmt_pct(float(assumptions.peak_occupancy_pct)))
-            self._label_value_row("  Off-Peak Occupancy", _fmt_pct(float(assumptions.off_peak_occupancy_pct)))
+            self._label_value_row(
+                "  Peak Occupancy", _fmt_pct(float(assumptions.peak_occupancy_pct))
+            )
+            self._label_value_row(
+                "  Off-Peak Occupancy",
+                _fmt_pct(float(assumptions.off_peak_occupancy_pct)),
+            )
         else:
-            self._label_value_row("Occupancy", _fmt_pct(float(assumptions.occupancy_pct)))
-        self._label_value_row("Cleaning Fee / Stay", _fmt_currency(float(assumptions.cleaning_fee_per_stay)))
-        self._label_value_row("Avg Stay Length", f"{float(assumptions.avg_stay_length_nights):.1f} nights")
-        self._label_value_row("Platform Fee", _fmt_pct(float(assumptions.platform_fee_pct)))
-        self._label_value_row("Gross Annual Revenue", _fmt_currency(revenue_results.gross_annual), bold_value=True)
-        self._label_value_row("Net Annual Revenue", _fmt_currency(revenue_results.net_annual), bold_value=True)
+            self._label_value_row(
+                "Occupancy", _fmt_pct(float(assumptions.occupancy_pct))
+            )
+        self._label_value_row(
+            "Cleaning Fee / Stay",
+            _fmt_currency(float(assumptions.cleaning_fee_per_stay)),
+        )
+        self._label_value_row(
+            "Avg Stay Length", f"{float(assumptions.avg_stay_length_nights):.1f} nights"
+        )
+        self._label_value_row(
+            "Platform Fee", _fmt_pct(float(assumptions.platform_fee_pct))
+        )
+        self._label_value_row(
+            "Gross Annual Revenue",
+            _fmt_currency(revenue_results.gross_annual),
+            bold_value=True,
+        )
+        self._label_value_row(
+            "Net Annual Revenue",
+            _fmt_currency(revenue_results.net_annual),
+            bold_value=True,
+        )
         self.ln(4)
 
     def add_revenue_assumptions_ltr(self, revenue_results, assumptions):
         """Section 3: LTR revenue assumptions."""
         self._section_title("3. Revenue Assumptions (LTR)")
-        self._label_value_row("Monthly Rent", _fmt_currency(float(assumptions.monthly_rent)))
+        self._label_value_row(
+            "Monthly Rent", _fmt_currency(float(assumptions.monthly_rent))
+        )
         if float(assumptions.pet_rent_monthly) > 0:
-            self._label_value_row("Pet Rent", f"{_fmt_currency(float(assumptions.pet_rent_monthly))}/mo")
-        self._label_value_row("Vacancy Rate", _fmt_pct(float(assumptions.vacancy_rate_pct)))
-        self._label_value_row("Lease Duration", f"{int(assumptions.lease_duration_months)} months")
-        self._label_value_row("Gross Annual Revenue", _fmt_currency(revenue_results["gross_annual"]), bold_value=True)
-        self._label_value_row("Effective Annual Revenue", _fmt_currency(revenue_results["effective_annual"]), bold_value=True)
+            self._label_value_row(
+                "Pet Rent", f"{_fmt_currency(float(assumptions.pet_rent_monthly))}/mo"
+            )
+        self._label_value_row(
+            "Vacancy Rate", _fmt_pct(float(assumptions.vacancy_rate_pct))
+        )
+        self._label_value_row(
+            "Lease Duration", f"{int(assumptions.lease_duration_months)} months"
+        )
+        self._label_value_row(
+            "Gross Annual Revenue",
+            _fmt_currency(revenue_results["gross_annual"]),
+            bold_value=True,
+        )
+        self._label_value_row(
+            "Effective Annual Revenue",
+            _fmt_currency(revenue_results["effective_annual"]),
+            bold_value=True,
+        )
         self.ln(4)
 
     def add_expense_breakdown_str(self, expense_results):
@@ -254,7 +338,13 @@ class LenderPacketPDF(FPDF):
         self.set_draw_color(*ACCENT)
         self.line(self.l_margin, self.get_y(), self.l_margin + sum(col_w), self.get_y())
         self.ln(1)
-        self._table_row([("Total Operating Expenses", col_w[0]), (_fmt_currency(expense_results.total_annual_operating), col_w[1])], bold=True)
+        self._table_row(
+            [
+                ("Total Operating Expenses", col_w[0]),
+                (_fmt_currency(expense_results.total_annual_operating), col_w[1]),
+            ],
+            bold=True,
+        )
         self.ln(4)
 
     def add_expense_breakdown_ltr(self, expense_results):
@@ -284,7 +374,13 @@ class LenderPacketPDF(FPDF):
         self.set_draw_color(*ACCENT)
         self.line(self.l_margin, self.get_y(), self.l_margin + sum(col_w), self.get_y())
         self.ln(1)
-        self._table_row([("Total Operating Expenses", col_w[0]), (_fmt_currency(expense_results["total_annual_operating"]), col_w[1])], bold=True)
+        self._table_row(
+            [
+                ("Total Operating Expenses", col_w[0]),
+                (_fmt_currency(expense_results["total_annual_operating"]), col_w[1]),
+            ],
+            bold=True,
+        )
         self.ln(4)
 
     def add_key_metrics(self, metrics, is_ltr: bool = False):
@@ -309,12 +405,21 @@ class LenderPacketPDF(FPDF):
         ]
 
         if is_ltr:
-            grid.append(("Break-Even Vacancy", _fmt_pct(_get("break_even_vacancy_pct", 0))))
+            grid.append(
+                ("Break-Even Vacancy", _fmt_pct(_get("break_even_vacancy_pct", 0)))
+            )
         else:
-            grid.append(("Break-Even Occupancy", _fmt_pct(_get("break_even_occupancy", 0))))
+            grid.append(
+                ("Break-Even Occupancy", _fmt_pct(_get("break_even_occupancy", 0)))
+            )
 
         # After-tax metrics
-        grid.append(("After-Tax Annual Cashflow", _fmt_currency(_get("after_tax_annual_cashflow", 0))))
+        grid.append(
+            (
+                "After-Tax Annual Cashflow",
+                _fmt_currency(_get("after_tax_annual_cashflow", 0)),
+            )
+        )
 
         # Render as 2-column grid
         col_w = 90
@@ -351,38 +456,46 @@ class LenderPacketPDF(FPDF):
         if not amortization:
             self.set_font("Helvetica", "I", 9)
             self.set_text_color(*MUTED)
-            self.cell(0, 5, "No amortization data available.", new_x="LMARGIN", new_y="NEXT")
+            self.cell(
+                0, 5, "No amortization data available.", new_x="LMARGIN", new_y="NEXT"
+            )
             self.ln(4)
             return
 
         col_w = [25, 40, 40, 55]
-        self._table_header([
-            ("Month", col_w[0]),
-            ("Principal", col_w[1]),
-            ("Interest", col_w[2]),
-            ("Remaining Balance", col_w[3]),
-        ])
+        self._table_header(
+            [
+                ("Month", col_w[0]),
+                ("Principal", col_w[1]),
+                ("Interest", col_w[2]),
+                ("Remaining Balance", col_w[3]),
+            ]
+        )
 
         # First 12 months
         for entry in amortization[:12]:
-            self._table_row([
-                (str(entry["month"]), col_w[0]),
-                (_fmt_currency(entry["principal"]), col_w[1]),
-                (_fmt_currency(entry["interest"]), col_w[2]),
-                (_fmt_currency(entry["remaining_balance"]), col_w[3]),
-            ])
+            self._table_row(
+                [
+                    (str(entry["month"]), col_w[0]),
+                    (_fmt_currency(entry["principal"]), col_w[1]),
+                    (_fmt_currency(entry["interest"]), col_w[2]),
+                    (_fmt_currency(entry["remaining_balance"]), col_w[3]),
+                ]
+            )
 
         # Year summaries (years 2-5)
         self.ln(2)
         self.set_font("Helvetica", "B", 8)
         self.set_text_color(*DARK)
         self.cell(0, 5, "Yearly Summary (Years 2-5)", new_x="LMARGIN", new_y="NEXT")
-        self._table_header([
-            ("Year", col_w[0]),
-            ("Principal", col_w[1]),
-            ("Interest", col_w[2]),
-            ("End Balance", col_w[3]),
-        ])
+        self._table_header(
+            [
+                ("Year", col_w[0]),
+                ("Principal", col_w[1]),
+                ("Interest", col_w[2]),
+                ("End Balance", col_w[3]),
+            ]
+        )
         for year in range(2, 6):
             start = (year - 1) * 12
             end = year * 12
@@ -392,12 +505,14 @@ class LenderPacketPDF(FPDF):
             principal = sum(e["principal"] for e in year_entries)
             interest = sum(e["interest"] for e in year_entries)
             end_balance = year_entries[-1]["remaining_balance"]
-            self._table_row([
-                (str(year), col_w[0]),
-                (_fmt_currency(principal), col_w[1]),
-                (_fmt_currency(interest), col_w[2]),
-                (_fmt_currency(end_balance), col_w[3]),
-            ])
+            self._table_row(
+                [
+                    (str(year), col_w[0]),
+                    (_fmt_currency(principal), col_w[1]),
+                    (_fmt_currency(interest), col_w[2]),
+                    (_fmt_currency(end_balance), col_w[3]),
+                ]
+            )
         self.ln(4)
 
     def add_projection_chart(self, png_bytes: bytes):
@@ -445,4 +560,7 @@ class LenderPacketPDF(FPDF):
     def generate(self) -> bytes:
         """Return the PDF as bytes."""
         self.alias_nb_pages()
-        return self.output()
+        output = self.output()
+        if output is None:
+            return b""
+        return bytes(output)

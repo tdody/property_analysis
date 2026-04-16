@@ -48,7 +48,9 @@ def update_settings(data: UserSettingsUpdate, db: Session = Depends(get_db)):
 def upload_logo(file: UploadFile, db: Session = Depends(get_db)):
     ext = Path(file.filename or "").suffix.lower()
     if ext not in ALLOWED_EXTENSIONS:
-        raise HTTPException(status_code=400, detail="Only PNG and JPEG files are allowed")
+        raise HTTPException(
+            status_code=400, detail="Only PNG and JPEG files are allowed"
+        )
 
     contents = file.file.read()
     if len(contents) > MAX_LOGO_SIZE:
@@ -56,9 +58,13 @@ def upload_logo(file: UploadFile, db: Session = Depends(get_db)):
 
     # Validate magic bytes
     if ext == ".png" and contents[:4] != b"\x89PNG":
-        raise HTTPException(status_code=400, detail="File does not appear to be a valid PNG")
+        raise HTTPException(
+            status_code=400, detail="File does not appear to be a valid PNG"
+        )
     if ext in (".jpg", ".jpeg") and contents[:2] != b"\xff\xd8":
-        raise HTTPException(status_code=400, detail="File does not appear to be a valid JPEG")
+        raise HTTPException(
+            status_code=400, detail="File does not appear to be a valid JPEG"
+        )
 
     os.makedirs(LOGO_DIR, exist_ok=True)
 
