@@ -8,8 +8,6 @@ from app.services.computation.mortgage import (
 from app.services.computation.revenue import (
     compute_gross_revenue,
     compute_net_revenue,
-    compute_occupied_nights,
-    compute_annual_turnovers,
 )
 from app.services.computation.expenses import compute_operating_expenses
 from app.services.computation.metrics import (
@@ -21,9 +19,8 @@ from app.services.computation.metrics import (
 )
 
 # Hardcoded defaults for quick test
-DEFAULTS = {
+DEFAULTS: dict[str, float] = {
     "loan_term_years": 30,
-    "loan_type": "conventional",
     "closing_cost_pct": 3.0,
     "annual_taxes_pct": 1.5,  # % of purchase price
     "insurance_annual": 2500,
@@ -44,6 +41,7 @@ DEFAULTS = {
     "ltr_maintenance_pct": 5.0,
     "ltr_capex_pct": 5.0,
 }
+DEFAULT_LOAN_TYPE: str = "conventional"
 
 
 def compute_quick_test(
@@ -58,29 +56,47 @@ def compute_quick_test(
     is_ltr = monthly_rent is not None
 
     if not is_str and not is_ltr:
-        raise ValueError("Provide nightly_rate + occupancy_pct (STR) or monthly_rent (LTR)")
+        raise ValueError(
+            "Provide nightly_rate + occupancy_pct (STR) or monthly_rent (LTR)"
+        )
 
     # Financing
     down_payment_amt = purchase_price * down_payment_pct / 100
     loan_amount = compute_loan_amount(purchase_price, down_payment_amt)
-    monthly_pi = compute_monthly_pi(loan_amount, interest_rate, DEFAULTS["loan_term_years"])
-    monthly_pmi = compute_pmi(loan_amount, DEFAULTS["loan_type"], down_payment_pct, None)
+    monthly_pi = compute_monthly_pi(
+        loan_amount, interest_rate, int(DEFAULTS["loan_term_years"])
+    )
+    monthly_pmi = compute_pmi(loan_amount, DEFAULT_LOAN_TYPE, down_payment_pct, None)
     annual_taxes = purchase_price * DEFAULTS["annual_taxes_pct"] / 100
     total_monthly_housing = compute_total_monthly_housing(
-        monthly_pi, monthly_pmi, annual_taxes,
-        DEFAULTS["insurance_annual"], DEFAULTS["hoa_monthly"], None,
+        monthly_pi,
+        monthly_pmi,
+        annual_taxes,
+        DEFAULTS["insurance_annual"],
+        DEFAULTS["hoa_monthly"],
+        None,
     )
     closing_cost_amt = purchase_price * DEFAULTS["closing_cost_pct"] / 100
     total_cash_invested = compute_total_cash_invested(
-        down_payment_amt, closing_cost_amt, 0, 0, 0,
+        down_payment_amt,
+        closing_cost_amt,
+        0,
+        0,
+        0,
     )
 
     if is_str:
+        assert nightly_rate is not None
+        assert occupancy_pct is not None
         gross = compute_gross_revenue(
-            nightly_rate, occupancy_pct,
-            DEFAULTS["cleaning_fee_per_stay"], DEFAULTS["avg_stay_length_nights"],
+            nightly_rate,
+            occupancy_pct,
+            DEFAULTS["cleaning_fee_per_stay"],
+            DEFAULTS["avg_stay_length_nights"],
         )
-        net = compute_net_revenue(gross["total_gross_revenue"], DEFAULTS["platform_fee_pct"])
+        net = compute_net_revenue(
+            gross["total_gross_revenue"], DEFAULTS["platform_fee_pct"]
+        )
         opex = compute_operating_expenses(
             annual_turnovers=gross["annual_turnovers"],
             cleaning_cost_per_turn=DEFAULTS["cleaning_cost_per_turn"],
@@ -100,6 +116,7 @@ def compute_quick_test(
         total_opex = opex["total_annual_operating_exp"]
         rental_type = "str"
     else:
+        assert monthly_rent is not None
         gross_annual = monthly_rent * 12
         vacancy_loss = gross_annual * DEFAULTS["ltr_vacancy_pct"] / 100
         net_annual = gross_annual - vacancy_loss

@@ -106,8 +106,15 @@ class TestQuickTestValidation:
             occupancy_pct=65,
         )
         expected_keys = {
-            "rental_type", "monthly_cashflow", "annual_cashflow",
-            "annual_coc", "cap_rate", "dscr", "noi",
-            "total_cash_invested", "monthly_housing_cost", "verdict",
+            "rental_type",
+            "monthly_cashflow",
+            "annual_cashflow",
+            "annual_coc",
+            "cap_rate",
+            "dscr",
+            "noi",
+            "total_cash_invested",
+            "monthly_housing_cost",
+            "verdict",
         }
         assert set(result.keys()) == expected_keys
