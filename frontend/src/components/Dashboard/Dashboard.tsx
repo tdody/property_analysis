@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { listProperties, createProperty, deleteProperty, scrapeProperty, updateProperty } from "../../api/client.ts";
 import type { PropertySummary } from "../../types/index.ts";
 import { PropertyCard } from "./PropertyCard.tsx";
+import { QuickTest } from "./QuickTest.tsx";
 import { ConfirmDialog } from "../shared/ConfirmDialog.tsx";
 
 function fmtCurrency(value: number): string {
@@ -27,6 +28,7 @@ export function Dashboard() {
   const [scrapeError, setScrapeError] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<"default" | "cashflow_desc" | "cashflow_asc" | "coc_desc" | "coc_asc">("default");
   const [portfolioFilter, setPortfolioFilter] = useState<"all" | "in" | "out">("all");
+  const [showQuickTest, setShowQuickTest] = useState(false);
 
   const fetchProperties = useCallback(async () => {
     try {
@@ -213,7 +215,13 @@ export function Dashboard() {
             </button>
           )}
           <button
-            onClick={() => setShowNewForm(true)}
+            onClick={() => { setShowQuickTest(true); setShowNewForm(false); }}
+            className="px-4 py-2 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors text-sm font-medium"
+          >
+            Quick Test
+          </button>
+          <button
+            onClick={() => { setShowNewForm(true); setShowQuickTest(false); }}
             className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-indigo-500 shadow-md shadow-indigo-200 dark:shadow-none text-white rounded-lg hover:from-indigo-700 hover:to-indigo-600 transition-colors text-sm font-medium"
           >
             + New Property
@@ -281,6 +289,10 @@ export function Dashboard() {
             </select>
           </div>
         </div>
+      )}
+
+      {showQuickTest && (
+        <QuickTest onClose={() => setShowQuickTest(false)} />
       )}
 
       {showNewForm && (
@@ -376,12 +388,20 @@ export function Dashboard() {
         <div className="text-center py-20 bg-white dark:bg-slate-800 rounded-2xl shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.03)]">
           <p className="text-slate-500 dark:text-slate-400 text-lg mb-2">No properties yet</p>
           <p className="text-slate-400 text-sm mb-6">Create your first property to get started</p>
-          <button
-            onClick={() => setShowNewForm(true)}
-            className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-indigo-500 shadow-md shadow-indigo-200 dark:shadow-none text-white rounded-lg hover:from-indigo-700 hover:to-indigo-600 transition-colors text-sm font-medium"
-          >
-            + New Property
-          </button>
+          <div className="flex gap-3 justify-center">
+            <button
+              onClick={() => setShowQuickTest(true)}
+              className="px-4 py-2 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors text-sm font-medium"
+            >
+              Quick Test
+            </button>
+            <button
+              onClick={() => setShowNewForm(true)}
+              className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-indigo-500 shadow-md shadow-indigo-200 dark:shadow-none text-white rounded-lg hover:from-indigo-700 hover:to-indigo-600 transition-colors text-sm font-medium"
+            >
+              + New Property
+            </button>
+          </div>
         </div>
       ) : displayedProperties.length === 0 ? (
         <div className="text-center py-12 bg-white dark:bg-slate-800 rounded-2xl shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.03)]">

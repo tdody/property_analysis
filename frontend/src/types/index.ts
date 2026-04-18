@@ -230,6 +230,29 @@ export interface ComparisonProperty {
   gross_yield: number;
 }
 
+export interface QuickTestRequest {
+  purchase_price: number;
+  down_payment_pct: number;
+  interest_rate: number;
+  loan_term_years?: 15 | 30;
+  nightly_rate?: number;
+  occupancy_pct?: number;
+  monthly_rent?: number;
+}
+
+export interface QuickTestResult {
+  rental_type: string;
+  monthly_cashflow: number;
+  annual_cashflow: number;
+  annual_coc: number;
+  cap_rate: number;
+  dscr: number;
+  noi: number;
+  total_cash_invested: number;
+  monthly_housing_cost: number;
+  verdict: 'strong' | 'moderate' | 'weak' | 'negative';
+}
+
 export interface LTRAssumptions {
   id: string;
   property_id: string;
