@@ -118,3 +118,77 @@ class TestQuickTestValidation:
             "verdict",
         }
         assert set(result.keys()) == expected_keys
+
+
+class TestQuickTestLoanTerm:
+    def test_15yr_term_higher_pi_than_30yr(self):
+        r30 = compute_quick_test(
+            purchase_price=400_000,
+            down_payment_pct=25.0,
+            interest_rate=7.0,
+            nightly_rate=200,
+            occupancy_pct=65,
+            loan_term_years=30,
+        )
+        r15 = compute_quick_test(
+            purchase_price=400_000,
+            down_payment_pct=25.0,
+            interest_rate=7.0,
+            nightly_rate=200,
+            occupancy_pct=65,
+            loan_term_years=15,
+        )
+        # Shorter term → higher monthly P&I → higher housing cost, lower cashflow
+        assert r15["monthly_housing_cost"] > r30["monthly_housing_cost"]
+        assert r15["monthly_cashflow"] < r30["monthly_cashflow"]
+
+    def test_default_term_is_30yr(self):
+        default = compute_quick_test(
+            purchase_price=400_000,
+            down_payment_pct=25.0,
+            interest_rate=7.0,
+            nightly_rate=200,
+            occupancy_pct=65,
+        )
+        explicit_30 = compute_quick_test(
+            purchase_price=400_000,
+            down_payment_pct=25.0,
+            interest_rate=7.0,
+            nightly_rate=200,
+            occupancy_pct=65,
+            loan_term_years=30,
+        )
+        assert default["monthly_housing_cost"] == explicit_30["monthly_housing_cost"]
+
+
+class TestQuickTestApiValidation:
+    def test_invalid_loan_term_rejected(self, client):
+        resp = client.post(
+            "/api/quick-test",
+            json={
+                "purchase_price": 400_000,
+                "down_payment_pct": 25,
+                "interest_rate": 7.0,
+                "loan_term_years": 20,
+                "monthly_rent": 2_500,
+            },
+        )
+        assert resp.status_code == 422
+
+    def test_15yr_term_affects_result(self, client):
+        base_payload = {
+            "purchase_price": 400_000,
+            "down_payment_pct": 25,
+            "interest_rate": 7.0,
+            "monthly_rent": 2_500,
+        }
+        resp_30 = client.post(
+            "/api/quick-test", json={**base_payload, "loan_term_years": 30}
+        )
+        resp_15 = client.post(
+            "/api/quick-test", json={**base_payload, "loan_term_years": 15}
+        )
+        assert resp_30.status_code == 200
+        assert resp_15.status_code == 200
+        # Shorter term → higher monthly P&I → worse cashflow
+        assert resp_15.json()["monthly_cashflow"] < resp_30.json()["monthly_cashflow"]

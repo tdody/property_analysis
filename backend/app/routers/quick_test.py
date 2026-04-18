@@ -10,6 +10,7 @@ class QuickTestRequest(BaseModel):
     purchase_price: float
     down_payment_pct: float = 25.0
     interest_rate: float = 7.0
+    loan_term_years: int = 30
     nightly_rate: float | None = None
     occupancy_pct: float | None = None
     monthly_rent: float | None = None
@@ -33,6 +34,13 @@ class QuickTestRequest(BaseModel):
     def interest_rate_in_range(cls, v: float) -> float:
         if v < 0 or v > 20:
             raise ValueError("interest_rate must be between 0 and 20")
+        return v
+
+    @field_validator("loan_term_years")
+    @classmethod
+    def loan_term_allowed(cls, v: int) -> int:
+        if v not in (15, 30):
+            raise ValueError("loan_term_years must be 15 or 30")
         return v
 
 
@@ -62,6 +70,7 @@ def quick_test(req: QuickTestRequest):
         purchase_price=req.purchase_price,
         down_payment_pct=req.down_payment_pct,
         interest_rate=req.interest_rate,
+        loan_term_years=req.loan_term_years,
         nightly_rate=req.nightly_rate,
         occupancy_pct=req.occupancy_pct,
         monthly_rent=req.monthly_rent,

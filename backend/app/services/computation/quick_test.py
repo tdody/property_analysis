@@ -20,7 +20,6 @@ from app.services.computation.metrics import (
 
 # Hardcoded defaults for quick test
 DEFAULTS: dict[str, float] = {
-    "loan_term_years": 30,
     "closing_cost_pct": 3.0,
     "annual_taxes_pct": 1.5,  # % of purchase price
     "insurance_annual": 2500,
@@ -51,6 +50,7 @@ def compute_quick_test(
     nightly_rate: float | None = None,
     occupancy_pct: float | None = None,
     monthly_rent: float | None = None,
+    loan_term_years: int = 30,
 ) -> dict:
     is_str = nightly_rate is not None and occupancy_pct is not None
     is_ltr = monthly_rent is not None
@@ -63,9 +63,7 @@ def compute_quick_test(
     # Financing
     down_payment_amt = purchase_price * down_payment_pct / 100
     loan_amount = compute_loan_amount(purchase_price, down_payment_amt)
-    monthly_pi = compute_monthly_pi(
-        loan_amount, interest_rate, int(DEFAULTS["loan_term_years"])
-    )
+    monthly_pi = compute_monthly_pi(loan_amount, interest_rate, loan_term_years)
     monthly_pmi = compute_pmi(loan_amount, DEFAULT_LOAN_TYPE, down_payment_pct, None)
     annual_taxes = purchase_price * DEFAULTS["annual_taxes_pct"] / 100
     total_monthly_housing = compute_total_monthly_housing(

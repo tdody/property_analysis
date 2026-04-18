@@ -234,6 +234,7 @@ export interface QuickTestRequest {
   purchase_price: number;
   down_payment_pct: number;
   interest_rate: number;
+  loan_term_years?: 15 | 30;
   nightly_rate?: number;
   occupancy_pct?: number;
   monthly_rent?: number;

@@ -26,6 +26,7 @@ export function QuickTest({ onClose }: QuickTestProps) {
   const [purchasePrice, setPurchasePrice] = useState("");
   const [downPaymentPct, setDownPaymentPct] = useState("25");
   const [interestRate, setInterestRate] = useState("7.0");
+  const [loanTermYears, setLoanTermYears] = useState<15 | 30>(30);
   const [nightlyRate, setNightlyRate] = useState("");
   const [occupancyPct, setOccupancyPct] = useState("65");
   const [monthlyRent, setMonthlyRent] = useState("");
@@ -46,6 +47,7 @@ export function QuickTest({ onClose }: QuickTestProps) {
         purchase_price: parseFloat(purchasePrice),
         down_payment_pct: parseFloat(downPaymentPct) || 25,
         interest_rate: parseFloat(interestRate) || 7,
+        loan_term_years: loanTermYears,
         ...(mode === "str"
           ? { nightly_rate: parseFloat(nightlyRate), occupancy_pct: parseFloat(occupancyPct) || 65 }
           : { monthly_rent: parseFloat(monthlyRent) }),
@@ -56,7 +58,7 @@ export function QuickTest({ onClose }: QuickTestProps) {
     } finally {
       setLoading(false);
     }
-  }, [purchasePrice, downPaymentPct, interestRate, nightlyRate, occupancyPct, monthlyRent, mode]);
+  }, [purchasePrice, downPaymentPct, interestRate, loanTermYears, nightlyRate, occupancyPct, monthlyRent, mode]);
 
   const handleFullAnalysis = useCallback(async () => {
     try {
@@ -85,7 +87,7 @@ export function QuickTest({ onClose }: QuickTestProps) {
         down_payment_pct: parseFloat(downPaymentPct) || 25,
         down_payment_amt: price * (parseFloat(downPaymentPct) || 25) / 100,
         interest_rate: parseFloat(interestRate) || 7,
-        loan_term_years: 30,
+        loan_term_years: loanTermYears,
         closing_cost_pct: 3,
         closing_cost_amt: price * 0.03,
         renovation_cost: 0,
@@ -102,7 +104,7 @@ export function QuickTest({ onClose }: QuickTestProps) {
     } finally {
       setCreatingFull(false);
     }
-  }, [purchasePrice, downPaymentPct, interestRate, mode, navigate]);
+  }, [purchasePrice, downPaymentPct, interestRate, loanTermYears, mode, navigate]);
 
   const verdict = result ? VERDICT_STYLES[result.verdict] : null;
 
@@ -120,21 +122,39 @@ export function QuickTest({ onClose }: QuickTestProps) {
         </button>
       </div>
 
-      {/* STR / LTR toggle */}
-      <div className="bg-slate-100 dark:bg-slate-700 rounded-xl p-1 inline-flex gap-1 mb-4">
-        {(["str", "ltr"] as const).map((m) => (
-          <button
-            key={m}
-            onClick={() => { setMode(m); setResult(null); }}
-            className={`px-4 py-1.5 text-sm font-medium rounded-lg transition-colors ${
-              mode === m
-                ? "bg-white dark:bg-slate-600 shadow-sm text-slate-900 dark:text-slate-100 font-semibold"
-                : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
-            }`}
-          >
-            {m.toUpperCase()}
-          </button>
-        ))}
+      {/* STR / LTR + loan term toggles */}
+      <div className="flex flex-wrap items-center gap-3 mb-4">
+        <div className="bg-slate-100 dark:bg-slate-700 rounded-xl p-1 inline-flex gap-1">
+          {(["str", "ltr"] as const).map((m) => (
+            <button
+              key={m}
+              onClick={() => { setMode(m); setResult(null); }}
+              className={`px-4 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                mode === m
+                  ? "bg-white dark:bg-slate-600 shadow-sm text-slate-900 dark:text-slate-100 font-semibold"
+                  : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+              }`}
+            >
+              {m.toUpperCase()}
+            </button>
+          ))}
+        </div>
+
+        <div className="bg-slate-100 dark:bg-slate-700 rounded-xl p-1 inline-flex gap-1">
+          {([30, 15] as const).map((yrs) => (
+            <button
+              key={yrs}
+              onClick={() => { setLoanTermYears(yrs); setResult(null); }}
+              className={`px-4 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                loanTermYears === yrs
+                  ? "bg-white dark:bg-slate-600 shadow-sm text-slate-900 dark:text-slate-100 font-semibold"
+                  : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+              }`}
+            >
+              {yrs} yr
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-4">
