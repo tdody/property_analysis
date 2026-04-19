@@ -1,9 +1,11 @@
-import { useState, useCallback } from "react";
+import { useCallback, useState } from "react";
 import type { Property } from "../../types/index.ts";
+import { FormSection } from "../shared/FormSection.tsx";
+import { Field } from "../shared/Field.tsx";
+import type { FieldTag } from "../shared/Field.tsx";
 import { CurrencyInput } from "../shared/CurrencyInput.tsx";
-import type { FieldTag } from "../shared/CurrencyInput.tsx";
 import { PercentInput } from "../shared/PercentInput.tsx";
-import { TooltipIcon } from "../shared/TooltipIcon.tsx";
+import { Toggle } from "../shared/Toggle.tsx";
 
 interface PropertyInfoTabProps {
   property: Property;
@@ -21,14 +23,30 @@ const TOOLTIPS = {
   listing_price:
     "The asking price from the listing. Your purchase price (set in Financing) may differ based on your offer.",
   estimated_value:
-    "Zestimate or Redfin estimate. Useful as a sanity check against asking price, but don't rely on it -- these estimates can be off by 5-15%.",
+    "Zestimate or Redfin estimate. Useful as a sanity check against asking price, but don't rely on it — these estimates can be off by 5-15%.",
   annual_taxes:
     "This is almost certainly the homestead rate. Investment/STR properties in Vermont are taxed at the higher nonhomestead rate. See the Non-Homestead Taxes field below.",
   nonhomestead_annual_taxes:
     "The actual annual tax you'll pay as a non-owner-occupant. Look up your town's nonhomestead education tax rate on the VT Dept of Taxes website, or call the town assessor. Typically 15-40% higher than the homestead amount shown on listings.",
   hoa_monthly:
-    "Monthly HOA or condo association fee. Common for condos and townhouses. Verify whether the HOA allows short-term rentals -- many don't.",
+    "Monthly HOA or condo association fee. Common for condos and townhouses. Verify whether the HOA allows short-term rentals — many don't.",
 };
+
+const IMPORT_STATUS_FIELDS: Array<{ key: string; label: string }> = [
+  { key: "address", label: "Address" },
+  { key: "city", label: "City" },
+  { key: "state", label: "State" },
+  { key: "zip_code", label: "Zip" },
+  { key: "beds", label: "Beds" },
+  { key: "baths", label: "Baths" },
+  { key: "sqft", label: "Sqft" },
+  { key: "lot_sqft", label: "Lot sqft" },
+  { key: "year_built", label: "Year built" },
+  { key: "listing_price", label: "Listing price" },
+  { key: "estimated_value", label: "Estimated value" },
+  { key: "annual_taxes", label: "Annual taxes" },
+  { key: "hoa_monthly", label: "HOA" },
+];
 
 function getFieldTag(
   field: string,
@@ -41,52 +59,41 @@ function getFieldTag(
   return "redfin-edited";
 }
 
+function statusLabel(tag: FieldTag): { text: string; className: string } {
+  switch (tag) {
+    case "redfin":
+      return { text: "Redfin", className: "text-accent" };
+    case "redfin-edited":
+      return { text: "Edited", className: "text-ink-2" };
+    case "missing":
+      return { text: "Manual", className: "text-warn" };
+    default:
+      return { text: "—", className: "text-ink-3" };
+  }
+}
+
 export function PropertyInfoTab({ property, onUpdate }: PropertyInfoTabProps) {
   const [form, setForm] = useState<Property>({ ...property });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [bannerDismissed, setBannerDismissed] = useState(false);
+  const [taxBannerDismissed, setTaxBannerDismissed] = useState(false);
 
   const snapshot = property.scraped_snapshot;
-  const isScraped = snapshot !== null && snapshot !== undefined;
 
-  const tag = (field: string) => getFieldTag(field, form[field as keyof Property] as string | number | boolean | null | undefined, snapshot);
+  const tag = (field: string): FieldTag =>
+    getFieldTag(
+      field,
+      form[field as keyof Property] as string | number | boolean | null | undefined,
+      snapshot
+    );
 
-  const fieldClass = (field: string) => {
-    const t = tag(field);
-    return `w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-slate-700 dark:text-slate-100 ${
-      t === "missing" ? "border-amber-300 dark:border-amber-500" : "border-slate-200 dark:border-slate-600"
-    }`;
-  };
-
-  const RedfinBadge = ({ field }: { field: string }) => {
-    const t = tag(field);
-    if (t === "redfin") {
-      return (
-        <span className="ml-1.5 text-[10px] bg-indigo-50 dark:bg-indigo-900/30 text-indigo-500 dark:text-indigo-400 px-1.5 py-0.5 rounded font-medium">
-          Redfin
-        </span>
-      );
-    }
-    if (t === "redfin-edited") {
-      return (
-        <span className="ml-1.5 text-[10px] bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 px-1.5 py-0.5 rounded font-medium">
-          Redfin (edited)
-        </span>
-      );
-    }
-    return null;
-  };
-
-  const MissingHelper = ({ field }: { field: string }) =>
-    tag(field) === "missing" ? (
-      <p className="text-xs text-amber-500 mt-1">Not found — enter manually</p>
-    ) : null;
-
-  const updateField = useCallback(<K extends keyof Property>(key: K, value: Property[K]) => {
-    setForm((prev) => ({ ...prev, [key]: value }));
-    setSaved(false);
-  }, []);
+  const updateField = useCallback(
+    <K extends keyof Property>(key: K, value: Property[K]) => {
+      setForm((prev) => ({ ...prev, [key]: value }));
+      setSaved(false);
+    },
+    []
+  );
 
   const handleSave = useCallback(async () => {
     try {
@@ -101,184 +108,149 @@ export function PropertyInfoTab({ property, onUpdate }: PropertyInfoTabProps) {
     }
   }, [form, onUpdate]);
 
+  const showTaxWarning =
+    form.is_homestead_tax &&
+    !form.nonhomestead_annual_taxes &&
+    !taxBannerDismissed;
+
   return (
-    <div className="space-y-8">
-      {/* Redfin scrape info banner */}
-      {isScraped && !bannerDismissed && (
-        <div className="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-xl p-4">
-          <div className="flex items-start justify-between gap-2">
-            <div className="flex items-start gap-2">
-              <span className="text-indigo-500 text-lg leading-none mt-0.5">ℹ</span>
-              <p className="text-sm text-indigo-800 dark:text-indigo-300 font-medium">
-                Property data populated from Redfin — review highlighted fields below
-              </p>
+    <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] gap-10">
+      {/* Main column */}
+      <div className="space-y-10 min-w-0">
+        {showTaxWarning && (
+          <div className="border border-warn bg-warn-soft rounded p-4 flex items-start justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <span className="text-warn text-lg leading-none mt-0.5" aria-hidden>
+                !
+              </span>
+              <div>
+                <p className="caps text-warn mb-1">Tax warning</p>
+                <p className="text-[13px] text-ink-2 leading-snug">
+                  Listing taxes are likely at the homestead rate. STR investment
+                  properties in Vermont are taxed at the higher nonhomestead
+                  rate. Enter the actual nonhomestead amount below, or look it
+                  up on the{" "}
+                  <a
+                    href="https://tax.vermont.gov/property/tax-rates"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-accent underline"
+                  >
+                    VT Dept of Taxes
+                  </a>
+                  .
+                </p>
+              </div>
             </div>
             <button
-              onClick={() => setBannerDismissed(true)}
-              className="text-indigo-400 hover:text-indigo-600 dark:hover:text-indigo-300 transition-colors flex-shrink-0 text-lg leading-none"
-              aria-label="Dismiss"
+              type="button"
+              onClick={() => setTaxBannerDismissed(true)}
+              className="text-ink-3 hover:text-ink text-lg leading-none shrink-0"
+              aria-label="Dismiss tax warning"
             >
               ×
             </button>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Non-homestead tax warning */}
-      {form.is_homestead_tax && !form.nonhomestead_annual_taxes && (
-        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-700 rounded-xl p-4">
-          <div className="flex items-start gap-2">
-            <span className="text-amber-600 dark:text-amber-400 text-lg">!</span>
-            <div>
-              <p className="font-medium text-amber-800 dark:text-amber-300">
-                Tax Warning: Listing taxes are likely at the homestead rate
-              </p>
-              <p className="text-sm text-amber-700 dark:text-amber-400 mt-1">
-                STR investment properties in Vermont are taxed at the higher nonhomestead rate.
-                The taxes shown on the listing are almost always the homestead rate.
-                Enter the actual nonhomestead tax amount below, or look it up on the{" "}
-                <a
-                  href="https://tax.vermont.gov/property/tax-rates"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="underline font-medium"
-                >
-                  VT Dept of Taxes website
-                </a>
-                .
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
+        <FormSection
+          title="Location"
+          subtitle="Street address and jurisdiction."
+        >
+          <Field
+            label="Address"
+            type="text"
+            value={form.address}
+            onChange={(e) => updateField("address", e.target.value)}
+            tag={tag("address")}
+          />
+          <Field
+            label="City"
+            type="text"
+            value={form.city}
+            onChange={(e) => updateField("city", e.target.value)}
+            tag={tag("city")}
+          />
+          <Field
+            label="State"
+            type="text"
+            value={form.state}
+            maxLength={2}
+            onChange={(e) => updateField("state", e.target.value)}
+            tag={tag("state")}
+          />
+          <Field
+            label="Zip Code"
+            type="text"
+            value={form.zip_code}
+            onChange={(e) => updateField("zip_code", e.target.value)}
+            tag={tag("zip_code")}
+          />
+        </FormSection>
 
-      {/* Location */}
-      <section className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm dark:shadow-slate-900/20 p-6">
-        <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100 mb-4">Location</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <FormSection
+          title="Details"
+          subtitle="Size and build."
+          contentClassName="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-5"
+        >
+          <Field
+            label="Bedrooms"
+            type="number"
+            value={form.beds || ""}
+            onChange={(e) =>
+              updateField("beds", parseInt(e.target.value) || 0)
+            }
+            tag={tag("beds")}
+          />
+          <Field
+            label="Bathrooms"
+            type="number"
+            step="0.5"
+            value={form.baths || ""}
+            onChange={(e) =>
+              updateField("baths", parseFloat(e.target.value) || 0)
+            }
+            tag={tag("baths")}
+          />
+          <Field
+            label="Sqft"
+            type="number"
+            value={form.sqft || ""}
+            onChange={(e) =>
+              updateField("sqft", parseInt(e.target.value) || 0)
+            }
+            tag={tag("sqft")}
+          />
+          <Field
+            label="Lot Sqft"
+            type="number"
+            value={form.lot_sqft ?? ""}
+            onChange={(e) =>
+              updateField(
+                "lot_sqft",
+                e.target.value ? parseInt(e.target.value) : null
+              )
+            }
+            tag={tag("lot_sqft")}
+          />
+          <Field
+            label="Year Built"
+            type="number"
+            value={form.year_built ?? ""}
+            onChange={(e) =>
+              updateField(
+                "year_built",
+                e.target.value ? parseInt(e.target.value) : null
+              )
+            }
+            tag={tag("year_built")}
+          />
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-              Address<RedfinBadge field="address" />
-            </label>
-            <input
-              type="text"
-              value={form.address}
-              onChange={(e) => updateField("address", e.target.value)}
-              className={fieldClass("address")}
-            />
-            <MissingHelper field="address" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-              City<RedfinBadge field="city" />
-            </label>
-            <input
-              type="text"
-              value={form.city}
-              onChange={(e) => updateField("city", e.target.value)}
-              className={fieldClass("city")}
-            />
-            <MissingHelper field="city" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-              State<RedfinBadge field="state" />
-            </label>
-            <input
-              type="text"
-              value={form.state}
-              onChange={(e) => updateField("state", e.target.value)}
-              maxLength={2}
-              className={fieldClass("state")}
-            />
-            <MissingHelper field="state" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-              Zip Code<RedfinBadge field="zip_code" />
-            </label>
-            <input
-              type="text"
-              value={form.zip_code}
-              onChange={(e) => updateField("zip_code", e.target.value)}
-              className={fieldClass("zip_code")}
-            />
-            <MissingHelper field="zip_code" />
-          </div>
-        </div>
-      </section>
-
-      {/* Details */}
-      <section className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm dark:shadow-slate-900/20 p-6">
-        <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100 mb-4">Details</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-              Bedrooms<RedfinBadge field="beds" />
-            </label>
-            <input
-              type="number"
-              value={form.beds || ""}
-              onChange={(e) => updateField("beds", parseInt(e.target.value) || 0)}
-              className={fieldClass("beds")}
-            />
-            <MissingHelper field="beds" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-              Bathrooms<RedfinBadge field="baths" />
-            </label>
-            <input
-              type="number"
-              step="0.5"
-              value={form.baths || ""}
-              onChange={(e) => updateField("baths", parseFloat(e.target.value) || 0)}
-              className={fieldClass("baths")}
-            />
-            <MissingHelper field="baths" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-              Sqft<RedfinBadge field="sqft" />
-            </label>
-            <input
-              type="number"
-              value={form.sqft || ""}
-              onChange={(e) => updateField("sqft", parseInt(e.target.value) || 0)}
-              className={fieldClass("sqft")}
-            />
-            <MissingHelper field="sqft" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-              Lot Sqft<RedfinBadge field="lot_sqft" />
-            </label>
-            <input
-              type="number"
-              value={form.lot_sqft ?? ""}
-              onChange={(e) => updateField("lot_sqft", e.target.value ? parseInt(e.target.value) : null)}
-              className={fieldClass("lot_sqft")}
-            />
-            <MissingHelper field="lot_sqft" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-              Year Built<RedfinBadge field="year_built" />
-            </label>
-            <input
-              type="number"
-              value={form.year_built ?? ""}
-              onChange={(e) => updateField("year_built", e.target.value ? parseInt(e.target.value) : null)}
-              className={fieldClass("year_built")}
-            />
-            <MissingHelper field="year_built" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Property Type</label>
+            <label className="field-label">Property Type</label>
             <select
               value={form.property_type}
               onChange={(e) => updateField("property_type", e.target.value)}
-              className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-slate-700 dark:text-slate-100"
+              className="field cursor-pointer"
             >
               {PROPERTY_TYPES.map((pt) => (
                 <option key={pt.value} value={pt.value}>
@@ -287,13 +259,9 @@ export function PropertyInfoTab({ property, onUpdate }: PropertyInfoTabProps) {
               ))}
             </select>
           </div>
-        </div>
-      </section>
+        </FormSection>
 
-      {/* Financials */}
-      <section className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm dark:shadow-slate-900/20 p-6">
-        <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100 mb-4">Financials</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <FormSection title="Financials" subtitle="Price, taxes, carrying costs.">
           <CurrencyInput
             label="Listing Price"
             value={form.listing_price}
@@ -318,25 +286,23 @@ export function PropertyInfoTab({ property, onUpdate }: PropertyInfoTabProps) {
           <CurrencyInput
             label="Non-Homestead Annual Taxes"
             value={form.nonhomestead_annual_taxes ?? 0}
-            onChange={(v) => updateField("nonhomestead_annual_taxes", v || null)}
+            onChange={(v) =>
+              updateField("nonhomestead_annual_taxes", v || null)
+            }
             tooltip={TOOLTIPS.nonhomestead_annual_taxes}
           />
-          <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-              Is Homestead Tax
-              <TooltipIcon text="If checked, the listing taxes shown are at the homestead rate. STR properties pay the higher nonhomestead rate." />
-            </label>
-            <div className="flex items-center mt-2">
-              <input
-                type="checkbox"
-                checked={form.is_homestead_tax}
-                onChange={(e) => updateField("is_homestead_tax", e.target.checked)}
-                className="h-4 w-4 text-indigo-600 rounded border-slate-300 dark:border-slate-600"
-              />
-              <span className="ml-2 text-sm text-slate-600 dark:text-slate-400">
-                Listing taxes are at homestead rate
-              </span>
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <label className="field-label">Listing at Homestead Rate</label>
+              <p className="text-[12px] text-ink-3 mt-1 leading-snug">
+                STR properties pay the higher nonhomestead rate.
+              </p>
             </div>
+            <Toggle
+              value={form.is_homestead_tax}
+              onChange={(v) => updateField("is_homestead_tax", v)}
+              label="Listing at homestead rate"
+            />
           </div>
           <PercentInput
             label="Tax Rate"
@@ -351,42 +317,107 @@ export function PropertyInfoTab({ property, onUpdate }: PropertyInfoTabProps) {
             tooltip={TOOLTIPS.hoa_monthly}
             tag={tag("hoa_monthly")}
           />
-          <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Source URL</label>
-            <input
-              type="url"
-              value={form.source_url ?? ""}
-              onChange={(e) => updateField("source_url", e.target.value || null)}
-              placeholder="https://www.zillow.com/..."
-              className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-slate-700 dark:text-slate-100"
-            />
-          </div>
-        </div>
-      </section>
+          <Field
+            label="Source URL"
+            type="url"
+            value={form.source_url ?? ""}
+            placeholder="https://www.redfin.com/…"
+            onChange={(e) =>
+              updateField("source_url", e.target.value || null)
+            }
+          />
+        </FormSection>
 
-      {/* Notes */}
-      <section className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm dark:shadow-slate-900/20 p-6">
-        <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100 mb-4">Notes</h3>
-        <textarea
-          value={form.notes}
-          onChange={(e) => updateField("notes", e.target.value)}
-          rows={4}
-          className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-slate-700 dark:text-slate-100"
-          placeholder="Free-form notes about this property..."
-        />
-      </section>
-
-      {/* Save */}
-      <div className="flex items-center gap-4 pt-4 border-t border-slate-100 dark:border-slate-700">
-        <button
-          onClick={() => void handleSave()}
-          disabled={saving}
-          className="px-6 py-2 bg-gradient-to-r from-indigo-600 to-indigo-500 shadow-md shadow-indigo-200 text-white rounded-lg hover:from-indigo-700 hover:to-indigo-600 disabled:opacity-50 transition-colors font-medium"
+        <FormSection
+          title="Notes"
+          subtitle="Free-form notes about this property."
+          contentClassName=""
         >
-          {saving ? "Saving..." : "Save Changes"}
-        </button>
-        {saved && <span className="text-emerald-600 text-sm font-medium">Saved successfully</span>}
+          <textarea
+            value={form.notes}
+            onChange={(e) => updateField("notes", e.target.value)}
+            rows={5}
+            className="field resize-y"
+            placeholder="Anything worth remembering for this deal…"
+          />
+        </FormSection>
+
+        <div className="flex items-center gap-4 pt-2">
+          <button
+            type="button"
+            onClick={() => void handleSave()}
+            disabled={saving}
+            className="caps px-5 py-2 bg-ink text-canvas rounded hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
+          >
+            {saving ? "Saving…" : "Save changes"}
+          </button>
+          {saved && (
+            <span className="caps text-accent">Saved</span>
+          )}
+        </div>
       </div>
+
+      {/* Aside */}
+      <aside className="space-y-6 lg:sticky lg:top-4 lg:self-start">
+        <div className="border border-rule-strong rounded p-5">
+          <h4 className="caps mb-3">Import status</h4>
+          {snapshot ? (
+            <ul className="space-y-2 text-[13px]">
+              {IMPORT_STATUS_FIELDS.map(({ key, label }) => {
+                const t = tag(key);
+                const { text, className } = statusLabel(t);
+                return (
+                  <li
+                    key={key}
+                    className="flex items-center justify-between gap-2"
+                  >
+                    <span className="text-ink">{label}</span>
+                    <span className={`font-mono text-[12px] ${className}`}>
+                      {text}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <p className="text-[13px] text-ink-3 leading-snug">
+              No import data — all fields were entered manually.
+            </p>
+          )}
+        </div>
+
+        <div className="border border-rule-strong rounded p-5">
+          <h4 className="caps mb-3">Shortcuts</h4>
+          <ul className="space-y-2 text-[13px]">
+            <li>
+              <a
+                href="https://tax.vermont.gov/property/tax-rates"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-accent hover:underline"
+              >
+                VT tax rates ↗
+              </a>
+            </li>
+            {form.source_url && (
+              <li>
+                <a
+                  href={form.source_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-accent hover:underline truncate block"
+                >
+                  Listing source ↗
+                </a>
+              </li>
+            )}
+            <li className="text-ink-3">
+              Fields with a <span className="text-accent">Redfin</span> tag came
+              from the import. Edits are marked <em>Redfin (edited)</em>.
+            </li>
+          </ul>
+        </div>
+      </aside>
     </div>
   );
 }
