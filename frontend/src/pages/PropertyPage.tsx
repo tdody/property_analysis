@@ -42,7 +42,7 @@ function PropertyPageInner({ id }: { id: string }) {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="text-gray-500 text-lg">Loading property...</div>
+        <div className="text-ink-3 text-[14px]">Loading property…</div>
       </div>
     );
   }
@@ -50,7 +50,7 @@ function PropertyPageInner({ id }: { id: string }) {
   if (error || !property) {
     return (
       <div className="text-center py-20">
-        <p className="text-red-600 mb-4">{error || "Property not found"}</p>
+        <p className="text-negative mb-4">{error || "Property not found"}</p>
       </div>
     );
   }
