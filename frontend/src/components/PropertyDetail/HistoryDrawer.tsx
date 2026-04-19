@@ -25,10 +25,18 @@ function formatValue(value: unknown, format: string): string {
   if (format === "currency") return `$${Number(value).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
   if (format === "percent") return `${Number(value).toFixed(2)}%`;
   if (format === "number") return String(value);
+  if (format === "profile" && Array.isArray(value)) {
+    const rates = value.map((e) => Number((e as { nightly_rate?: number }).nightly_rate ?? 0));
+    const occs = value.map((e) => Number((e as { occupancy_pct?: number }).occupancy_pct ?? 0));
+    const avgRate = rates.reduce((a, b) => a + b, 0) / (rates.length || 1);
+    const avgOcc = occs.reduce((a, b) => a + b, 0) / (occs.length || 1);
+    return `${value.length}mo · avg $${avgRate.toFixed(0)} @ ${avgOcc.toFixed(0)}%`;
+  }
   return String(value);
 }
 
 function formatDelta(oldVal: unknown, newVal: unknown, format: string, direction: string | null): string {
+  if (format === "profile") return "—";
   if (direction === null || oldVal === null || newVal === null) return "—";
   const diff = Math.abs(Number(newVal) - Number(oldVal));
   const arrow = direction === "increased" ? "▲" : "▼";

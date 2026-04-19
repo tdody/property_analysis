@@ -149,6 +149,30 @@ FIELD_REGISTRY: dict[str, tuple[str, str, str]] = {
     "assumptions.revenue_growth_pct": ("Revenue Growth %", "Expenses", "percent"),
     "assumptions.expense_growth_pct": ("Expense Growth %", "Expenses", "percent"),
     "assumptions.marginal_tax_rate_pct": ("Marginal Tax Rate %", "Expenses", "percent"),
+    # Exit & Sale (STR)
+    "assumptions.hold_period_years": ("Hold Period (years)", "Exit & Sale", "number"),
+    "assumptions.selling_cost_pct": ("Selling Cost %", "Exit & Sale", "percent"),
+    "assumptions.capital_gains_rate_pct": (
+        "Capital Gains Rate %",
+        "Exit & Sale",
+        "percent",
+    ),
+    "assumptions.depreciation_recapture_rate_pct": (
+        "Depreciation Recapture Rate %",
+        "Exit & Sale",
+        "percent",
+    ),
+    # Monthly Revenue Profile (STR)
+    "assumptions.profile_template_name": (
+        "Revenue Profile Template",
+        "Revenue & Occupancy",
+        "text",
+    ),
+    "assumptions.monthly_revenue_profile": (
+        "12-Month Revenue Profile",
+        "Revenue & Occupancy",
+        "profile",
+    ),
     # Computed Metrics (flat key metrics from results)
     "results.metrics.monthly_cashflow": ("Monthly Cashflow", "Metrics", "currency"),
     "results.metrics.annual_cashflow": ("Annual Cashflow", "Metrics", "currency"),
