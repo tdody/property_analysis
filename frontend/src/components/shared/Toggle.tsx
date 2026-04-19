@@ -27,7 +27,7 @@ export function Toggle({
     >
       <span
         className={`block w-5 h-5 rounded-full bg-canvas transition-transform ${
-          value ? "translate-x-[22px]" : ""
+          value ? "translate-x-5" : ""
         }`}
       />
     </button>
