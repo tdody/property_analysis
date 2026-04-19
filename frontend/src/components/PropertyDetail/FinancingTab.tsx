@@ -4,6 +4,7 @@ import { ScenarioCard } from "./ScenarioCard.tsx";
 import { ConfirmDialog } from "../shared/ConfirmDialog.tsx";
 
 interface FinancingTabProps {
+  propertyId: string;
   scenarios: MortgageScenario[];
   listingPrice: number;
   onCreateScenario: (data: Partial<MortgageScenario>) => Promise<MortgageScenario>;
@@ -11,9 +12,11 @@ interface FinancingTabProps {
   onDeleteScenario: (id: string) => Promise<void>;
   onDuplicateScenario: (id: string) => Promise<MortgageScenario>;
   onActivateScenario: (id: string) => Promise<void>;
+  onRestored?: () => void;
 }
 
 export function FinancingTab({
+  propertyId,
   scenarios,
   listingPrice,
   onCreateScenario,
@@ -21,6 +24,7 @@ export function FinancingTab({
   onDeleteScenario,
   onDuplicateScenario,
   onActivateScenario,
+  onRestored,
 }: FinancingTabProps) {
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
@@ -80,11 +84,13 @@ export function FinancingTab({
           {scenarios.map((s) => (
             <ScenarioCard
               key={s.id}
+              propertyId={propertyId}
               scenario={s}
               onUpdate={onUpdateScenario}
               onDelete={setDeleteTarget}
               onDuplicate={(id) => void onDuplicateScenario(id)}
               onActivate={(id) => void onActivateScenario(id)}
+              onRestored={onRestored}
             />
           ))}
         </div>

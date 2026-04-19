@@ -402,3 +402,39 @@ export interface TornadoData {
   baseline_value: number;
   bars: TornadoBar[];
 }
+
+export interface SnapshotListItem {
+  id: string;
+  scenario_id: string;
+  name: string;
+  created_at: string;
+  purchase_price: number | null;
+  interest_rate: number | null;
+  loan_term_years: number | null;
+}
+
+export interface SnapshotDetail {
+  id: string;
+  scenario_id: string;
+  name: string;
+  snapshot_data: Record<string, unknown>;
+  created_at: string;
+}
+
+export interface DiffChange {
+  field: string;
+  label: string;
+  category: string;
+  old_value: unknown;
+  new_value: unknown;
+  format: string;
+  direction: string | null;
+}
+
+export interface DiffResponse {
+  snapshot_name: string;
+  snapshot_date: string;
+  total_changes: number;
+  changes: DiffChange[];
+  unchanged_count: number;
+}

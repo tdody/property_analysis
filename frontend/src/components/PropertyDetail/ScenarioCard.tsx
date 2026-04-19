@@ -1,15 +1,20 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import type { MortgageScenario } from "../../types/index.ts";
 import { CurrencyInput } from "../shared/CurrencyInput.tsx";
 import { PercentInput } from "../shared/PercentInput.tsx";
 import { TooltipIcon } from "../shared/TooltipIcon.tsx";
+import { SnapshotButton } from "./SnapshotButton.tsx";
+import { HistoryDrawer } from "./HistoryDrawer.tsx";
+import { listSnapshots } from "../../api/client.ts";
 
 interface ScenarioCardProps {
+  propertyId: string;
   scenario: MortgageScenario;
   onUpdate: (id: string, data: Partial<MortgageScenario>) => Promise<MortgageScenario>;
   onDelete: (id: string) => void;
   onDuplicate: (id: string) => void;
   onActivate: (id: string) => void;
+  onRestored?: () => void;
 }
 
 const LOAN_TYPES = [
@@ -52,10 +57,21 @@ const TOOLTIPS = {
     "Interest-only period in years. During IO, you pay only interest (no principal), resulting in a lower monthly payment. Common for DSCR loans: 1-5 years. After IO ends, payments increase to fully amortize the remaining balance over the remaining term.",
 };
 
-export function ScenarioCard({ scenario, onUpdate, onDelete, onDuplicate, onActivate }: ScenarioCardProps) {
+export function ScenarioCard({ propertyId, scenario, onUpdate, onDelete, onDuplicate, onActivate, onRestored }: ScenarioCardProps) {
   const [expanded, setExpanded] = useState(false);
   const [form, setForm] = useState<MortgageScenario>({ ...scenario });
   const [saving, setSaving] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [snapshotCount, setSnapshotCount] = useState(0);
+
+  const loadSnapshotCount = useCallback(async () => {
+    try {
+      const snaps = await listSnapshots(propertyId, scenario.id);
+      setSnapshotCount(snaps.length);
+    } catch { /* ignore */ }
+  }, [propertyId, scenario.id]);
+
+  useEffect(() => { loadSnapshotCount(); }, [loadSnapshotCount]);
 
   const updateField = useCallback(<K extends keyof MortgageScenario>(key: K, value: MortgageScenario[K]) => {
     setForm((prev) => {
@@ -334,6 +350,24 @@ export function ScenarioCard({ scenario, onUpdate, onDelete, onDuplicate, onActi
             >
               Duplicate
             </button>
+            <SnapshotButton
+              propertyId={propertyId}
+              scenarioId={scenario.id}
+              dirty={JSON.stringify(form) !== JSON.stringify(scenario)}
+              onPersistForm={handleSave}
+              onSnapshotCreated={loadSnapshotCount}
+            />
+            <button
+              onClick={() => setDrawerOpen(true)}
+              className="px-3 py-1.5 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-lg text-sm font-medium flex items-center gap-1.5"
+            >
+              🕐 History
+              {snapshotCount > 0 && (
+                <span className="bg-slate-200 dark:bg-slate-600 text-slate-600 dark:text-slate-300 rounded-full px-1.5 py-0.5 text-xs">
+                  {snapshotCount}
+                </span>
+              )}
+            </button>
             <button
               onClick={() => onDelete(scenario.id)}
               className="px-4 py-2 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-sm font-medium"
@@ -343,6 +377,14 @@ export function ScenarioCard({ scenario, onUpdate, onDelete, onDuplicate, onActi
           </div>
         </div>
       )}
+      <HistoryDrawer
+        propertyId={propertyId}
+        scenarioId={scenario.id}
+        scenarioName={form.name || "Untitled Scenario"}
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        onRestored={() => { loadSnapshotCount(); onRestored?.(); }}
+      />
     </div>
   );
 }

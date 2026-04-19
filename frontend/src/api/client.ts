@@ -17,6 +17,9 @@ import type {
   QuickTestRequest,
   QuickTestResult,
   MonthlyProfileEntry,
+  SnapshotListItem,
+  SnapshotDetail,
+  DiffResponse,
 } from "../types";
 
 const api = axios.create({ baseURL: "/api" });
@@ -80,6 +83,20 @@ export const exportPDF = (propertyId: string): Promise<Blob> =>
 // Quick Test
 export const quickTest = (data: QuickTestRequest) =>
   api.post<QuickTestResult>("/quick-test", data).then((r) => r.data);
+
+// Snapshots
+export const listSnapshots = (propertyId: string, scenarioId: string) =>
+  api.get<SnapshotListItem[]>(`/properties/${propertyId}/scenarios/${scenarioId}/snapshots`).then((r) => r.data);
+export const createSnapshot = (propertyId: string, scenarioId: string, name?: string) =>
+  api.post<SnapshotDetail>(`/properties/${propertyId}/scenarios/${scenarioId}/snapshots`, { name: name || null }).then((r) => r.data);
+export const getSnapshot = (propertyId: string, scenarioId: string, snapshotId: string) =>
+  api.get<SnapshotDetail>(`/properties/${propertyId}/scenarios/${scenarioId}/snapshots/${snapshotId}`).then((r) => r.data);
+export const deleteSnapshot = (propertyId: string, scenarioId: string, snapshotId: string) =>
+  api.delete(`/properties/${propertyId}/scenarios/${scenarioId}/snapshots/${snapshotId}`);
+export const diffSnapshot = (propertyId: string, scenarioId: string, snapshotId: string) =>
+  api.get<DiffResponse>(`/properties/${propertyId}/scenarios/${scenarioId}/snapshots/${snapshotId}/diff`).then((r) => r.data);
+export const restoreSnapshot = (propertyId: string, scenarioId: string, snapshotId: string) =>
+  api.post<{ status: string; auto_snapshot_id: string; auto_snapshot_name: string }>(`/properties/${propertyId}/scenarios/${scenarioId}/snapshots/${snapshotId}/restore`).then((r) => r.data);
 
 // Scraper
 export interface ScrapeResponse {
