@@ -367,3 +367,27 @@ export interface LTRSensitivityData {
   vacancy_sweep: Array<{ vacancy_pct: number; monthly_cashflow: number }>;
   rent_sweep: Array<{ monthly_rent: number; monthly_cashflow: number }>;
 }
+
+export interface TornadoSweepPoint {
+  input_value: number;
+  output_value: number;
+}
+
+export interface TornadoBar {
+  variable_name: string;
+  variable_label: string;
+  baseline_input: number;
+  low_input: number;
+  high_input: number;
+  low_output: number;
+  high_output: number;
+  spread: number;
+  sweep: TornadoSweepPoint[];
+}
+
+export interface TornadoData {
+  metric_key: string;
+  metric_label: string;
+  baseline_value: number;
+  bars: TornadoBar[];
+}

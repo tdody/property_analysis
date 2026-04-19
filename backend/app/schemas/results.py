@@ -195,3 +195,27 @@ class ComparisonProperty(BaseModel):
     break_even_occupancy: float
     dscr: float
     gross_yield: float
+
+
+class TornadoSweepPoint(BaseModel):
+    input_value: float
+    output_value: float
+
+
+class TornadoBar(BaseModel):
+    variable_name: str
+    variable_label: str
+    baseline_input: float
+    low_input: float
+    high_input: float
+    low_output: float
+    high_output: float
+    spread: float
+    sweep: list[TornadoSweepPoint]
+
+
+class TornadoResponse(BaseModel):
+    metric_key: str
+    metric_label: str
+    baseline_value: float
+    bars: list[TornadoBar]
