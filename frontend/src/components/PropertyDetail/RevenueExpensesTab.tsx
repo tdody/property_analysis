@@ -1,8 +1,9 @@
-import { useState, useCallback } from "react";
-import type { STRAssumptions, LTRAssumptions } from "../../types/index.ts";
+import { useState, useCallback, useEffect } from "react";
+import type { STRAssumptions, LTRAssumptions, MonthlyProfileEntry } from "../../types/index.ts";
 import { CurrencyInput } from "../shared/CurrencyInput.tsx";
 import { PercentInput } from "../shared/PercentInput.tsx";
 import { TooltipIcon } from "../shared/TooltipIcon.tsx";
+import { getProfileTemplates } from "../../api/client.ts";
 
 interface RevenueExpensesTabProps {
   assumptions: STRAssumptions;
@@ -194,55 +195,40 @@ export function RevenueExpensesTab({ assumptions, onUpdate, ltrAssumptions, onUp
             onChange={(v) => updateField("avg_nightly_rate", v)}
             tooltip={TOOLTIPS.avg_nightly_rate}
           />
-          {/* Occupancy: single or seasonal */}
+          {/* Occupancy: flat or monthly profile */}
           <div>
             <div className="flex items-center mb-3">
               <input
                 type="checkbox"
-                checked={form.use_seasonal_occupancy}
-                onChange={(e) => updateField("use_seasonal_occupancy", e.target.checked)}
+                checked={form.monthly_revenue_profile !== null}
+                onChange={(e) => {
+                  if (e.target.checked) {
+                    const defaultProfile: MonthlyProfileEntry[] = Array.from({ length: 12 }, (_, i) => ({
+                      month: i + 1,
+                      nightly_rate: form.avg_nightly_rate,
+                      occupancy_pct: form.occupancy_pct,
+                    }));
+                    updateField("monthly_revenue_profile", defaultProfile);
+                    updateField("profile_template_name", "Custom");
+                  } else {
+                    updateField("monthly_revenue_profile", null);
+                    updateField("profile_template_name", null);
+                  }
+                }}
                 className="h-4 w-4 text-indigo-600 rounded border-slate-300 dark:border-slate-600"
               />
               <span className="ml-2 text-sm font-medium text-slate-700 dark:text-slate-300">
-                Use Seasonal Occupancy
-                <TooltipIcon text={TOOLTIPS.use_seasonal_occupancy} />
+                Use Monthly Revenue Profile
+                <TooltipIcon text="Enable per-month rate and occupancy modeling. When on, each month has its own nightly rate and occupancy percentage for accurate seasonal revenue projections." />
               </span>
             </div>
-            {form.use_seasonal_occupancy ? (
-              <div className="space-y-4 pl-6 border-l-2 border-indigo-100">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    Peak Months
-                    <TooltipIcon text={TOOLTIPS.peak_months} />
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    max="11"
-                    step="1"
-                    value={form.peak_months}
-                    onChange={(e) => updateField("peak_months", parseInt(e.target.value) || 6)}
-                    className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-slate-700 dark:text-slate-100"
-                  />
-                </div>
-                <PercentInput
-                  label="Peak Occupancy %"
-                  value={form.peak_occupancy_pct}
-                  onChange={(v) => updateField("peak_occupancy_pct", v)}
-                  tooltip={TOOLTIPS.peak_occupancy_pct}
-                />
-                <PercentInput
-                  label="Off-Peak Occupancy %"
-                  value={form.off_peak_occupancy_pct}
-                  onChange={(v) => updateField("off_peak_occupancy_pct", v)}
-                  tooltip={TOOLTIPS.off_peak_occupancy_pct}
-                />
-                <div className="text-sm text-slate-500 dark:text-slate-400">
-                  Effective Occupancy: <span className="font-semibold text-slate-700 dark:text-slate-300">
-                    {((form.peak_months * form.peak_occupancy_pct + (12 - form.peak_months) * form.off_peak_occupancy_pct) / 12).toFixed(1)}%
-                  </span>
-                </div>
-              </div>
+            {form.monthly_revenue_profile !== null ? (
+              <MonthlyProfileEditor
+                profile={form.monthly_revenue_profile}
+                templateName={form.profile_template_name}
+                onProfileChange={(profile) => updateField("monthly_revenue_profile", profile)}
+                onTemplateChange={(name) => updateField("profile_template_name", name)}
+              />
             ) : (
               <PercentInput
                 label="Occupancy %"
@@ -567,6 +553,149 @@ export function RevenueExpensesTab({ assumptions, onUpdate, ltrAssumptions, onUp
           {saving ? "Saving..." : "Save Changes"}
         </button>
         {saved && <span className="text-emerald-600 text-sm font-medium">Saved successfully</span>}
+      </div>
+    </div>
+  );
+}
+
+const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+function MonthlyProfileEditor({
+  profile,
+  templateName,
+  onProfileChange,
+  onTemplateChange,
+}: {
+  profile: MonthlyProfileEntry[];
+  templateName: string | null;
+  onProfileChange: (profile: MonthlyProfileEntry[]) => void;
+  onTemplateChange: (name: string | null) => void;
+}) {
+  const [templates, setTemplates] = useState<Record<string, MonthlyProfileEntry[] | null>>({});
+
+  useEffect(() => {
+    getProfileTemplates().then(setTemplates).catch(() => {});
+  }, []);
+
+  const handleTemplateSelect = (name: string) => {
+    const tpl = templates[name];
+    if (tpl === null || tpl === undefined) {
+      // "flat" template — disable profile
+      return;
+    }
+    onProfileChange([...tpl]);
+    onTemplateChange(name);
+  };
+
+  const updateEntry = (month: number, field: "nightly_rate" | "occupancy_pct", value: number) => {
+    const updated = profile.map((e) => (e.month === month ? { ...e, [field]: value } : e));
+    onProfileChange(updated);
+    onTemplateChange("Custom");
+  };
+
+  // Mini bar chart
+  const maxRate = Math.max(...profile.map((e) => e.nightly_rate), 1);
+  const maxOcc = 100;
+  const chartH = 80;
+  const barW = 16;
+  const gap = 4;
+  const totalW = 12 * (barW * 2 + gap) + 11 * gap + 24;
+
+  // Weighted occupancy
+  const DAYS = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  const totalOccupied = profile.reduce((sum, e) => sum + (e.occupancy_pct / 100) * DAYS[e.month - 1], 0);
+  const effectiveOcc = (totalOccupied / 365) * 100;
+
+  return (
+    <div className="space-y-3 pl-6 border-l-2 border-indigo-100 dark:border-indigo-900">
+      {/* Template selector */}
+      <div className="flex items-center gap-3">
+        <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Template:</label>
+        <select
+          value={templateName || "Custom"}
+          onChange={(e) => handleTemplateSelect(e.target.value)}
+          className="px-3 py-1.5 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 dark:text-slate-100"
+        >
+          <option value="Custom">Custom</option>
+          {Object.keys(templates)
+            .filter((k) => k !== "flat")
+            .map((name) => (
+              <option key={name} value={name}>
+                {name.replace(/_/g, " ").replace(/\bvt\b/g, "VT")}
+              </option>
+            ))}
+        </select>
+      </div>
+
+      {/* Mini chart */}
+      <div className="overflow-x-auto">
+        <svg width={totalW} height={chartH + 20} className="block">
+          {profile.map((e, i) => {
+            const x = i * (barW * 2 + gap + gap) + 12;
+            const rateH = (e.nightly_rate / maxRate) * chartH;
+            const occH = (e.occupancy_pct / maxOcc) * chartH;
+            return (
+              <g key={e.month}>
+                <rect x={x} y={chartH - rateH} width={barW} height={rateH} rx={2} className="fill-indigo-400 dark:fill-indigo-500" />
+                <rect x={x + barW} y={chartH - occH} width={barW} height={occH} rx={2} className="fill-emerald-400 dark:fill-emerald-500" />
+                <text x={x + barW} y={chartH + 14} textAnchor="middle" className="fill-slate-400 dark:fill-slate-500 text-[9px]">
+                  {MONTH_NAMES[i]}
+                </text>
+              </g>
+            );
+          })}
+        </svg>
+        <div className="flex gap-4 text-xs text-slate-500 dark:text-slate-400 mt-1">
+          <span className="flex items-center gap-1"><span className="w-3 h-2 bg-indigo-400 dark:bg-indigo-500 rounded-sm inline-block" /> Rate</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-2 bg-emerald-400 dark:bg-emerald-500 rounded-sm inline-block" /> Occupancy</span>
+        </div>
+      </div>
+
+      {/* Editable table */}
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="text-slate-500 dark:text-slate-400">
+              <th className="text-left py-1 pr-2 font-medium">Month</th>
+              <th className="text-right py-1 px-2 font-medium">Nightly Rate ($)</th>
+              <th className="text-right py-1 pl-2 font-medium">Occupancy (%)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {profile.map((e) => (
+              <tr key={e.month} className="border-t border-slate-100 dark:border-slate-700">
+                <td className="py-1 pr-2 text-slate-700 dark:text-slate-300 font-medium">{MONTH_NAMES[e.month - 1]}</td>
+                <td className="py-1 px-2">
+                  <input
+                    type="number"
+                    min="0"
+                    step="5"
+                    value={e.nightly_rate}
+                    onChange={(ev) => updateEntry(e.month, "nightly_rate", parseFloat(ev.target.value) || 0)}
+                    className="w-24 px-2 py-1 text-right border border-slate-200 dark:border-slate-600 rounded bg-white dark:bg-slate-700 dark:text-slate-100 text-sm"
+                  />
+                </td>
+                <td className="py-1 pl-2">
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="1"
+                    value={e.occupancy_pct}
+                    onChange={(ev) => updateEntry(e.month, "occupancy_pct", parseFloat(ev.target.value) || 0)}
+                    className="w-20 px-2 py-1 text-right border border-slate-200 dark:border-slate-600 rounded bg-white dark:bg-slate-700 dark:text-slate-100 text-sm"
+                  />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="text-sm text-slate-500 dark:text-slate-400">
+        Effective Occupancy: <span className="font-semibold text-slate-700 dark:text-slate-300">
+          {effectiveOcc.toFixed(1)}%
+        </span>
       </div>
     </div>
   );

@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, ForeignKey, Integer, Numeric, String
+from sqlalchemy import Boolean, ForeignKey, Integer, Numeric, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -86,6 +86,14 @@ class STRAssumptions(Base):
     capital_gains_rate_pct: Mapped[float] = mapped_column(Numeric(6, 2), default=20.0)
     depreciation_recapture_rate_pct: Mapped[float] = mapped_column(
         Numeric(6, 2), default=25.0
+    )
+
+    # Monthly Revenue Profile
+    monthly_revenue_profile: Mapped[str | None] = mapped_column(
+        Text, nullable=True, default=None
+    )
+    profile_template_name: Mapped[str | None] = mapped_column(
+        String(50), nullable=True, default=None
     )
 
     property: Mapped["Property"] = relationship(back_populates="assumptions")

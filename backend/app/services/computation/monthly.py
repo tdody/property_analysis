@@ -53,6 +53,42 @@ def compute_monthly_breakdown(
     return months
 
 
+def compute_monthly_breakdown_from_profile(
+    monthly_revenue: list[dict],
+    total_annual_opex: float,
+    fixed_opex_annual: float,
+    total_monthly_housing: float,
+    platform_fee_pct: float,
+) -> list[dict]:
+    annual_gross = sum(m["total_gross_revenue"] for m in monthly_revenue)
+    variable_opex_annual = total_annual_opex - fixed_opex_annual
+    fixed_monthly = fixed_opex_annual / 12
+
+    months = []
+    for m_rev in monthly_revenue:
+        gross = m_rev["total_gross_revenue"]
+        net = gross * (1 - platform_fee_pct / 100)
+        revenue_share = gross / annual_gross if annual_gross > 0 else 0
+        variable_monthly = variable_opex_annual * revenue_share
+        total_expenses = variable_monthly + fixed_monthly
+        noi = net - total_expenses
+        cashflow = noi - total_monthly_housing
+        months.append(
+            {
+                "month": m_rev["month"],
+                "is_peak": False,
+                "gross_revenue": gross,
+                "total_expenses": total_expenses,
+                "noi": noi,
+                "cashflow": cashflow,
+                "nightly_rate": m_rev["nightly_rate"],
+                "occupancy_pct": m_rev["occupancy_pct"],
+                "occupied_nights": m_rev["occupied_nights"],
+            }
+        )
+    return months
+
+
 def compute_ltr_monthly_breakdown(
     monthly_rent: float,
     pet_rent_monthly: float,

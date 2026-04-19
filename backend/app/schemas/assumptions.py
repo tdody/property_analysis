@@ -1,4 +1,32 @@
-from pydantic import BaseModel, field_validator
+import json
+from pydantic import BaseModel, field_validator, model_validator
+
+
+class MonthlyProfileEntry(BaseModel):
+    month: int
+    nightly_rate: float
+    occupancy_pct: float
+
+    @field_validator("month")
+    @classmethod
+    def month_in_range(cls, v: int) -> int:
+        if v < 1 or v > 12:
+            raise ValueError("month must be between 1 and 12")
+        return v
+
+    @field_validator("nightly_rate")
+    @classmethod
+    def rate_non_negative(cls, v: float) -> float:
+        if v < 0:
+            raise ValueError("nightly_rate must be non-negative")
+        return v
+
+    @field_validator("occupancy_pct")
+    @classmethod
+    def occ_in_range(cls, v: float) -> float:
+        if v < 0 or v > 100:
+            raise ValueError("occupancy_pct must be between 0 and 100")
+        return v
 
 
 class AssumptionsUpdate(BaseModel):
@@ -42,6 +70,8 @@ class AssumptionsUpdate(BaseModel):
     selling_cost_pct: float | None = None
     capital_gains_rate_pct: float | None = None
     depreciation_recapture_rate_pct: float | None = None
+    monthly_revenue_profile: list[MonthlyProfileEntry] | None = None
+    profile_template_name: str | None = None
 
     @field_validator("occupancy_pct")
     @classmethod
@@ -162,6 +192,18 @@ class AssumptionsUpdate(BaseModel):
             raise ValueError("depreciation_recapture_rate_pct must be between 0 and 50")
         return v
 
+    @model_validator(mode="after")
+    def validate_profile(self):
+        if self.monthly_revenue_profile is not None:
+            if len(self.monthly_revenue_profile) != 12:
+                raise ValueError("monthly_revenue_profile must have exactly 12 entries")
+            months = sorted(e.month for e in self.monthly_revenue_profile)
+            if months != list(range(1, 13)):
+                raise ValueError(
+                    "monthly_revenue_profile must contain months 1 through 12"
+                )
+        return self
+
 
 class AssumptionsResponse(BaseModel):
     id: str
@@ -206,5 +248,14 @@ class AssumptionsResponse(BaseModel):
     selling_cost_pct: float
     capital_gains_rate_pct: float
     depreciation_recapture_rate_pct: float
+    monthly_revenue_profile: list[MonthlyProfileEntry] | None = None
+    profile_template_name: str | None = None
 
     model_config = {"from_attributes": True}
+
+    @field_validator("monthly_revenue_profile", mode="before")
+    @classmethod
+    def deserialize_profile(cls, v):
+        if isinstance(v, str):
+            return [MonthlyProfileEntry(**e) for e in json.loads(v)]
+        return v

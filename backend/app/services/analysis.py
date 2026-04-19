@@ -33,6 +33,8 @@ from app.services.computation.revenue import (
     compute_net_revenue,
     compute_year1_revenue,
     compute_effective_occupancy,
+    compute_monthly_revenue,
+    compute_annual_from_monthly,
 )
 from app.services.computation.expenses import compute_operating_expenses
 from app.services.computation.metrics import (
@@ -60,7 +62,27 @@ from app.services.computation.ltr_revenue import (
 from app.services.computation.ltr_expenses import compute_ltr_operating_expenses
 
 
+def _parse_profile(assumptions: STRAssumptions) -> list[dict] | None:
+    import json
+
+    raw = assumptions.monthly_revenue_profile
+    if raw is None:
+        return None
+    if isinstance(raw, str):
+        return json.loads(raw)
+    return raw
+
+
 def get_occupancy(assumptions: STRAssumptions) -> float:
+    profile = _parse_profile(assumptions)
+    if profile is not None:
+        total_occupied = sum(
+            d["occupancy_pct"]
+            / 100
+            * [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][d["month"] - 1]
+            for d in profile
+        )
+        return total_occupied / 365 * 100
     if assumptions.use_seasonal_occupancy:
         return compute_effective_occupancy(
             assumptions.peak_months,
@@ -129,14 +151,25 @@ def compute_for_scenario(
         origination_fee=origination_fee,
     )
 
-    # Revenue (uses effective occupancy when seasonal mode is on)
+    # Revenue (uses monthly profile, seasonal, or flat occupancy)
+    profile = _parse_profile(assumptions)
+    if profile is not None:
+        monthly_rev = compute_monthly_revenue(
+            profile,
+            float(assumptions.cleaning_fee_per_stay),
+            float(assumptions.avg_stay_length_nights),
+        )
+        gross = compute_annual_from_monthly(monthly_rev)
+    else:
+        monthly_rev = None
+        occupancy = get_occupancy(assumptions)
+        gross = compute_gross_revenue(
+            float(assumptions.avg_nightly_rate),
+            occupancy,
+            float(assumptions.cleaning_fee_per_stay),
+            float(assumptions.avg_stay_length_nights),
+        )
     occupancy = get_occupancy(assumptions)
-    gross = compute_gross_revenue(
-        float(assumptions.avg_nightly_rate),
-        occupancy,
-        float(assumptions.cleaning_fee_per_stay),
-        float(assumptions.avg_stay_length_nights),
-    )
     net = compute_net_revenue(
         gross["total_gross_revenue"], float(assumptions.platform_fee_pct)
     )

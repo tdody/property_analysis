@@ -856,7 +856,14 @@ export function ResultsTab({ propertyId, scenarios, activeRentalType }: ResultsT
                   <thead className="bg-slate-50 dark:bg-slate-700 sticky top-0">
                     <tr>
                       <th className="px-3 py-3 text-left text-slate-600 dark:text-slate-400">Month</th>
-                      {monthlyIsSeasonal && <th className="px-3 py-3 text-left text-slate-600 dark:text-slate-400">Season</th>}
+                      {monthlyData[0]?.nightly_rate != null ? (
+                        <>
+                          <th className="px-3 py-3 text-right text-slate-600 dark:text-slate-400">Rate</th>
+                          <th className="px-3 py-3 text-right text-slate-600 dark:text-slate-400">Occ %</th>
+                        </>
+                      ) : monthlyIsSeasonal ? (
+                        <th className="px-3 py-3 text-left text-slate-600 dark:text-slate-400">Season</th>
+                      ) : null}
                       <th className="px-3 py-3 text-right text-slate-600 dark:text-slate-400">Revenue</th>
                       <th className="px-3 py-3 text-right text-slate-600 dark:text-slate-400">Expenses</th>
                       <th className="px-3 py-3 text-right text-slate-600 dark:text-slate-400">NOI</th>
@@ -867,13 +874,18 @@ export function ResultsTab({ propertyId, scenarios, activeRentalType }: ResultsT
                     {monthlyData.map((m) => (
                       <tr key={m.month}>
                         <td className="px-3 py-2 font-medium dark:text-slate-200">{m.month}</td>
-                        {monthlyIsSeasonal && (
+                        {m.nightly_rate != null ? (
+                          <>
+                            <td className="px-3 py-2 text-right dark:text-slate-200">${fmt(m.nightly_rate)}</td>
+                            <td className="px-3 py-2 text-right dark:text-slate-200">{m.occupancy_pct?.toFixed(0)}%</td>
+                          </>
+                        ) : monthlyIsSeasonal ? (
                           <td className="px-3 py-2">
                             <span className={`text-xs px-2 py-0.5 rounded-full ${m.is_peak ? "bg-amber-100 text-amber-700" : "bg-blue-100 text-blue-700"}`}>
                               {m.is_peak ? "Peak" : "Off-Peak"}
                             </span>
                           </td>
-                        )}
+                        ) : null}
                         <td className="px-3 py-2 text-right dark:text-slate-200">{fmtCurrency(m.gross_revenue)}</td>
                         <td className="px-3 py-2 text-right dark:text-slate-200">{fmtCurrency(m.total_expenses)}</td>
                         <td className="px-3 py-2 text-right dark:text-slate-200">{fmtCurrency(m.noi)}</td>
