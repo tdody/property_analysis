@@ -14,8 +14,10 @@ class SnapshotListItem(BaseModel):
     scenario_id: str
     name: str
     created_at: datetime
-    monthly_cashflow: float | None = None
-    cash_on_cash_return: float | None = None
+    # Scenario-level read-offs for the list view
+    purchase_price: float | None = None
+    interest_rate: float | None = None
+    loan_term_years: int | None = None
 
     model_config = {"from_attributes": True}
 
@@ -46,6 +48,3 @@ class DiffResponse(BaseModel):
     total_changes: int
     changes: list[DiffChange]
     unchanged_count: int
-    rental_type_changed: bool = False
-    snapshot_rental_type: str | None = None
-    current_rental_type: str | None = None

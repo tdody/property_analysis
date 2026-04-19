@@ -408,8 +408,9 @@ export interface SnapshotListItem {
   scenario_id: string;
   name: string;
   created_at: string;
-  monthly_cashflow: number | null;
-  cash_on_cash_return: number | null;
+  purchase_price: number | null;
+  interest_rate: number | null;
+  loan_term_years: number | null;
 }
 
 export interface SnapshotDetail {
@@ -436,7 +437,4 @@ export interface DiffResponse {
   total_changes: number;
   changes: DiffChange[];
   unchanged_count: number;
-  rental_type_changed: boolean;
-  snapshot_rental_type: string | null;
-  current_rental_type: string | null;
 }

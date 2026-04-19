@@ -88,15 +88,16 @@ def list_snapshots(
             if isinstance(s.snapshot_data, str)
             else s.snapshot_data
         )
-        metrics = data.get("results", {}).get("metrics", {})
+        sc = data.get("scenario", {})
         items.append(
             SnapshotListItem(
                 id=s.id,
                 scenario_id=s.scenario_id,
                 name=s.name,
                 created_at=s.created_at,
-                monthly_cashflow=metrics.get("monthly_cashflow"),
-                cash_on_cash_return=metrics.get("cash_on_cash_return"),
+                purchase_price=sc.get("purchase_price"),
+                interest_rate=sc.get("interest_rate"),
+                loan_term_years=sc.get("loan_term_years"),
             )
         )
     return items
@@ -185,9 +186,6 @@ def diff_snapshot(
         total_changes=diff["total_changes"],
         changes=[DiffChange(**c) for c in diff["changes"]],
         unchanged_count=diff["unchanged_count"],
-        rental_type_changed=diff["rental_type_changed"],
-        snapshot_rental_type=diff["snapshot_rental_type"],
-        current_rental_type=diff["current_rental_type"],
     )
 
 

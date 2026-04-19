@@ -128,3 +128,24 @@ class TestSnapshotCRUD:
         client.delete(f"/api/properties/{property_id}/scenarios/{scenario_id}")
         scenarios = client.get(f"/api/properties/{property_id}/scenarios").json()
         assert len(scenarios) == 0
+
+    def test_restore_does_not_touch_assumptions(self, client, property_id, scenario_id):
+        """Restoring a scenario snapshot must leave property-wide assumptions alone."""
+        client.put(
+            f"/api/properties/{property_id}/assumptions",
+            json={"avg_nightly_rate": 250.0},
+        )
+        client.post(_snap_url(property_id, scenario_id), json={"name": "Base"})
+        client.put(
+            f"/api/properties/{property_id}/assumptions",
+            json={"avg_nightly_rate": 500.0},
+        )
+        client.put(
+            f"/api/properties/{property_id}/scenarios/{scenario_id}",
+            json={"interest_rate": 6.0},
+        )
+        snap_id = client.get(_snap_url(property_id, scenario_id)).json()[0]["id"]
+        resp = client.post(f"{_snap_url(property_id, scenario_id)}/{snap_id}/restore")
+        assert resp.status_code == 200
+        assumptions = client.get(f"/api/properties/{property_id}/assumptions").json()
+        assert assumptions["avg_nightly_rate"] == 500.0

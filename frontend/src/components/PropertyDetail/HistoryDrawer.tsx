@@ -25,24 +25,24 @@ function formatValue(value: unknown, format: string): string {
   if (format === "currency") return `$${Number(value).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
   if (format === "percent") return `${Number(value).toFixed(2)}%`;
   if (format === "number") return String(value);
-  if (format === "profile" && Array.isArray(value)) {
-    const rates = value.map((e) => Number((e as { nightly_rate?: number }).nightly_rate ?? 0));
-    const occs = value.map((e) => Number((e as { occupancy_pct?: number }).occupancy_pct ?? 0));
-    const avgRate = rates.reduce((a, b) => a + b, 0) / (rates.length || 1);
-    const avgOcc = occs.reduce((a, b) => a + b, 0) / (occs.length || 1);
-    return `${value.length}mo · avg $${avgRate.toFixed(0)} @ ${avgOcc.toFixed(0)}%`;
-  }
   return String(value);
 }
 
 function formatDelta(oldVal: unknown, newVal: unknown, format: string, direction: string | null): string {
-  if (format === "profile") return "—";
   if (direction === null || oldVal === null || newVal === null) return "—";
   const diff = Math.abs(Number(newVal) - Number(oldVal));
   const arrow = direction === "increased" ? "▲" : "▼";
   if (format === "currency") return `${arrow} $${diff.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
   if (format === "percent") return `${arrow} ${diff.toFixed(2)}%`;
   return `${arrow} ${diff}`;
+}
+
+function formatScenarioSummary(s: SnapshotListItem): string {
+  const parts: string[] = [];
+  if (s.purchase_price != null) parts.push(`$${Math.round(s.purchase_price).toLocaleString()}`);
+  if (s.interest_rate != null) parts.push(`${s.interest_rate.toFixed(2)}%`);
+  if (s.loan_term_years != null) parts.push(`${s.loan_term_years}yr`);
+  return parts.length > 0 ? parts.join(" · ") : "—";
 }
 
 export function HistoryDrawer({ propertyId, scenarioId, scenarioName, open, onClose, onRestored }: HistoryDrawerProps) {
@@ -133,7 +133,6 @@ export function HistoryDrawer({ propertyId, scenarioId, scenarioName, open, onCl
                 </p>
                 <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
                   {diff.total_changes} field{diff.total_changes !== 1 ? "s" : ""} changed
-                  {diff.rental_type_changed && " (rental type changed)"}
                 </p>
               </div>
 
@@ -195,7 +194,7 @@ export function HistoryDrawer({ propertyId, scenarioId, scenarioName, open, onCl
                         <p className="font-semibold text-slate-900 dark:text-slate-100">{s.name}</p>
                         <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{formatDate(s.created_at)}</p>
                         <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                          CoC: {s.cash_on_cash_return != null ? `${s.cash_on_cash_return.toFixed(1)}%` : "—"} · Cashflow: {s.monthly_cashflow != null ? `$${Math.round(s.monthly_cashflow).toLocaleString()}/mo` : "—"}
+                          {formatScenarioSummary(s)}
                         </p>
                       </div>
                       <div className="flex items-center gap-2 text-xs">
