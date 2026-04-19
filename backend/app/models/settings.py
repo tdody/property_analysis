@@ -31,3 +31,7 @@ class UserSettings(Base):
     default_off_peak_occupancy_pct: Mapped[float] = mapped_column(
         Numeric(6, 2), default=45.0
     )
+
+    # Branding for lender packets
+    company_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    logo_filename: Mapped[str | None] = mapped_column(String(255), nullable=True)
