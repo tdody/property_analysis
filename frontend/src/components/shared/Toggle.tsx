@@ -22,12 +22,12 @@ export function Toggle({
       disabled={disabled}
       onClick={() => onChange(!value)}
       className={`w-11 h-6 rounded-full p-0.5 transition-colors ${
-        value ? "bg-ink" : "bg-rule-strong"
+        value ? "bg-accent" : "bg-rule-strong"
       } ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"} ${className}`}
     >
       <span
         className={`block w-5 h-5 rounded-full bg-canvas transition-transform ${
-          value ? "translate-x-5" : ""
+          value ? "translate-x-[22px]" : ""
         }`}
       />
     </button>
