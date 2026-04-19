@@ -353,6 +353,8 @@ export function ScenarioCard({ propertyId, scenario, onUpdate, onDelete, onDupli
             <SnapshotButton
               propertyId={propertyId}
               scenarioId={scenario.id}
+              dirty={JSON.stringify(form) !== JSON.stringify(scenario)}
+              onPersistForm={handleSave}
               onSnapshotCreated={loadSnapshotCount}
             />
             <button
