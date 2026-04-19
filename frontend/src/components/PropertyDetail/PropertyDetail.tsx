@@ -144,6 +144,7 @@ export function PropertyDetail({
             <div className="text-center py-12 text-slate-500 dark:text-slate-400">Loading scenarios...</div>
           ) : (
             <FinancingTab
+              propertyId={property.id}
               scenarios={scenarios}
               listingPrice={property.listing_price}
               onCreateScenario={onCreateScenario}
