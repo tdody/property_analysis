@@ -31,7 +31,7 @@ ignore = []
 
 [tool.ruff.lint.per-file-ignores]
 "app/routers/*.py" = ["E712"]
-"app/services/pdf/generator.py" = ["E712"]
+"app/services/pdf/*.py" = ["E712"]
 "app/main.py" = ["E402"]
 
 [tool.ty.src]

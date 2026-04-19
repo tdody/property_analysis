@@ -7,8 +7,9 @@ import { PropertyInfoTab } from "./PropertyInfoTab.tsx";
 import { FinancingTab } from "./FinancingTab.tsx";
 import { RevenueExpensesTab } from "./RevenueExpensesTab.tsx";
 import { ResultsTab } from "./ResultsTab.tsx";
+import { SensitivityTab } from "./SensitivityTab.tsx";
 
-const TABS = ["Property Info", "Financing", "Revenue & Expenses", "Results"] as const;
+const TABS = ["Property Info", "Financing", "Revenue & Expenses", "Results", "Sensitivity"] as const;
 type TabName = (typeof TABS)[number];
 
 interface PropertyDetailProps {
@@ -171,6 +172,9 @@ export function PropertyDetail({
         )}
         {activeTab === "Results" && (
           <ResultsTab propertyId={property.id} scenarios={scenarios} activeRentalType={property.active_rental_type} />
+        )}
+        {activeTab === "Sensitivity" && (
+          <SensitivityTab propertyId={property.id} activeRentalType={property.active_rental_type} />
         )}
       </div>
     </div>

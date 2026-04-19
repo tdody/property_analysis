@@ -9,6 +9,7 @@ import type {
   LTRComputedResults,
   SensitivityData,
   LTRSensitivityData,
+  TornadoData,
   AmortizationEntry,
   ComparisonProperty,
   ProjectionSummary,
@@ -54,6 +55,12 @@ export const getMonthlyBreakdown = (propertyId: string, scenarioId: string) => a
 // LTR Compute
 export const getLTRResults = (propertyId: string) => api.get<LTRComputedResults>(`/properties/${propertyId}/ltr-results`).then((r) => r.data);
 export const getLTRSensitivity = (propertyId: string) => api.get<LTRSensitivityData>(`/properties/${propertyId}/ltr-sensitivity`).then((r) => r.data);
+
+// Tornado sensitivity
+export const getTornado = (propertyId: string, metric: string = "monthly_cashflow") =>
+  api.get<TornadoData>(`/properties/${propertyId}/tornado`, { params: { metric } }).then((r) => r.data);
+export const getLTRTornado = (propertyId: string, metric: string = "monthly_cashflow") =>
+  api.get<TornadoData>(`/properties/${propertyId}/ltr-tornado`, { params: { metric } }).then((r) => r.data);
 
 // Settings
 export const getSettings = () => api.get("/settings").then((r) => r.data);
