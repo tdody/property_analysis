@@ -9,7 +9,13 @@ interface PercentInputProps {
   className?: string;
 }
 
-export function PercentInput({ label, value, onChange, tooltip, className = "" }: PercentInputProps) {
+export function PercentInput({
+  label,
+  value,
+  onChange,
+  tooltip,
+  className = "",
+}: PercentInputProps) {
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const val = parseFloat(e.target.value) || 0;
@@ -19,20 +25,20 @@ export function PercentInput({ label, value, onChange, tooltip, className = "" }
   );
 
   return (
-    <div className={className}>
-      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-        {label}
+    <div className={`relative ${className}`}>
+      <label className="field-label flex items-center gap-1">
+        <span>{label}</span>
         {tooltip && <TooltipIcon text={tooltip} />}
       </label>
-      <div className="relative">
+      <div className="flex items-baseline">
         <input
           type="number"
           step="0.1"
           value={value || ""}
           onChange={handleChange}
-          className="w-full pr-8 pl-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-slate-800 dark:text-slate-100"
+          className="field"
         />
-        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">%</span>
+        <span className="text-ink-3 font-mono text-[15px] ml-1">%</span>
       </div>
     </div>
   );
