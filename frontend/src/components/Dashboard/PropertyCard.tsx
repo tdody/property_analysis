@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { PropertySummary } from "../../types/index.ts";
-import { PropertyTypeIcon } from "../shared/PropertyTypeIcon.tsx";
+import { PropertyThumb } from "../shared/PropertyThumb.tsx";
+import type { PropertyThumbKind } from "../shared/PropertyThumb.tsx";
+import { RentalBadge } from "../shared/RentalBadge.tsx";
 
 interface PropertyCardProps {
   property: PropertySummary;
@@ -11,128 +13,158 @@ interface PropertyCardProps {
   onTogglePortfolio: (id: string, current: boolean) => void;
 }
 
-function formatCurrency(value: number | null): string {
-  if (value === null || value === undefined) return "N/A";
+function fmtCurrency(value: number | null): string {
+  if (value === null || value === undefined) return "—";
   const abs = Math.abs(value);
-  const formatted = abs >= 1000
-    ? `$${abs.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
-    : `$${abs.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
-  return value < 0 ? `-${formatted}` : formatted;
+  return `${value < 0 ? "-" : ""}$${abs.toLocaleString("en-US", {
+    maximumFractionDigits: 0,
+  })}`;
 }
 
-function formatPercent(value: number | null): string {
-  if (value === null || value === undefined) return "N/A";
+function fmtPct(value: number | null): string {
+  if (value === null || value === undefined) return "—";
   return `${value.toFixed(1)}%`;
 }
 
-function getCashflowVariant(cashflow: number | null): "positive" | "negative" | "marginal" {
-  if (cashflow === null) return "marginal";
-  if (cashflow > 100) return "positive";
-  if (cashflow < -100) return "negative";
-  return "marginal";
+function cashflowToneClass(value: number | null): string {
+  if (value === null) return "text-ink-3";
+  if (value >= 0) return "text-accent";
+  return "text-negative";
 }
 
-const gradientBarMap = {
-  positive: "bg-gradient-to-r from-emerald-500 to-emerald-400",
-  negative: "bg-gradient-to-r from-red-500 to-red-400",
-  marginal: "bg-gradient-to-r from-amber-400 to-yellow-400",
-};
+function thumbKindFor(propertyType: string): PropertyThumbKind {
+  if (propertyType === "multi_family") return "multi-unit";
+  if (propertyType === "townhouse") return "duplex";
+  if (propertyType === "condo") return "cape";
+  return "default";
+}
 
-export function PropertyCard({ property, selected, onToggleSelect, onDelete, onTogglePortfolio }: PropertyCardProps) {
+export function PropertyCard({
+  property,
+  selected,
+  onToggleSelect,
+  onDelete,
+  onTogglePortfolio,
+}: PropertyCardProps) {
   const navigate = useNavigate();
-  const variant = getCashflowVariant(property.monthly_cashflow);
   const [imgError, setImgError] = useState(false);
+  const useImg = property.image_url && !imgError;
 
   return (
-    <div className={`bg-white dark:bg-slate-800 rounded-2xl overflow-hidden shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.03)] hover:shadow-md transition-all flex flex-col ${
-      property.in_portfolio ? "ring-[6px] ring-emerald-400/60 dark:ring-emerald-500/40" : ""
-    }`}>
-      {/* Property image or type icon */}
-      {property.image_url && !imgError ? (
-        <img
-          src={property.image_url}
-          alt={property.name}
-          className="w-full h-40 object-cover"
-          onError={() => setImgError(true)}
-        />
-      ) : (
-        <PropertyTypeIcon propertyType={property.property_type} className="w-full h-40 rounded-t-2xl" />
-      )}
-
-      {/* Gradient bar */}
-      <div className={`h-1 ${gradientBarMap[variant]}`} />
-
-      <div className="p-5 flex flex-col gap-3 flex-1">
-        <div className="flex items-start justify-between">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <h3 className="text-lg font-semibold tracking-tight text-slate-900 dark:text-slate-100 truncate">{property.name}</h3>
-              <span className={`text-xs font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0 ${
-                property.active_rental_type === 'ltr'
-                  ? 'bg-violet-100 text-violet-700'
-                  : 'bg-sky-100 text-sky-700'
-              }`}>
-                {property.active_rental_type === 'ltr' ? 'LTR' : 'STR'}
-              </span>
-            </div>
-            <p className="text-sm text-slate-500 dark:text-slate-400 truncate">
-              {property.city}, {property.state}
-            </p>
+    <div
+      className={`border rounded overflow-hidden bg-canvas flex flex-col transition-colors ${
+        selected
+          ? "border-ink"
+          : property.in_portfolio
+          ? "border-accent"
+          : "border-rule-strong hover:border-ink"
+      }`}
+    >
+      <div className="relative">
+        {useImg ? (
+          <img
+            src={property.image_url ?? ""}
+            alt={property.name}
+            className="w-full h-40 object-cover"
+            onError={() => setImgError(true)}
+          />
+        ) : (
+          <div className="w-full h-40">
+            <PropertyThumb kind={thumbKindFor(property.property_type)} />
           </div>
+        )}
+        <div className="absolute top-2 right-2">
+          <RentalBadge
+            type={property.active_rental_type === "ltr" ? "LTR" : "STR"}
+            className="bg-canvas/90 backdrop-blur-sm"
+          />
+        </div>
+        <label className="absolute top-2 left-2 inline-flex items-center justify-center w-6 h-6 border border-rule-strong rounded bg-canvas/90 cursor-pointer">
           <input
             type="checkbox"
             checked={selected}
             onChange={() => onToggleSelect(property.id)}
-            className="mt-1 h-4 w-4 text-indigo-600 rounded border-slate-300 dark:border-slate-600 cursor-pointer"
-            title="Select for comparison"
+            className="accent-ink"
+            aria-label="Select for comparison"
           />
+        </label>
+      </div>
+
+      <div className="p-5 flex flex-col gap-3 flex-1">
+        <div>
+          <h3 className="font-serif text-[20px] leading-tight text-ink truncate">
+            {property.name}
+          </h3>
+          <p className="text-[13px] text-ink-3 truncate">
+            {property.city}, {property.state}
+          </p>
         </div>
 
-        <div className="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
-          {formatCurrency(property.listing_price)}
+        <div className="font-mono tabular-nums text-[18px] text-ink">
+          {fmtCurrency(property.listing_price)}
         </div>
 
-        <div className="text-sm text-slate-600 dark:text-slate-400">
-          {property.beds} bd / {property.baths} ba
-          {property.sqft > 0 && <span className="ml-2">{property.sqft.toLocaleString()} sqft</span>}
+        <div className="text-[13px] text-ink-2">
+          {property.beds} bd · {property.baths} ba
+          {property.sqft > 0 && ` · ${property.sqft.toLocaleString()} sqft`}
         </div>
 
-        <div className="pt-3 space-y-2">
-          <div className={`${property.monthly_cashflow !== null && property.monthly_cashflow >= 0 ? "bg-emerald-50" : "bg-red-50"} rounded-xl p-3 flex justify-between items-center`}>
-            <span className="text-xs uppercase tracking-wider text-slate-400 font-medium">Cashflow</span>
-            <span className={`font-bold ${property.monthly_cashflow !== null && property.monthly_cashflow >= 0 ? "text-emerald-600" : "text-red-500"}`}>
-              {property.monthly_cashflow !== null ? `${formatCurrency(property.monthly_cashflow)}/mo` : "N/A"}
-            </span>
+        <div className="grid grid-cols-2 gap-4 pt-3 border-t border-rule">
+          <div>
+            <div className="caps mb-1">Cashflow</div>
+            <div
+              className={`font-mono tabular-nums text-[15px] ${cashflowToneClass(
+                property.monthly_cashflow
+              )}`}
+            >
+              {property.monthly_cashflow !== null
+                ? `${fmtCurrency(property.monthly_cashflow)}/mo`
+                : "—"}
+            </div>
           </div>
-          <div className="bg-indigo-50 rounded-xl p-3 flex justify-between items-center">
-            <span className="text-xs uppercase tracking-wider text-slate-400 font-medium">CoC Return</span>
-            <span className={`font-bold text-indigo-600`}>
-              {formatPercent(property.cash_on_cash_return)}
-            </span>
+          <div>
+            <div className="caps mb-1">CoC</div>
+            <div
+              className={`font-mono tabular-nums text-[15px] ${cashflowToneClass(
+                property.cash_on_cash_return
+              )}`}
+            >
+              {fmtPct(property.cash_on_cash_return)}
+            </div>
           </div>
         </div>
 
-        <div className="flex gap-2 mt-auto pt-2">
+        <div className="flex gap-2 mt-auto pt-3 border-t border-rule">
           <button
+            type="button"
             onClick={() => navigate(`/property/${property.id}`)}
-            className="flex-1 px-3 py-2 text-sm font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
+            className="flex-1 caps py-2 border border-rule-strong rounded hover:bg-paper transition-colors"
           >
             View
           </button>
           <button
-            onClick={() => onTogglePortfolio(property.id, property.in_portfolio)}
-            className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+            type="button"
+            onClick={() =>
+              onTogglePortfolio(property.id, property.in_portfolio)
+            }
+            title={
               property.in_portfolio
-                ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/30"
-                : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
+                ? "Remove from portfolio"
+                : "Add to portfolio"
+            }
+            className={`px-3 py-2 rounded transition-colors text-[15px] ${
+              property.in_portfolio
+                ? "text-accent hover:bg-accent-soft"
+                : "text-ink-3 hover:text-ink hover:bg-paper"
             }`}
-            title={property.in_portfolio ? "Remove from portfolio" : "Add to portfolio"}
           >
             {property.in_portfolio ? "★" : "☆"}
           </button>
           <button
+            type="button"
             onClick={() => onDelete(property.id)}
-            className="px-3 py-2 text-sm font-medium text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+            className="caps px-3 py-2 text-ink-3 hover:text-negative hover:bg-negative-soft rounded transition-colors"
+            aria-label="Delete"
           >
             Delete
           </button>
