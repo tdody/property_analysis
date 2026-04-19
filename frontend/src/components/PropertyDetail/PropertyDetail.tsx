@@ -277,6 +277,7 @@ export function PropertyDetail({
             <div className="text-center py-12 text-ink-3">Loading assumptions…</div>
           ) : assumptions ? (
             <RevenueExpensesTab
+              propertyId={property.id}
               assumptions={assumptions}
               onUpdate={onUpdateAssumptions}
               ltrAssumptions={ltrAssumptions}
