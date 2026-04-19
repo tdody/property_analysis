@@ -43,7 +43,12 @@ from app.services.computation.irr import (
 )
 from app.services.computation.monthly import (
     compute_monthly_breakdown,
+    compute_monthly_breakdown_from_profile,
 )
+from app.services.computation.revenue import (
+    compute_monthly_revenue,
+)
+from app.services.computation.profile_templates import PROFILE_TEMPLATES
 from app.services.computation.sensitivity import (
     compute_sensitivity,
     compute_ltr_sensitivity,
@@ -60,6 +65,11 @@ from app.services.analysis import (
 from app.models.ltr_assumptions import LTRAssumptions
 
 router = APIRouter(tags=["compute"])
+
+
+@router.get("/api/profile-templates")
+def get_profile_templates():
+    return {name: template for name, template in PROFILE_TEMPLATES.items()}
 
 
 def _get_ltr_assumptions(property_id: str, db: Session) -> LTRAssumptions:
@@ -380,32 +390,50 @@ def get_monthly_breakdown(
         property_id, scenario_id, db
     )
     computed = compute_for_scenario(prop, scenario, assumptions)
-
-    use_seasonal = bool(assumptions.use_seasonal_occupancy)
-    peak_months = assumptions.peak_months if use_seasonal else 6
-    peak_occ = (
-        float(assumptions.peak_occupancy_pct)
-        if use_seasonal
-        else float(assumptions.occupancy_pct)
-    )
-    off_peak_occ = (
-        float(assumptions.off_peak_occupancy_pct)
-        if use_seasonal
-        else float(assumptions.occupancy_pct)
-    )
-
     fixed_opex = compute_fixed_opex(assumptions)
 
-    months = compute_monthly_breakdown(
-        gross_annual_revenue=computed["revenue"].gross_annual,
-        total_annual_opex=computed["expenses"].total_annual_operating,
-        fixed_opex_annual=fixed_opex,
-        total_monthly_housing=computed["mortgage"].total_monthly_housing,
-        peak_months=peak_months,
-        peak_occupancy_pct=peak_occ,
-        off_peak_occupancy_pct=off_peak_occ,
-        platform_fee_pct=float(assumptions.platform_fee_pct),
-    )
+    from app.services.analysis import _parse_profile
+
+    profile = _parse_profile(assumptions)
+
+    if profile is not None:
+        monthly_rev = compute_monthly_revenue(
+            profile,
+            float(assumptions.cleaning_fee_per_stay),
+            float(assumptions.avg_stay_length_nights),
+        )
+        months = compute_monthly_breakdown_from_profile(
+            monthly_revenue=monthly_rev,
+            total_annual_opex=computed["expenses"].total_annual_operating,
+            fixed_opex_annual=fixed_opex,
+            total_monthly_housing=computed["mortgage"].total_monthly_housing,
+            platform_fee_pct=float(assumptions.platform_fee_pct),
+        )
+        use_seasonal = True
+    else:
+        use_seasonal = bool(assumptions.use_seasonal_occupancy)
+        peak_months = assumptions.peak_months if use_seasonal else 6
+        peak_occ = (
+            float(assumptions.peak_occupancy_pct)
+            if use_seasonal
+            else float(assumptions.occupancy_pct)
+        )
+        off_peak_occ = (
+            float(assumptions.off_peak_occupancy_pct)
+            if use_seasonal
+            else float(assumptions.occupancy_pct)
+        )
+
+        months = compute_monthly_breakdown(
+            gross_annual_revenue=computed["revenue"].gross_annual,
+            total_annual_opex=computed["expenses"].total_annual_operating,
+            fixed_opex_annual=fixed_opex,
+            total_monthly_housing=computed["mortgage"].total_monthly_housing,
+            peak_months=peak_months,
+            peak_occupancy_pct=peak_occ,
+            off_peak_occupancy_pct=off_peak_occ,
+            platform_fee_pct=float(assumptions.platform_fee_pct),
+        )
 
     return MonthlyBreakdownResponse(
         property_id=prop.id,

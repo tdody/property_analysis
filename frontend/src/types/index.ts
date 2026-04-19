@@ -68,6 +68,12 @@ export interface MortgageScenario {
   is_active: boolean;
 }
 
+export interface MonthlyProfileEntry {
+  month: number;
+  nightly_rate: number;
+  occupancy_pct: number;
+}
+
 export interface STRAssumptions {
   id: string;
   property_id: string;
@@ -111,6 +117,8 @@ export interface STRAssumptions {
   selling_cost_pct: number;
   capital_gains_rate_pct: number;
   depreciation_recapture_rate_pct: number;
+  monthly_revenue_profile: MonthlyProfileEntry[] | null;
+  profile_template_name: string | null;
 }
 
 export interface ComputedResults {
@@ -175,6 +183,9 @@ export interface MonthlyDetail {
   total_expenses: number;
   noi: number;
   cashflow: number;
+  nightly_rate?: number;
+  occupancy_pct?: number;
+  occupied_nights?: number;
 }
 
 export interface ProjectionYear {

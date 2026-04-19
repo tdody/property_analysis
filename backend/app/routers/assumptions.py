@@ -1,3 +1,5 @@
+import json
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
@@ -36,6 +38,8 @@ def update_assumptions(
     if not assumptions:
         raise HTTPException(status_code=404, detail="Assumptions not found")
     for field, value in data.model_dump(exclude_unset=True).items():
+        if field == "monthly_revenue_profile" and value is not None:
+            value = json.dumps(value)
         setattr(assumptions, field, value)
     prop = db.query(Property).filter(Property.id == property_id).first()
     if prop:

@@ -16,6 +16,7 @@ import type {
   MonthlyDetail,
   QuickTestRequest,
   QuickTestResult,
+  MonthlyProfileEntry,
 } from "../types";
 
 const api = axios.create({ baseURL: "/api" });
@@ -51,6 +52,7 @@ export const getSensitivity = (propertyId: string) => api.get<SensitivityData>(`
 export const compareProperties = (ids: string[]) => api.get<ComparisonProperty[]>(`/compare?ids=${ids.join(",")}`).then((r) => r.data);
 export const getProjections = (propertyId: string, scenarioId: string) => api.get<ProjectionSummary>(`/properties/${propertyId}/projections/${scenarioId}`).then((r) => r.data);
 export const getMonthlyBreakdown = (propertyId: string, scenarioId: string) => api.get<{ property_id: string; scenario_id: string; use_seasonal: boolean; months: MonthlyDetail[] }>(`/properties/${propertyId}/monthly/${scenarioId}`).then((r) => r.data);
+export const getProfileTemplates = () => api.get<Record<string, MonthlyProfileEntry[] | null>>("/profile-templates").then((r) => r.data);
 
 // LTR Compute
 export const getLTRResults = (propertyId: string) => api.get<LTRComputedResults>(`/properties/${propertyId}/ltr-results`).then((r) => r.data);

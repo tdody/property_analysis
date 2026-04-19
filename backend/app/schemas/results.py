@@ -145,6 +145,9 @@ class MonthlyDetail(BaseModel):
     total_expenses: float
     noi: float
     cashflow: float
+    nightly_rate: float | None = None
+    occupancy_pct: float | None = None
+    occupied_nights: float | None = None
 
 
 class MonthlyBreakdownResponse(BaseModel):
