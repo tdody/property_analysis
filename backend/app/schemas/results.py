@@ -103,12 +103,39 @@ class ProjectionYear(BaseModel):
     after_tax_cashflow: float = 0
 
 
+class ExitAnalysis(BaseModel):
+    sale_price: float
+    selling_costs: float
+    remaining_mortgage: float
+    total_depreciation: float
+    depreciation_recapture_tax: float
+    capital_gain: float
+    capital_gains_tax: float
+    net_exit_proceeds: float
+
+
+class IRRResult(BaseModel):
+    irr_with_exit: float | None = None
+    equity_multiple_with_exit: float = 0
+    total_profit: float = 0
+    hold_period_years: int = 5
+    exit_analysis: ExitAnalysis
+    cashflow_series: list[float] = []
+
+
+class HoldPeriodSweepEntry(BaseModel):
+    hold_period: int
+    irr: float | None = None
+
+
 class ProjectionResponse(BaseModel):
     property_id: str
     scenario_id: str
     years: list[ProjectionYear]
     irr: float | None = None
     equity_multiple: float = 0
+    irr_with_exit: IRRResult | None = None
+    hold_period_sweep: list[HoldPeriodSweepEntry] = []
 
 
 class MonthlyDetail(BaseModel):

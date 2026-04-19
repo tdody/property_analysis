@@ -84,6 +84,14 @@ const TOOLTIPS = {
     "Expected annual revenue growth rate for multi-year projections. Accounts for nightly rate increases, market growth, and improved occupancy over time. US STR average: 3-5%.",
   expense_growth_pct:
     "Expected annual expense growth rate for multi-year projections. Covers inflation on operating costs (cleaning, utilities, supplies, maintenance). General inflation: 2-4%.",
+  hold_period_years:
+    "Number of years you plan to hold the property before selling. Used for exit analysis and IRR with exit modeling. Typical hold periods: 5-10 years.",
+  selling_cost_pct:
+    "Total selling costs as a percentage of sale price. Includes broker commissions (5-6%), transfer taxes, and closing costs. Typical total: 7-10%.",
+  capital_gains_rate_pct:
+    "Combined federal and state capital gains tax rate on the profit from selling the property. Federal long-term rate: 15-20%. Add state tax if applicable.",
+  depreciation_recapture_rate_pct:
+    "Tax rate on accumulated depreciation when selling. Federal depreciation recapture is taxed at 25%. This applies to the total depreciation claimed during the hold period.",
 };
 
 const SHARED_KEYS = [
@@ -91,6 +99,8 @@ const SHARED_KEYS = [
   'lawn_snow_monthly', 'other_monthly_expense', 'accounting_annual',
   'legal_annual', 'land_value_pct', 'property_appreciation_pct_annual',
   'revenue_growth_pct', 'expense_growth_pct', 'marginal_tax_rate_pct',
+  'hold_period_years', 'selling_cost_pct', 'capital_gains_rate_pct',
+  'depreciation_recapture_rate_pct',
 ] as const;
 
 export function RevenueExpensesTab({ assumptions, onUpdate, ltrAssumptions, onUpdateLTR, activeRentalType, onChangeRentalType }: RevenueExpensesTabProps) {
@@ -448,6 +458,44 @@ export function RevenueExpensesTab({ assumptions, onUpdate, ltrAssumptions, onUp
               value={form.marginal_tax_rate_pct}
               onChange={(v) => updateSharedField("marginal_tax_rate_pct", v)}
               tooltip={TOOLTIPS.marginal_tax_rate_pct}
+            />
+          </div>
+
+          {/* Exit & IRR */}
+          <div className="space-y-4">
+            <h4 className="text-xs uppercase tracking-wider text-slate-400 dark:text-slate-500 font-medium">Exit & IRR</h4>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                Hold Period (years)
+                <TooltipIcon text={TOOLTIPS.hold_period_years} />
+              </label>
+              <input
+                type="number"
+                min={1}
+                max={30}
+                step={1}
+                value={form.hold_period_years || ""}
+                onChange={(e) => updateSharedField("hold_period_years", parseInt(e.target.value) || 5)}
+                className="w-full pl-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-slate-800 dark:text-slate-100"
+              />
+            </div>
+            <PercentInput
+              label="Selling Costs %"
+              value={form.selling_cost_pct}
+              onChange={(v) => updateSharedField("selling_cost_pct", v)}
+              tooltip={TOOLTIPS.selling_cost_pct}
+            />
+            <PercentInput
+              label="Capital Gains Rate %"
+              value={form.capital_gains_rate_pct}
+              onChange={(v) => updateSharedField("capital_gains_rate_pct", v)}
+              tooltip={TOOLTIPS.capital_gains_rate_pct}
+            />
+            <PercentInput
+              label="Depreciation Recapture Rate %"
+              value={form.depreciation_recapture_rate_pct}
+              onChange={(v) => updateSharedField("depreciation_recapture_rate_pct", v)}
+              tooltip={TOOLTIPS.depreciation_recapture_rate_pct}
             />
           </div>
         </div>

@@ -80,4 +80,12 @@ class STRAssumptions(Base):
     peak_occupancy_pct: Mapped[float] = mapped_column(Numeric(6, 2), default=80.0)
     off_peak_occupancy_pct: Mapped[float] = mapped_column(Numeric(6, 2), default=45.0)
 
+    # Exit / Sale Assumptions
+    hold_period_years: Mapped[int] = mapped_column(Integer, default=5)
+    selling_cost_pct: Mapped[float] = mapped_column(Numeric(6, 2), default=8.0)
+    capital_gains_rate_pct: Mapped[float] = mapped_column(Numeric(6, 2), default=20.0)
+    depreciation_recapture_rate_pct: Mapped[float] = mapped_column(
+        Numeric(6, 2), default=25.0
+    )
+
     property: Mapped["Property"] = relationship(back_populates="assumptions")

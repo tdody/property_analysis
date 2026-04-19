@@ -14,6 +14,9 @@ from app.schemas.results import (
     ProjectionYear,
     MonthlyBreakdownResponse,
     MonthlyDetail,
+    ExitAnalysis,
+    IRRResult,
+    HoldPeriodSweepEntry,
 )
 from app.services.computation.mortgage import (
     compute_loan_amount,
@@ -28,7 +31,13 @@ from app.services.computation.revenue import (
 )
 from app.services.computation.expenses import compute_operating_expenses
 from app.services.computation.projections import compute_five_year_projection
-from app.services.computation.irr import compute_irr, compute_equity_multiple
+from app.services.computation.irr import (
+    compute_irr,
+    compute_equity_multiple,
+    compute_exit_proceeds,
+    compute_irr_with_exit,
+    compute_hold_period_sweep,
+)
 from app.services.computation.monthly import (
     compute_monthly_breakdown,
 )
@@ -199,6 +208,12 @@ def get_projections(property_id: str, scenario_id: str, db: Session = Depends(ge
         loan_amount, float(scenario.interest_rate), scenario.loan_term_years
     )
 
+    hold_period = int(assumptions.hold_period_years)
+    purchase_price = float(scenario.purchase_price)
+    appreciation_pct = float(assumptions.property_appreciation_pct_annual)
+    depreciation_annual = computed["depreciation"].total_depreciation_annual
+
+    # Compute projections for the hold period
     years = compute_five_year_projection(
         year1_gross_revenue=computed["revenue"].gross_annual,
         year1_net_revenue=computed["revenue"].net_annual,
@@ -211,24 +226,116 @@ def get_projections(property_id: str, scenario_id: str, db: Session = Depends(ge
         expense_growth_pct=float(assumptions.expense_growth_pct),
         total_monthly_housing=computed["mortgage"].total_monthly_housing,
         monthly_pi=monthly_pi,
-        purchase_price=float(scenario.purchase_price),
-        appreciation_pct=float(assumptions.property_appreciation_pct_annual),
+        purchase_price=purchase_price,
+        appreciation_pct=appreciation_pct,
         loan_amount=loan_amount,
         interest_rate=float(scenario.interest_rate),
         loan_term_years=scenario.loan_term_years,
         total_cash_invested=computed["mortgage"].total_cash_invested,
         platform_fee_pct=float(assumptions.platform_fee_pct),
         marginal_tax_rate_pct=float(assumptions.marginal_tax_rate_pct),
-        total_depreciation_annual=computed["depreciation"].total_depreciation_annual,
+        total_depreciation_annual=depreciation_annual,
         io_period_years=scenario.io_period_years or 0,
+        num_years=hold_period,
     )
 
-    # IRR and equity multiple
+    # Operating-only IRR and equity multiple (backward compat)
     total_cash_invested = computed["mortgage"].total_cash_invested
     cashflows_for_irr = [-total_cash_invested] + [y["annual_cashflow"] for y in years]
     irr_result = compute_irr(cashflows_for_irr)
     cumulative_cf = years[-1]["cumulative_cashflow"] if years else 0
     eq_multiple = compute_equity_multiple(cumulative_cf, total_cash_invested)
+
+    # Exit analysis
+    remaining_mortgage = years[-1]["loan_balance"] if years else 0
+    total_depreciation = depreciation_annual * hold_period
+    selling_cost_pct = float(assumptions.selling_cost_pct)
+    capital_gains_rate_pct = float(assumptions.capital_gains_rate_pct)
+    depreciation_recapture_rate_pct = float(assumptions.depreciation_recapture_rate_pct)
+
+    exit_info = compute_exit_proceeds(
+        purchase_price=purchase_price,
+        appreciation_pct=appreciation_pct,
+        hold_years=hold_period,
+        selling_cost_pct=selling_cost_pct,
+        remaining_mortgage=remaining_mortgage,
+        total_depreciation=total_depreciation,
+        capital_gains_rate_pct=capital_gains_rate_pct,
+        depreciation_recapture_rate_pct=depreciation_recapture_rate_pct,
+    )
+
+    annual_cfs = [y["annual_cashflow"] for y in years]
+    irr_exit = compute_irr_with_exit(
+        annual_cfs, total_cash_invested, exit_info["net_exit_proceeds"]
+    )
+    eq_multiple_exit = (
+        (cumulative_cf + exit_info["net_exit_proceeds"]) / total_cash_invested
+        if total_cash_invested > 0
+        else 0
+    )
+    total_profit = cumulative_cf + exit_info["net_exit_proceeds"] - total_cash_invested
+    cashflow_series = (
+        [-total_cash_invested]
+        + annual_cfs[:-1]
+        + [annual_cfs[-1] + exit_info["net_exit_proceeds"]]
+        if annual_cfs
+        else []
+    )
+
+    irr_with_exit_result = IRRResult(
+        irr_with_exit=round(irr_exit, 2) if irr_exit is not None else None,
+        equity_multiple_with_exit=round(eq_multiple_exit, 2),
+        total_profit=round(total_profit, 2),
+        hold_period_years=hold_period,
+        exit_analysis=ExitAnalysis(**{k: round(v, 2) for k, v in exit_info.items()}),
+        cashflow_series=[round(v, 2) for v in cashflow_series],
+    )
+
+    # Hold period sweep (need up to 15 years of projections)
+    years_15 = compute_five_year_projection(
+        year1_gross_revenue=computed["revenue"].gross_annual,
+        year1_net_revenue=computed["revenue"].net_annual,
+        year1_opex=computed["expenses"].total_annual_operating,
+        year1_cashflow=computed["metrics"].annual_cashflow,
+        steady_state_gross_revenue=gross["total_gross_revenue"],
+        steady_state_net_revenue=net["net_revenue"],
+        steady_state_opex=expenses["total_annual_operating_exp"],
+        revenue_growth_pct=float(assumptions.revenue_growth_pct),
+        expense_growth_pct=float(assumptions.expense_growth_pct),
+        total_monthly_housing=computed["mortgage"].total_monthly_housing,
+        monthly_pi=monthly_pi,
+        purchase_price=purchase_price,
+        appreciation_pct=appreciation_pct,
+        loan_amount=loan_amount,
+        interest_rate=float(scenario.interest_rate),
+        loan_term_years=scenario.loan_term_years,
+        total_cash_invested=total_cash_invested,
+        platform_fee_pct=float(assumptions.platform_fee_pct),
+        marginal_tax_rate_pct=float(assumptions.marginal_tax_rate_pct),
+        total_depreciation_annual=depreciation_annual,
+        io_period_years=scenario.io_period_years or 0,
+        num_years=15,
+    )
+
+    def get_remaining_mortgage(year: int) -> float:
+        if year <= len(years_15):
+            return years_15[year - 1]["loan_balance"]
+        return 0
+
+    sweep = compute_hold_period_sweep(
+        purchase_price=purchase_price,
+        appreciation_pct=appreciation_pct,
+        selling_cost_pct=selling_cost_pct,
+        total_cash_invested=total_cash_invested,
+        depreciation_annual=depreciation_annual,
+        capital_gains_rate_pct=capital_gains_rate_pct,
+        depreciation_recapture_rate_pct=depreciation_recapture_rate_pct,
+        loan_amount=loan_amount,
+        interest_rate=float(scenario.interest_rate),
+        loan_term_years=scenario.loan_term_years,
+        annual_cashflows_15=[y["annual_cashflow"] for y in years_15],
+        get_remaining_mortgage=get_remaining_mortgage,
+    )
 
     return ProjectionResponse(
         property_id=prop.id,
@@ -253,6 +360,8 @@ def get_projections(property_id: str, scenario_id: str, db: Session = Depends(ge
         ],
         irr=round(irr_result, 2) if irr_result is not None else None,
         equity_multiple=round(eq_multiple, 2),
+        irr_with_exit=irr_with_exit_result,
+        hold_period_sweep=[HoldPeriodSweepEntry(**s) for s in sweep],
     )
 
 

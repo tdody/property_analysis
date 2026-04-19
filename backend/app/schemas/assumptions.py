@@ -38,6 +38,10 @@ class AssumptionsUpdate(BaseModel):
     peak_months: int | None = None
     peak_occupancy_pct: float | None = None
     off_peak_occupancy_pct: float | None = None
+    hold_period_years: int | None = None
+    selling_cost_pct: float | None = None
+    capital_gains_rate_pct: float | None = None
+    depreciation_recapture_rate_pct: float | None = None
 
     @field_validator("occupancy_pct")
     @classmethod
@@ -130,6 +134,34 @@ class AssumptionsUpdate(BaseModel):
             raise ValueError("off_peak_occupancy_pct must be between 0 and 100")
         return v
 
+    @field_validator("hold_period_years")
+    @classmethod
+    def hold_period_in_range(cls, v: int | None) -> int | None:
+        if v is not None and (v < 1 or v > 30):
+            raise ValueError("hold_period_years must be between 1 and 30")
+        return v
+
+    @field_validator("selling_cost_pct")
+    @classmethod
+    def selling_cost_in_range(cls, v: float | None) -> float | None:
+        if v is not None and (v < 0 or v > 20):
+            raise ValueError("selling_cost_pct must be between 0 and 20")
+        return v
+
+    @field_validator("capital_gains_rate_pct")
+    @classmethod
+    def capital_gains_rate_in_range(cls, v: float | None) -> float | None:
+        if v is not None and (v < 0 or v > 50):
+            raise ValueError("capital_gains_rate_pct must be between 0 and 50")
+        return v
+
+    @field_validator("depreciation_recapture_rate_pct")
+    @classmethod
+    def depreciation_recapture_rate_in_range(cls, v: float | None) -> float | None:
+        if v is not None and (v < 0 or v > 50):
+            raise ValueError("depreciation_recapture_rate_pct must be between 0 and 50")
+        return v
+
 
 class AssumptionsResponse(BaseModel):
     id: str
@@ -170,5 +202,9 @@ class AssumptionsResponse(BaseModel):
     peak_months: int
     peak_occupancy_pct: float
     off_peak_occupancy_pct: float
+    hold_period_years: int
+    selling_cost_pct: float
+    capital_gains_rate_pct: float
+    depreciation_recapture_rate_pct: float
 
     model_config = {"from_attributes": True}
