@@ -2,6 +2,14 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+@layer base {
+  html,
+  body {
+    background-color: var(--canvas);
+    color: var(--ink);
+  }
+}
+
 :root {
   --canvas: oklch(0.985 0.004 85);
   --paper: oklch(0.995 0.003 85);
