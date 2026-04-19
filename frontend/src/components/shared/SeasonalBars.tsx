@@ -72,11 +72,3 @@ export function SeasonalBars({
   );
 }
 
-export function derivePeakMask(peakMonths: number): boolean[] {
-  const mask = Array<boolean>(12).fill(false);
-  if (peakMonths <= 0) return mask;
-  if (peakMonths >= 12) return mask.map(() => true);
-  const start = Math.max(0, Math.min(12 - peakMonths, 7 - Math.floor(peakMonths / 2)));
-  for (let i = start; i < start + peakMonths; i++) mask[i] = true;
-  return mask;
-}
