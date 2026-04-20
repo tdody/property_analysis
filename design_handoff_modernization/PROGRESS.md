@@ -23,7 +23,7 @@ Status: `todo` · `in-progress` · `review` · `done`
 
 | # | PR | Status | Branch / PR link | Notes |
 |---|---|---|---|---|
-| A | Unified type system | todo | — | Single `PageHeader`, remove inline heading sizes |
+| A | Unified type system | review | commits `b0e37d3`, `43c7856`, `ff81759` on `design/modernization` | **Tier A1** type-scale tokens (`--h1` 48, `--h2` 22, `--hero` 56, `--caps-eyebrow` 10) + `.h1`/`.h2`/`.hero`/`.caps-eyebrow` utilities + new `PageHeader` primitive; migrated Dashboard, Settings, Glossary, Compare top-level headers ✓. **Tier A2a** PropertyDetail dissolved persistent h1 into a per-tab `PageHeader` (Info tab's h1 is property name; other tabs' eyebrow is property name) + kept meta row with rental badge + Export PDF + metric strip + tab bar ✓. **Tier A3** swapped every remaining inline `text-[NNpx]` + `font-serif` on headings for `.h2` token class across Results / Sensitivity / Revenue / FormSection / PropertyCard / Dashboard / Glossary; demoted three `<h3 className="caps">` sites to `<p>` ✓. **Exceptions**: Glossary decorative 48px letter-section h2s (no big-letter token), dialog h3s (spec ambiguous for modal chrome), legacy `QuickTest.tsx`. |
 | B | Expense breakdown rewrite | todo | — | Donut + sorted ledger rows |
 | C | Chart primitives | todo | — | `shared/Chart.tsx` — LineChart, SensitivityBars, SeasonalBars |
 
