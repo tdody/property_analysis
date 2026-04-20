@@ -15,6 +15,7 @@ import {
 import { RentalBadge } from "../shared/RentalBadge.tsx";
 import { MetricCell, MetricStrip } from "../shared/MetricCell.tsx";
 import { Skeleton, SkeletonLine } from "../shared/Skeleton.tsx";
+import { PageHeader } from "../shared/PageHeader.tsx";
 import { PropertyInfoTab } from "./PropertyInfoTab.tsx";
 import { FinancingTab } from "./FinancingTab.tsx";
 import { RevenueExpensesTab } from "./RevenueExpensesTab.tsx";
@@ -29,6 +30,49 @@ const TABS = [
   "Sensitivity",
 ] as const;
 type TabName = (typeof TABS)[number];
+
+function addressLine(property: Property): string | null {
+  if (!property.address) return null;
+  return `${property.address}, ${property.city}, ${property.state} ${property.zip_code}`;
+}
+
+function headerForTab(
+  tab: TabName,
+  property: Property,
+): { eyebrow: string; title: string; subtitle: string | null } {
+  switch (tab) {
+    case "Property Info":
+      return {
+        eyebrow: "Property · Information",
+        title: property.name,
+        subtitle: addressLine(property),
+      };
+    case "Financing":
+      return {
+        eyebrow: property.name,
+        title: "Financing",
+        subtitle: "Loan terms, upfront costs, amortization.",
+      };
+    case "Revenue & Expenses":
+      return {
+        eyebrow: property.name,
+        title: "Revenue & expenses",
+        subtitle: "Assumptions, occupancy, operating costs.",
+      };
+    case "Results":
+      return {
+        eyebrow: property.name,
+        title: "Results",
+        subtitle: "Projected returns over the hold period.",
+      };
+    case "Sensitivity":
+      return {
+        eyebrow: property.name,
+        title: "Sensitivity",
+        subtitle: "How inputs move the bottom line.",
+      };
+  }
+}
 
 interface HeadlineMetrics {
   monthly_cashflow: number;
@@ -155,25 +199,12 @@ export function PropertyDetail({
         ← All properties
       </button>
 
-      {/* Header row */}
-      <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-6">
-        <div className="min-w-0">
-          <div className="flex items-center gap-3 mb-1 flex-wrap">
-            <RentalBadge
-              type={property.active_rental_type === "ltr" ? "LTR" : "STR"}
-            />
-            <h1 className="font-serif text-[40px] leading-tight text-ink">
-              {property.name}
-            </h1>
-          </div>
-          {property.address && (
-            <p className="text-[14px] text-ink-3">
-              {property.address}, {property.city}, {property.state}{" "}
-              {property.zip_code}
-            </p>
-          )}
-        </div>
-        <div className="flex items-center gap-3 shrink-0">
+      {/* Meta row — persistent badge + export action */}
+      <div className="flex items-center justify-between gap-3 mb-6">
+        <RentalBadge
+          type={property.active_rental_type === "ltr" ? "LTR" : "STR"}
+        />
+        <div className="flex items-center gap-3">
           {exportError && (
             <span className="text-[13px] text-negative">Export failed</span>
           )}
@@ -201,6 +232,12 @@ export function PropertyDetail({
           </button>
         </div>
       </div>
+
+      {/* Per-tab page header */}
+      <PageHeader
+        {...headerForTab(activeTab, property)}
+        className="mb-8"
+      />
 
       {/* Metric strip */}
       {metrics && (
