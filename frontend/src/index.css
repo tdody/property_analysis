@@ -135,6 +135,28 @@
     stroke-dashoffset: 2000;
     animation: sparklineDraw 1.2s ease-out forwards;
   }
+
+  .skeleton {
+    background: var(--rule);
+    border-radius: 6px;
+    animation: skeletonPulse 1.5s ease-in-out infinite;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+  }
+}
+
+@keyframes skeletonPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
 }
 
 @keyframes sparklineDraw {

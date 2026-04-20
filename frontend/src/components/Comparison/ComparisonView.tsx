@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { compareProperties } from "../../api/client.ts";
 import type { ComparisonProperty } from "../../types/index.ts";
+import { Skeleton, SkeletonLine } from "../shared/Skeleton.tsx";
 
 interface ComparisonViewProps {
   propertyIds: string[];
@@ -157,8 +158,32 @@ export function ComparisonView({ propertyIds }: ComparisonViewProps) {
 
   if (loading) {
     return (
-      <div className="text-center py-12 text-ink-3 text-[14px]">
-        Loading comparison…
+      <div className="space-y-6" role="status" aria-label="Loading comparison">
+        <SkeletonLine className="w-24" />
+        <Skeleton className="h-14 w-64" />
+        <div>
+          <div className="grid grid-cols-[220px_200px_200px] gap-4 py-4 border-t border-rule">
+            <div />
+            <div className="space-y-2">
+              <Skeleton className="h-7" />
+              <SkeletonLine className="w-20" />
+            </div>
+            <div className="space-y-2">
+              <Skeleton className="h-7" />
+              <SkeletonLine className="w-20" />
+            </div>
+          </div>
+          {Array.from({ length: 7 }).map((_, i) => (
+            <div
+              key={i}
+              className="grid grid-cols-[220px_200px_200px] gap-4 py-4 border-t border-rule"
+            >
+              <SkeletonLine className="w-32" />
+              <SkeletonLine className="w-24" />
+              <SkeletonLine className="w-24" />
+            </div>
+          ))}
+        </div>
       </div>
     );
   }

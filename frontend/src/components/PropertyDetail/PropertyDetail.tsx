@@ -14,6 +14,7 @@ import {
 } from "../../api/client.ts";
 import { RentalBadge } from "../shared/RentalBadge.tsx";
 import { MetricCell, MetricStrip } from "../shared/MetricCell.tsx";
+import { Skeleton, SkeletonLine } from "../shared/Skeleton.tsx";
 import { PropertyInfoTab } from "./PropertyInfoTab.tsx";
 import { FinancingTab } from "./FinancingTab.tsx";
 import { RevenueExpensesTab } from "./RevenueExpensesTab.tsx";
@@ -259,7 +260,18 @@ export function PropertyDetail({
         )}
         {activeTab === "Financing" &&
           (scenariosLoading ? (
-            <div className="text-center py-12 text-ink-3">Loading scenarios…</div>
+            <div className="grid grid-cols-[280px_1fr] gap-8" role="status" aria-label="Loading scenarios">
+              <div className="space-y-3">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <Skeleton key={i} className="h-16" />
+                ))}
+              </div>
+              <div className="space-y-6">
+                <Skeleton className="h-10 w-2/3" />
+                <Skeleton className="h-24" />
+                <Skeleton className="h-48" />
+              </div>
+            </div>
           ) : (
             <FinancingTab
               propertyId={property.id}
@@ -274,7 +286,24 @@ export function PropertyDetail({
           ))}
         {activeTab === "Revenue & Expenses" &&
           (assumptionsLoading || ltrLoading ? (
-            <div className="text-center py-12 text-ink-3">Loading assumptions…</div>
+            <div className="space-y-8" role="status" aria-label="Loading assumptions">
+              {Array.from({ length: 3 }).map((_, section) => (
+                <div key={section} className="grid grid-cols-[200px_1fr] gap-8">
+                  <div className="space-y-2">
+                    <SkeletonLine className="w-32" />
+                    <SkeletonLine className="w-24" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-x-8 gap-y-5">
+                    {Array.from({ length: 4 }).map((_, i) => (
+                      <div key={i} className="space-y-2">
+                        <SkeletonLine className="w-20" />
+                        <Skeleton className="h-8" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
           ) : assumptions ? (
             <RevenueExpensesTab
               propertyId={property.id}

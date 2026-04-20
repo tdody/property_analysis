@@ -18,6 +18,8 @@ import { PropertyThumb } from "../shared/PropertyThumb.tsx";
 import type { PropertyThumbKind } from "../shared/PropertyThumb.tsx";
 import { Field } from "../shared/Field.tsx";
 import { CurrencyInput } from "../shared/CurrencyInput.tsx";
+import { EmptyState } from "../shared/EmptyState.tsx";
+import { Skeleton, SkeletonLine } from "../shared/Skeleton.tsx";
 
 type SortKey =
   | "default"
@@ -262,8 +264,36 @@ export function Dashboard() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <div className="text-ink-3 text-[14px]">Loading properties…</div>
+      <div className="space-y-10" role="status" aria-label="Loading properties">
+        <div className="grid grid-cols-[1fr_520px] gap-10">
+          <div className="space-y-4">
+            <SkeletonLine className="w-32" />
+            <Skeleton className="h-14" />
+            <SkeletonLine className="w-3/4" />
+          </div>
+          <div className="border-t border-rule-strong pt-6 grid grid-cols-2 gap-6">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="space-y-2">
+                <SkeletonLine className="w-20" />
+                <Skeleton className="h-10" />
+              </div>
+            ))}
+          </div>
+        </div>
+        <div>
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-4 py-5 border-t border-rule">
+              <Skeleton className="h-14 w-14" />
+              <div className="flex-1 space-y-2">
+                <SkeletonLine className="w-1/3" />
+                <SkeletonLine className="w-2/3" />
+              </div>
+              <SkeletonLine className="w-20" />
+              <SkeletonLine className="w-24" />
+              <SkeletonLine className="w-20" />
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
@@ -785,22 +815,3 @@ function AddPropertyForm({
   );
 }
 
-// --- Empty state ----------------------------------------------------------
-
-function EmptyState({
-  title,
-  body,
-  actions,
-}: {
-  title: string;
-  body: string;
-  actions?: React.ReactNode;
-}) {
-  return (
-    <div className="border-2 border-dashed border-rule-strong rounded py-16 px-6 text-center">
-      <p className="font-serif text-[22px] text-ink mb-2">{title}</p>
-      <p className="text-[13px] text-ink-3 mb-6">{body}</p>
-      {actions}
-    </div>
-  );
-}
