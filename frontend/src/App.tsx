@@ -38,7 +38,7 @@ function App() {
             <header className="bg-white dark:bg-slate-800 border-b border-slate-100 dark:border-slate-700">
               <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
                 <Link to="/" className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
-                  <div className="bg-gradient-to-br from-indigo-600 to-purple-600 rounded-lg w-7 h-7" />
+                  <div className="bg-ink rounded-lg w-7 h-7" />
                   <span className="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
                     STR Profitability Calculator
                   </span>

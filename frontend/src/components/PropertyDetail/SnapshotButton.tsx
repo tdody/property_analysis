@@ -49,10 +49,11 @@ export function SnapshotButton({ propertyId, scenarioId, dirty = false, onPersis
   return (
     <>
       <button
+        type="button"
         onClick={() => setShowDialog(true)}
-        className="px-3 py-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm font-medium flex items-center gap-1.5"
+        className="caps px-4 py-2 border border-rule-strong rounded hover:bg-paper transition-colors"
       >
-        <span>📸</span> Save Snapshot
+        Save Snapshot
       </button>
 
       {showDialog && (
@@ -92,11 +93,12 @@ export function SnapshotButton({ propertyId, scenarioId, dirty = false, onPersis
                 Cancel
               </button>
               <button
+                type="button"
                 onClick={handleSave}
                 disabled={saving}
-                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 text-sm font-medium"
+                className="caps px-5 py-2 bg-ink text-canvas rounded hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
               >
-                {saving ? "Saving..." : dirty ? "Save changes & Snapshot" : "Save"}
+                {saving ? "Saving…" : dirty ? "Save changes & Snapshot" : "Save"}
               </button>
             </div>
           </div>
