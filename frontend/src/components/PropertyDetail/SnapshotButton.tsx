@@ -65,7 +65,7 @@ export function SnapshotButton({ propertyId, scenarioId, dirty = false, onPersis
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g., Before rate drop"
-              className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-slate-700 dark:text-slate-100 mb-3"
+              className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg dark:bg-slate-700 dark:text-slate-100 mb-3"
               autoFocus
               onKeyDown={(e) => e.key === "Enter" && handleSave()}
             />
