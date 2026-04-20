@@ -1,0 +1,1742 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Ledger — STR Profitability</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+  :root {
+    --canvas: oklch(0.985 0.004 85);
+    --paper: oklch(0.995 0.003 85);
+    --ink: oklch(0.18 0.015 255);
+    --ink-2: oklch(0.38 0.012 255);
+    --ink-3: oklch(0.62 0.010 255);
+    --rule: oklch(0.90 0.008 255);
+    --rule-strong: oklch(0.82 0.010 255);
+    --accent: oklch(0.46 0.085 175);
+    --accent-soft: oklch(0.93 0.035 175);
+    --negative: oklch(0.54 0.155 30);
+    --negative-soft: oklch(0.94 0.045 30);
+    --warn: oklch(0.66 0.13 75);
+    --warn-soft: oklch(0.95 0.05 85);
+  }
+  .dark {
+    --canvas: oklch(0.16 0.010 255);
+    --paper: oklch(0.20 0.012 255);
+    --ink: oklch(0.96 0.005 85);
+    --ink-2: oklch(0.78 0.008 255);
+    --ink-3: oklch(0.58 0.012 255);
+    --rule: oklch(0.28 0.012 255);
+    --rule-strong: oklch(0.36 0.014 255);
+    --accent: oklch(0.74 0.09 175);
+    --accent-soft: oklch(0.28 0.045 175);
+    --negative: oklch(0.74 0.14 30);
+    --negative-soft: oklch(0.28 0.06 30);
+    --warn: oklch(0.80 0.13 85);
+    --warn-soft: oklch(0.28 0.06 85);
+  }
+  html, body { background: var(--canvas); color: var(--ink); }
+  body { font-family: 'Inter', ui-sans-serif, system-ui, sans-serif; font-feature-settings: 'ss01','cv11'; -webkit-font-smoothing: antialiased; }
+  .serif { font-family: 'Instrument Serif', 'Times New Roman', serif; font-weight: 400; letter-spacing: -0.01em; }
+  .mono { font-family: 'JetBrains Mono', ui-monospace, monospace; font-feature-settings: 'tnum','zero'; }
+  .tnum { font-variant-numeric: tabular-nums; }
+
+  .bg-canvas { background: var(--canvas); }
+  .bg-paper  { background: var(--paper); }
+  .text-ink  { color: var(--ink); }
+  .text-ink-2{ color: var(--ink-2); }
+  .text-ink-3{ color: var(--ink-3); }
+  .border-rule { border-color: var(--rule); }
+  .border-rule-strong { border-color: var(--rule-strong); }
+  .bg-accent { background: var(--accent); }
+  .text-accent { color: var(--accent); }
+  .bg-accent-soft { background: var(--accent-soft); }
+  .text-negative { color: var(--negative); }
+  .bg-negative-soft { background: var(--negative-soft); }
+  .text-warn { color: var(--warn); }
+  .bg-warn-soft { background: var(--warn-soft); }
+
+  .caps { text-transform: uppercase; letter-spacing: 0.14em; font-size: 11px; font-weight: 500; }
+  .hairline { border-top: 1px solid var(--rule); }
+  .focus-ring:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* Form fields */
+  .field {
+    width: 100%;
+    background: transparent;
+    border: 0;
+    border-bottom: 1px solid var(--rule-strong);
+    padding: 10px 0 8px;
+    color: var(--ink);
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-variant-numeric: tabular-nums;
+    font-size: 15px;
+    transition: border-color .15s;
+  }
+  .field:focus { outline: none; border-bottom-color: var(--accent); }
+  .field-label {
+    font-size: 11px; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--ink-3); font-weight: 500; display: block; margin-bottom: 2px;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-thumb { background: var(--rule); border-radius: 6px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--rule-strong); }
+
+  /* Placeholder stripe */
+  .stripe-placeholder {
+    background:
+      repeating-linear-gradient(45deg, var(--rule) 0 1px, transparent 1px 10px),
+      var(--paper);
+  }
+
+  /* sparkline anim */
+  @keyframes drawIn { from { stroke-dashoffset: 1000; } to { stroke-dashoffset: 0; } }
+  .sparkline path { stroke-dasharray: 1000; animation: drawIn 1.4s cubic-bezier(.2,.8,.2,1) forwards; }
+
+  /* Subtle entrance */
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(6px);} to { opacity: 1; transform: none;} }
+  .fade-up { animation: fadeUp .4s cubic-bezier(.2,.8,.2,1) both; }
+
+  /* Tabs underline */
+  .tab-underline { position: relative; }
+  .tab-underline[data-active="true"]::after{
+    content:''; position:absolute; left:0; right:0; bottom:-1px; height:2px; background: var(--ink);
+  }
+
+  /* Segmented */
+  .seg { display:inline-flex; border: 1px solid var(--rule-strong); border-radius: 999px; overflow:hidden; background: var(--paper); }
+  .seg button { padding: 6px 14px; font-size: 13px; color: var(--ink-2); }
+  .seg button[data-active="true"] { background: var(--ink); color: var(--canvas); }
+
+  /* Big number emphasis */
+  .metric-xl { font-family: 'Instrument Serif', serif; font-size: clamp(48px, 6vw, 84px); line-height: 0.95; letter-spacing: -0.02em; }
+  .metric-lg { font-family: 'Instrument Serif', serif; font-size: 40px; line-height: 1; letter-spacing: -0.02em; }
+
+  /* Top nav link */
+  .navlink { padding: 6px 0; position: relative; }
+  .navlink[data-active="true"]::after{
+    content:''; position:absolute; left:0; right:0; bottom:-18px; height:2px; background: var(--ink);
+  }
+
+  /* Tweaks panel */
+  .tweaks {
+    position: fixed; right: 20px; bottom: 20px; z-index: 60;
+    background: var(--paper); border: 1px solid var(--rule-strong);
+    border-radius: 14px; width: 300px; box-shadow: 0 12px 40px -10px rgba(0,0,0,.18);
+    padding: 16px;
+  }
+  .swatch { width: 22px; height: 22px; border-radius: 999px; border: 1px solid var(--rule-strong); cursor:pointer; }
+  .swatch[data-active="true"] { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+  details > summary { list-style: none; cursor: pointer; }
+  details > summary::-webkit-details-marker { display: none; }
+
+  /* Highlight "scraped" field */
+  .scraped { position: relative; }
+  .scraped::before {
+    content: 'Redfin'; position: absolute; top: -1px; right: 0;
+    font-size: 9px; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--accent); font-weight: 600;
+  }
+</style>
+</head>
+<body class="min-h-screen">
+<div id="root"></div>
+
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useMemo, useRef, createContext, useContext } = React;
+
+/* ---------- seed data ---------- */
+const SEED_PROPERTIES = [
+  {
+    id: 'p1',
+    name: '31 West Ln',
+    address: '31 West Ln',
+    city: 'Winooski', state: 'VT', zip: '05404',
+    price: 699000, beds: 10, baths: 4, sqft: 3100, year: 1900, type: 'Single Family',
+    rentalType: 'STR',
+    inPortfolio: true,
+    monthlyCashflow: -1672,
+    cocReturn: -10.0,
+    capRate: 3.4,
+    breakEvenOcc: 72,
+    dscr: 0.71,
+    grossYield: 11.2,
+    noi: 23800,
+    image: 'multi-unit',
+    notes: 'Listing taxes are likely homestead. Needs nonhomestead verification.',
+    scenarios: [
+      { id:'s1', name:'Conventional 25%', active: true,  price: 699000, down: 25, rate: 7.25, term: 30, closing: 3, reno: 8000, furniture: 35000 },
+      { id:'s2', name:'DSCR 30%',        active: false, price: 699000, down: 30, rate: 7.85, term: 30, closing: 3, reno: 8000, furniture: 35000 },
+    ],
+    revenue: {
+      avgNightly: 285, occupancy: 62, stayLength: 3.2, platformFee: 3, mgmt: 0,
+      cleaningFee: 140, cleaningCost: 90,
+      peakMonths: 6, peakOcc: 80, offPeakOcc: 45, seasonal: true,
+    },
+    expenses: {
+      utilities: 320, insurance: 3200, supplies: 60, lawn: 120, software: 45, marketing: 60,
+      maintenance: 4, capex: 5, damage: 1,
+      accounting: 1800, legal: 400,
+    }
+  },
+  {
+    id: 'p2',
+    name: '5 Lapointe St',
+    address: '5 Lapointe St',
+    city: 'Winooski', state: 'VT', zip: '05404',
+    price: 433000, beds: 3, baths: 1.5, sqft: 1419, year: 1950, type: 'Single Family',
+    rentalType: 'STR',
+    inPortfolio: true,
+    monthlyCashflow: -50,
+    cocReturn: -0.5,
+    capRate: 5.6,
+    breakEvenOcc: 58,
+    dscr: 0.97,
+    grossYield: 13.4,
+    noi: 24240,
+    image: 'cape',
+    notes: '',
+    scenarios: [
+      { id:'s3', name:'Conventional 20%', active: true, price: 433000, down: 20, rate: 7.10, term: 30, closing: 3, reno: 5000, furniture: 22000 },
+    ],
+    revenue: {
+      avgNightly: 180, occupancy: 68, stayLength: 2.8, platformFee: 3, mgmt: 0,
+      cleaningFee: 110, cleaningCost: 75,
+      peakMonths: 5, peakOcc: 82, offPeakOcc: 50, seasonal: true,
+    },
+    expenses: {
+      utilities: 220, insurance: 1900, supplies: 40, lawn: 80, software: 45, marketing: 40,
+      maintenance: 4, capex: 5, damage: 1,
+      accounting: 1500, legal: 300,
+    }
+  },
+  {
+    id: 'p3',
+    name: '148 Maple St',
+    address: '148 Maple St',
+    city: 'Burlington', state: 'VT', zip: '05401',
+    price: 589000, beds: 4, baths: 2, sqft: 2100, year: 1925, type: 'Duplex',
+    rentalType: 'STR',
+    inPortfolio: false,
+    monthlyCashflow: 412,
+    cocReturn: 3.8,
+    capRate: 6.2,
+    breakEvenOcc: 49,
+    dscr: 1.18,
+    grossYield: 14.8,
+    noi: 36400,
+    image: 'duplex',
+    notes: '',
+    scenarios: [
+      { id:'s4', name:'Conventional 25%', active: true, price: 589000, down: 25, rate: 7.00, term: 30, closing: 3, reno: 12000, furniture: 28000 },
+    ],
+    revenue: {
+      avgNightly: 225, occupancy: 74, stayLength: 3.0, platformFee: 3, mgmt: 0,
+      cleaningFee: 125, cleaningCost: 85,
+      peakMonths: 6, peakOcc: 86, offPeakOcc: 58, seasonal: true,
+    },
+    expenses: {
+      utilities: 280, insurance: 2400, supplies: 55, lawn: 100, software: 45, marketing: 55,
+      maintenance: 4, capex: 5, damage: 1,
+      accounting: 1600, legal: 350,
+    }
+  },
+];
+
+/* ---------- formatting ---------- */
+const fmt$ = (v, opts={}) => {
+  const { signed=false, frac=0 } = opts;
+  const abs = Math.abs(v);
+  const s = '$' + abs.toLocaleString('en-US', { minimumFractionDigits: frac, maximumFractionDigits: frac });
+  return (v<0 ? '−' : (signed && v>0 ? '+' : '')) + s;
+};
+const fmtPct = (v, frac=1) => (v>=0 ? '' : '−') + Math.abs(v).toFixed(frac) + '%';
+const signClass = (v, pos='text-accent', neg='text-negative') => v>=0 ? pos : neg;
+
+/* ---------- App ---------- */
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "theme": "light",
+  "accent": "teal",
+  "density": "comfortable",
+  "listView": "rows",
+  "serifHero": true
+}/*EDITMODE-END*/;
+
+const Ctx = createContext(null);
+
+function App() {
+  const [route, setRoute] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('ledger:route')||'null') || {view:'dashboard'}; }
+    catch { return {view:'dashboard'}; }
+  });
+  const [tweaks, setTweaks] = useState(TWEAK_DEFAULTS);
+  const [tweakOpen, setTweakOpen] = useState(false);
+  const [properties, setProperties] = useState(SEED_PROPERTIES);
+
+  useEffect(()=>{ localStorage.setItem('ledger:route', JSON.stringify(route)); }, [route]);
+
+  // Apply tweaks -> root attrs
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.toggle('dark', tweaks.theme === 'dark');
+    const accents = {
+      teal:   ['oklch(0.46 0.085 175)', 'oklch(0.93 0.035 175)'],
+      indigo: ['oklch(0.48 0.14 275)',  'oklch(0.94 0.03 275)'],
+      ember:  ['oklch(0.56 0.15 45)',   'oklch(0.94 0.04 55)'],
+      ink:    ['oklch(0.22 0.01 255)',  'oklch(0.92 0.005 255)'],
+    };
+    const [a, s] = accents[tweaks.accent] || accents.teal;
+    root.style.setProperty('--accent', a);
+    root.style.setProperty('--accent-soft', s);
+  }, [tweaks]);
+
+  // Edit mode protocol
+  useEffect(() => {
+    function onMsg(e){
+      const d = e.data;
+      if (!d || typeof d !== 'object') return;
+      if (d.type === '__activate_edit_mode') setTweakOpen(true);
+      if (d.type === '__deactivate_edit_mode') setTweakOpen(false);
+    }
+    window.addEventListener('message', onMsg);
+    window.parent?.postMessage({type:'__edit_mode_available'}, '*');
+    return () => window.removeEventListener('message', onMsg);
+  }, []);
+
+  const applyTweak = (patch) => {
+    setTweaks(prev => ({...prev, ...patch}));
+    window.parent?.postMessage({type:'__edit_mode_set_keys', edits: patch}, '*');
+  };
+
+  const updateProperty = (id, patch) => {
+    setProperties(prev => prev.map(p => p.id === id ? {...p, ...patch} : p));
+  };
+
+  const ctx = { route, setRoute, tweaks, applyTweak, properties, updateProperty };
+
+  return (
+    <Ctx.Provider value={ctx}>
+      <div className="bg-canvas text-ink min-h-screen">
+        <TopNav />
+        <main className="max-w-[1280px] mx-auto px-10 pt-6 pb-24" data-screen-label={screenLabel(route)}>
+          {route.view === 'dashboard' && <Dashboard />}
+          {route.view === 'property'  && <PropertyDetail id={route.id} />}
+          {route.view === 'glossary'  && <Glossary />}
+          {route.view === 'settings'  && <Settings />}
+          {route.view === 'compare'   && <Compare ids={route.ids} />}
+        </main>
+        {tweakOpen && <Tweaks tweaks={tweaks} onChange={applyTweak} onClose={()=>setTweakOpen(false)} />}
+      </div>
+    </Ctx.Provider>
+  );
+}
+
+function screenLabel(route){
+  if (route.view === 'dashboard') return '01 Dashboard';
+  if (route.view === 'property')  return '02 Property Detail';
+  if (route.view === 'glossary')  return '03 Glossary';
+  if (route.view === 'settings')  return '04 Settings';
+  if (route.view === 'compare')   return '05 Compare';
+  return route.view;
+}
+
+/* ---------- Top Nav ---------- */
+function TopNav(){
+  const { route, setRoute, tweaks, applyTweak } = useContext(Ctx);
+  const is = (v) => route.view === v;
+  return (
+    <header className="border-b border-rule bg-canvas sticky top-0 z-40">
+      <div className="max-w-[1280px] mx-auto px-10 h-16 flex items-center justify-between">
+        <button onClick={()=>setRoute({view:'dashboard'})} className="flex items-baseline gap-3 focus-ring rounded">
+          <span className="serif text-[22px] leading-none">Ledger</span>
+          <span className="caps text-ink-3">STR/LTR</span>
+        </button>
+        <nav className="flex items-center gap-10 text-[13px] text-ink-2">
+          <button className="navlink" data-active={is('dashboard')||is('property')||is('compare')} onClick={()=>setRoute({view:'dashboard'})}>Properties</button>
+          <button className="navlink" data-active={is('glossary')}  onClick={()=>setRoute({view:'glossary'})}>Glossary</button>
+          <button className="navlink" data-active={is('settings')}  onClick={()=>setRoute({view:'settings'})}>Settings</button>
+          <span className="w-px h-5 bg-[color:var(--rule)] mx-2" />
+          <button
+            aria-label="Toggle theme"
+            onClick={()=>applyTweak({theme: tweaks.theme === 'dark' ? 'light' : 'dark'})}
+            className="text-ink-3 hover:text-ink">
+            {tweaks.theme === 'dark' ? <IconSun/> : <IconMoon/>}
+          </button>
+        </nav>
+      </div>
+    </header>
+  );
+}
+
+/* ---------- Dashboard ---------- */
+function Dashboard(){
+  const { properties, setRoute, tweaks } = useContext(Ctx);
+  const [filter, setFilter] = useState('all');
+  const [sort, setSort] = useState('default');
+  const [query, setQuery] = useState('');
+  const [selected, setSelected] = useState(new Set());
+  const [showNew, setShowNew] = useState(false);
+
+  const portfolio = useMemo(()=> properties.filter(p=>p.inPortfolio), [properties]);
+  const avgCF = useMemo(()=> portfolio.length ? portfolio.reduce((a,b)=>a+b.monthlyCashflow,0)/portfolio.length : 0, [portfolio]);
+  const bestCoC = useMemo(()=> portfolio.length ? Math.max(...portfolio.map(p=>p.cocReturn)) : 0, [portfolio]);
+  const totalInvested = useMemo(()=> portfolio.reduce((a,b)=>a+b.price,0), [portfolio]);
+  const avgCap = useMemo(()=> portfolio.length ? portfolio.reduce((a,b)=>a+b.capRate,0)/portfolio.length : 0, [portfolio]);
+
+  const shown = useMemo(() => {
+    let list = properties;
+    if (filter === 'in')  list = list.filter(p => p.inPortfolio);
+    if (filter === 'out') list = list.filter(p => !p.inPortfolio);
+    if (query.trim()) {
+      const q = query.toLowerCase();
+      list = list.filter(p => (p.name+p.city+p.state).toLowerCase().includes(q));
+    }
+    if (sort === 'cf_desc') list = [...list].sort((a,b)=>b.monthlyCashflow - a.monthlyCashflow);
+    if (sort === 'cf_asc')  list = [...list].sort((a,b)=>a.monthlyCashflow - b.monthlyCashflow);
+    if (sort === 'coc_desc') list = [...list].sort((a,b)=>b.cocReturn - a.cocReturn);
+    return list;
+  }, [properties, filter, sort, query]);
+
+  const toggleSel = (id) => setSelected(p => {
+    const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n;
+  });
+
+  return (
+    <div className="fade-up">
+      {/* Hero portfolio summary */}
+      <section className="mb-12 pt-4">
+        <div className="flex items-start justify-between gap-8">
+          <div className="max-w-xl">
+            <p className="caps text-ink-3 mb-3">Your Portfolio · April 2026</p>
+            <h1 className="serif text-[56px] leading-[0.98] tracking-tight mb-4">
+              {portfolio.length} active {portfolio.length === 1 ? 'property' : 'properties'} across <em className="italic">{new Set(portfolio.map(p=>p.city)).size || 1}</em> markets.
+            </h1>
+            <p className="text-[15px] text-ink-2 max-w-md leading-relaxed">
+              A calm, at-a-glance view of how your short- and long-term rentals are performing this quarter.
+            </p>
+          </div>
+
+          {/* Right-side data block */}
+          <div className="flex-1 max-w-[520px]">
+            <div className="grid grid-cols-2 gap-0 border-t border-rule-strong">
+              <HeroStat label="Avg Monthly Cashflow" value={fmt$(Math.round(avgCF), {signed:true})} emphasize signed={avgCF}/>
+              <HeroStat label="Best Cash-on-Cash" value={fmtPct(bestCoC)} signed={bestCoC} border />
+              <HeroStat label="Avg Cap Rate" value={fmtPct(avgCap)} />
+              <HeroStat label="Total Invested" value={fmt$(totalInvested)} border />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Toolbar */}
+      <div className="flex items-end justify-between mb-5 gap-6 flex-wrap">
+        <div className="flex items-end gap-8">
+          <h2 className="serif text-[28px] leading-none">
+            All properties
+            <span className="text-ink-3 ml-3 text-[15px] align-middle font-sans tnum">({properties.length})</span>
+          </h2>
+          <div className="seg mb-1">
+            {[['all','All'],['in','In portfolio'],['out','Pipeline']].map(([v,l])=>(
+              <button key={v} data-active={filter===v} onClick={()=>setFilter(v)}>{l}</button>
+            ))}
+          </div>
+        </div>
+        <div className="flex items-center gap-3 mb-1">
+          <div className="relative">
+            <IconSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-3" />
+            <input
+              value={query}
+              onChange={(e)=>setQuery(e.target.value)}
+              placeholder="Search address or city"
+              className="pl-9 pr-3 h-9 rounded-full bg-paper border border-rule-strong text-[13px] focus-ring w-[220px]"
+            />
+          </div>
+          <select
+            value={sort}
+            onChange={(e)=>setSort(e.target.value)}
+            className="h-9 px-3 rounded-full bg-paper border border-rule-strong text-[13px] focus-ring">
+            <option value="default">Sort · Default</option>
+            <option value="cf_desc">Cashflow ↓</option>
+            <option value="cf_asc">Cashflow ↑</option>
+            <option value="coc_desc">Cash-on-Cash ↓</option>
+          </select>
+          {selected.size >= 2 && (
+            <button
+              onClick={()=>setRoute({view:'compare', ids: [...selected]})}
+              className="h-9 px-4 rounded-full bg-paper border border-ink text-[13px] font-medium">
+              Compare ({selected.size})
+            </button>
+          )}
+          <button
+            onClick={()=>setShowNew(true)}
+            className="h-9 px-4 rounded-full bg-[color:var(--ink)] text-[color:var(--canvas)] text-[13px] font-medium">
+            + Add property
+          </button>
+        </div>
+      </div>
+
+      {showNew && <AddPropertyForm onClose={()=>setShowNew(false)} />}
+
+      {/* List */}
+      {tweaks.listView === 'rows' ? (
+        <PropertyList items={shown} selected={selected} onToggleSel={toggleSel} />
+      ) : (
+        <PropertyCards items={shown} selected={selected} onToggleSel={toggleSel} />
+      )}
+
+      {shown.length === 0 && (
+        <div className="text-center py-20 border border-dashed border-rule-strong rounded-2xl">
+          <p className="serif text-[26px] mb-2">No properties match</p>
+          <p className="text-ink-3 text-sm">Try widening the filter or clearing search.</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function HeroStat({label, value, border, emphasize, signed}) {
+  const cls = signed !== undefined ? signClass(signed) : 'text-ink';
+  return (
+    <div className={`py-5 ${border ? 'border-l border-rule' : ''} px-5 ${border ? '' : 'pl-0'}`}>
+      <div className="caps text-ink-3 mb-2">{label}</div>
+      <div className={`${emphasize ? 'metric-lg':'text-[28px] font-semibold tnum tracking-tight'} ${cls}`}>
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function PropertyList({ items, selected, onToggleSel }){
+  const { setRoute, updateProperty, tweaks } = useContext(Ctx);
+  const dense = tweaks.density === 'compact';
+  return (
+    <div className="border-t border-b border-rule">
+      {/* Column headers */}
+      <div className={`grid grid-cols-[32px_minmax(280px,2.2fr)_1fr_1fr_1fr_1fr_1fr_40px] gap-6 caps text-ink-3 ${dense?'py-2':'py-3'} border-b border-rule`}>
+        <span></span>
+        <span>Property</span>
+        <span className="text-right">Listing</span>
+        <span className="text-right">Cashflow</span>
+        <span className="text-right">Cash-on-Cash</span>
+        <span className="text-right">Cap</span>
+        <span className="text-right">Break-even</span>
+        <span></span>
+      </div>
+      {items.map((p, i) => (
+        <PropertyRow key={p.id}
+          p={p}
+          i={i}
+          dense={dense}
+          selected={selected.has(p.id)}
+          onToggleSel={()=>onToggleSel(p.id)}
+          onOpen={()=>setRoute({view:'property', id: p.id})}
+          onTogglePortfolio={()=>updateProperty(p.id, {inPortfolio: !p.inPortfolio})}
+        />
+      ))}
+    </div>
+  );
+}
+
+function PropertyRow({ p, i, dense, selected, onToggleSel, onOpen, onTogglePortfolio }){
+  return (
+    <div
+      className={`grid grid-cols-[32px_minmax(280px,2.2fr)_1fr_1fr_1fr_1fr_1fr_40px] gap-6 items-center ${dense?'py-3':'py-5'} border-b border-rule hover:bg-paper cursor-pointer group`}
+      onClick={onOpen}
+      style={{animationDelay: `${i*40}ms`}}
+    >
+      <div onClick={(e)=>{e.stopPropagation(); onToggleSel();}} className="flex justify-center">
+        <span className={`w-4 h-4 rounded border ${selected ? 'bg-[color:var(--ink)] border-[color:var(--ink)]' : 'border-rule-strong bg-paper'} flex items-center justify-center`}>
+          {selected && <svg width="10" height="10" viewBox="0 0 10 10"><path d="M1.5 5.2l2.2 2.2L8.5 2.2" fill="none" stroke="var(--canvas)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+        </span>
+      </div>
+      <div className="flex items-center gap-4 min-w-0">
+        <div className="w-14 h-14 rounded-md overflow-hidden shrink-0 border border-rule">
+          <PropertyThumb kind={p.image} />
+        </div>
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-[15px] truncate">{p.name}</span>
+            <RentalBadge type={p.rentalType} />
+            {p.inPortfolio && <span className="text-[10px] caps text-accent">In portfolio</span>}
+          </div>
+          <div className="text-ink-3 text-[12px] truncate mt-0.5">
+            {p.city}, {p.state} · {p.beds} bd · {p.baths} ba · {p.sqft.toLocaleString()} sqft
+          </div>
+        </div>
+      </div>
+      <div className="text-right tnum text-[15px]">{fmt$(p.price)}</div>
+      <div className={`text-right tnum text-[15px] font-semibold ${signClass(p.monthlyCashflow)}`}>
+        {fmt$(p.monthlyCashflow, {signed:true})}<span className="text-ink-3 font-normal">/mo</span>
+      </div>
+      <div className={`text-right tnum text-[15px] font-semibold ${signClass(p.cocReturn)}`}>{fmtPct(p.cocReturn)}</div>
+      <div className="text-right tnum text-[15px]">{fmtPct(p.capRate)}</div>
+      <div className="text-right tnum text-[15px]">
+        <OccupancyGauge value={p.revenue.occupancy} target={p.breakEvenOcc} />
+      </div>
+      <div className="flex justify-center" onClick={(e)=>e.stopPropagation()}>
+        <button onClick={onTogglePortfolio} className="text-ink-3 hover:text-accent p-1" title={p.inPortfolio?'Remove from portfolio':'Add to portfolio'}>
+          {p.inPortfolio ? <IconStarFill/> : <IconStar/>}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function PropertyCards({ items, selected, onToggleSel }){
+  const { setRoute, updateProperty } = useContext(Ctx);
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {items.map(p => (
+        <article key={p.id} className="bg-paper border border-rule rounded-2xl overflow-hidden group cursor-pointer hover:border-[color:var(--ink)] transition-colors"
+          onClick={()=>setRoute({view:'property', id: p.id})}>
+          <div className="aspect-[16/10] relative">
+            <PropertyThumb kind={p.image} />
+            <label className="absolute top-3 left-3 w-5 h-5 bg-paper border border-rule-strong rounded flex items-center justify-center" onClick={(e)=>{e.stopPropagation(); onToggleSel(p.id);}}>
+              {selected.has(p.id) && <svg width="12" height="12" viewBox="0 0 10 10"><path d="M1.5 5.2l2.2 2.2L8.5 2.2" fill="none" stroke="var(--ink)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+            </label>
+            <RentalBadge type={p.rentalType} className="absolute top-3 right-3 bg-paper/90" />
+          </div>
+          <div className="p-5">
+            <div className="flex items-baseline justify-between mb-1">
+              <h3 className="serif text-[22px] leading-none">{p.name}</h3>
+              <span className="tnum text-[15px]">{fmt$(p.price)}</span>
+            </div>
+            <p className="text-ink-3 text-[12px] mb-4">{p.city}, {p.state} · {p.beds} bd · {p.baths} ba</p>
+            <div className="grid grid-cols-2 gap-4 border-t border-rule pt-4">
+              <div>
+                <div className="caps text-ink-3 mb-1">Cashflow</div>
+                <div className={`tnum font-semibold ${signClass(p.monthlyCashflow)}`}>{fmt$(p.monthlyCashflow, {signed:true})}/mo</div>
+              </div>
+              <div>
+                <div className="caps text-ink-3 mb-1">CoC Return</div>
+                <div className={`tnum font-semibold ${signClass(p.cocReturn)}`}>{fmtPct(p.cocReturn)}</div>
+              </div>
+            </div>
+          </div>
+        </article>
+      ))}
+    </div>
+  );
+}
+
+/* ---------- Property Thumb (placeholder art) ---------- */
+function PropertyThumb({kind}){
+  // Abstract stripe placeholder with subtle glyph, no fake photography
+  const hue = { 'multi-unit': 210, 'cape': 30, 'duplex': 175 }[kind] ?? 200;
+  return (
+    <div className="w-full h-full relative" style={{background: `oklch(0.92 0.018 ${hue})`}}>
+      <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 60" preserveAspectRatio="xMidYMid slice" aria-hidden>
+        <defs>
+          <pattern id={`hatch-${hue}`} patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(45)">
+            <line x1="0" y1="0" x2="0" y2="6" stroke={`oklch(0.82 0.02 ${hue})`} strokeWidth="1"/>
+          </pattern>
+        </defs>
+        <rect width="100" height="60" fill={`url(#hatch-${hue})`} opacity="0.6"/>
+        {kind === 'multi-unit' && (
+          <g fill={`oklch(0.35 0.04 ${hue})`}>
+            <rect x="18" y="22" width="22" height="32"/>
+            <rect x="42" y="18" width="18" height="36"/>
+            <rect x="62" y="24" width="20" height="30"/>
+            <g fill={`oklch(0.88 0.02 ${hue})`}>
+              <rect x="22" y="28" width="4" height="5"/><rect x="32" y="28" width="4" height="5"/>
+              <rect x="46" y="24" width="4" height="5"/><rect x="55" y="24" width="4" height="5"/>
+              <rect x="66" y="30" width="4" height="5"/><rect x="76" y="30" width="4" height="5"/>
+            </g>
+          </g>
+        )}
+        {kind === 'cape' && (
+          <g fill={`oklch(0.38 0.04 ${hue})`}>
+            <polygon points="30,28 50,16 70,28"/>
+            <rect x="34" y="28" width="32" height="24"/>
+            <rect x="46" y="38" width="8" height="14" fill={`oklch(0.88 0.02 ${hue})`}/>
+            <rect x="38" y="32" width="6" height="5" fill={`oklch(0.88 0.02 ${hue})`}/>
+            <rect x="56" y="32" width="6" height="5" fill={`oklch(0.88 0.02 ${hue})`}/>
+          </g>
+        )}
+        {kind === 'duplex' && (
+          <g fill={`oklch(0.36 0.04 ${hue})`}>
+            <polygon points="22,30 42,18 62,30 82,30 62,18 "/>
+            <rect x="22" y="30" width="40" height="22"/>
+            <rect x="62" y="30" width="20" height="22"/>
+            <g fill={`oklch(0.88 0.02 ${hue})`}>
+              <rect x="28" y="34" width="6" height="6"/><rect x="38" y="34" width="6" height="6"/>
+              <rect x="50" y="34" width="6" height="6"/><rect x="66" y="34" width="6" height="6"/>
+            </g>
+          </g>
+        )}
+      </svg>
+    </div>
+  );
+}
+
+function RentalBadge({type, className=''}){
+  return <span className={`caps px-2 py-0.5 border border-rule-strong rounded ${className}`}>{type}</span>;
+}
+
+function OccupancyGauge({value, target}){
+  const pct = Math.max(0, Math.min(100, value));
+  const good = value >= target;
+  return (
+    <div className="inline-flex items-center gap-2">
+      <span className="tnum">{value}%</span>
+      <div className="w-14 h-[6px] bg-[color:var(--rule)] rounded-full overflow-hidden relative">
+        <div className={`h-full rounded-full ${good?'bg-accent':'bg-[color:var(--negative)]'}`} style={{width:`${pct}%`}} />
+        <div className="absolute top-[-2px] w-px h-[10px] bg-[color:var(--ink)]" style={{left:`${target}%`}} />
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Add property ---------- */
+function AddPropertyForm({onClose}){
+  const [url, setUrl] = useState('');
+  const [name, setName] = useState('');
+  const [price, setPrice] = useState('');
+  const [loading, setLoading] = useState(false);
+  return (
+    <div className="bg-paper border border-rule rounded-2xl p-6 mb-6 fade-up">
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h3 className="serif text-[24px] leading-none">Add a property</h3>
+          <p className="text-ink-3 text-[13px] mt-1">Paste a Redfin URL to auto-populate details, or enter manually.</p>
+        </div>
+        <button onClick={onClose} className="text-ink-3 hover:text-ink text-sm">Close</button>
+      </div>
+      <div className="grid md:grid-cols-[1fr_auto] gap-3 mb-5">
+        <input value={url} onChange={(e)=>setUrl(e.target.value)} placeholder="https://redfin.com/..."
+          className="field !border-b-2" />
+        <button
+          disabled={!url || loading}
+          onClick={()=>{ setLoading(true); setTimeout(()=>{ setLoading(false); onClose(); }, 900); }}
+          className="h-10 px-5 rounded-full bg-[color:var(--ink)] text-[color:var(--canvas)] text-[13px] font-medium disabled:opacity-40">
+          {loading ? 'Fetching…' : 'Fetch from Redfin'}
+        </button>
+      </div>
+      <div className="flex items-center gap-4 my-5 text-ink-3 text-[12px]">
+        <div className="flex-1 hairline" />
+        <span className="caps">or enter manually</span>
+        <div className="flex-1 hairline" />
+      </div>
+      <div className="grid md:grid-cols-[2fr_1fr_auto] gap-6">
+        <div>
+          <label className="field-label">Property name</label>
+          <input value={name} onChange={(e)=>setName(e.target.value)} className="field" placeholder='e.g. "Lake House"' />
+        </div>
+        <div>
+          <label className="field-label">Listing price</label>
+          <input value={price} onChange={(e)=>setPrice(e.target.value)} className="field" placeholder="$0" />
+        </div>
+        <div className="flex items-end">
+          <button
+            onClick={onClose}
+            className="h-10 px-5 rounded-full bg-paper border border-rule-strong text-[13px] font-medium">
+            Create manually
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ==================================================================
+   PROPERTY DETAIL
+   ================================================================== */
+function PropertyDetail({id}){
+  const { properties, setRoute, updateProperty } = useContext(Ctx);
+  const p = properties.find(x => x.id === id) || properties[0];
+  const [tab, setTab] = useState('info');
+
+  return (
+    <div className="fade-up">
+      {/* breadcrumb */}
+      <button onClick={()=>setRoute({view:'dashboard'})} className="text-ink-3 hover:text-ink text-[13px] mb-4 inline-flex items-center gap-1.5">
+        <IconArrowLeft/> All properties
+      </button>
+
+      {/* header */}
+      <header className="flex items-end justify-between gap-8 mb-8">
+        <div>
+          <div className="flex items-center gap-3 mb-2">
+            <RentalBadge type={p.rentalType} />
+            {p.inPortfolio && <span className="caps text-accent">In portfolio</span>}
+          </div>
+          <h1 className="serif text-[56px] leading-[0.98] mb-2">{p.name}</h1>
+          <p className="text-ink-2 text-[15px]">
+            {p.address}, {p.city}, {p.state} {p.zip} · <span className="text-ink-3">{p.type} · Built {p.year}</span>
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button className="h-9 px-4 rounded-full bg-paper border border-rule-strong text-[13px] font-medium">Duplicate</button>
+          <button onClick={()=>updateProperty(p.id, {inPortfolio: !p.inPortfolio})}
+            className="h-9 px-4 rounded-full bg-paper border border-rule-strong text-[13px] font-medium inline-flex items-center gap-2">
+            {p.inPortfolio ? <><IconStarFill/> In portfolio</> : <><IconStar/> Add to portfolio</>}
+          </button>
+        </div>
+      </header>
+
+      {/* Metric strip (live results preview) */}
+      <MetricStrip p={p} />
+
+      {/* Tabs */}
+      <nav className="flex items-center gap-8 border-b border-rule-strong mt-10 mb-8">
+        {[['info','Property Info'],['financing','Financing'],['revenue','Revenue & Expenses'],['results','Results']].map(([v,l])=>(
+          <button key={v}
+            onClick={()=>setTab(v)}
+            className="py-3 text-[14px] font-medium tab-underline"
+            data-active={tab===v}
+            style={{color: tab===v ? 'var(--ink)' : 'var(--ink-3)'}}>
+            {l}
+          </button>
+        ))}
+      </nav>
+
+      {tab === 'info'      && <PropertyInfoTab p={p} onUpdate={(patch)=>updateProperty(p.id,patch)} />}
+      {tab === 'financing' && <FinancingTab p={p} onUpdate={(patch)=>updateProperty(p.id,patch)} />}
+      {tab === 'revenue'   && <RevenueTab p={p} onUpdate={(patch)=>updateProperty(p.id,patch)} />}
+      {tab === 'results'   && <ResultsTab p={p} />}
+    </div>
+  );
+}
+
+function MetricStrip({p}){
+  return (
+    <section className="grid grid-cols-2 md:grid-cols-4 gap-0 border-t border-b border-rule-strong">
+      <StripMetric label="Monthly Cashflow" value={fmt$(p.monthlyCashflow, {signed:true})} emphasis signed={p.monthlyCashflow}/>
+      <StripMetric label="Cash-on-Cash"     value={fmtPct(p.cocReturn)} border signed={p.cocReturn}/>
+      <StripMetric label="Cap Rate"         value={fmtPct(p.capRate)} border sub="NOI ÷ price"/>
+      <StripMetric label="DSCR"             value={p.dscr.toFixed(2)} border sub={p.dscr>=1 ? 'passes 1.0×' : 'below 1.0×'} signed={p.dscr-1}/>
+    </section>
+  );
+}
+
+function StripMetric({label, value, border, sub, signed, emphasis}){
+  const cls = signed !== undefined ? signClass(signed) : 'text-ink';
+  return (
+    <div className={`${border?'border-l border-rule':''} px-6 py-6`}>
+      <div className="caps text-ink-3 mb-3">{label}</div>
+      <div className={`${emphasis?'metric-lg':'text-[32px] font-semibold tnum leading-none tracking-tight'} ${cls}`}>{value}</div>
+      {sub && <div className="text-ink-3 text-[12px] mt-2">{sub}</div>}
+    </div>
+  );
+}
+
+/* ---------- Property Info Tab ---------- */
+function PropertyInfoTab({p, onUpdate}){
+  const [warn, setWarn] = useState(true);
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] gap-10">
+      <div className="space-y-10">
+        {warn && (
+          <div className="border border-[color:var(--warn)] bg-warn-soft rounded-xl p-4 flex items-start gap-3">
+            <div className="mt-0.5"><IconAlert/></div>
+            <div className="flex-1">
+              <div className="font-semibold text-[14px] mb-1 text-ink">Listing taxes likely at the homestead rate</div>
+              <p className="text-ink-2 text-[13px] leading-relaxed">
+                STR investment properties in Vermont are taxed at the higher nonhomestead rate. Enter actual nonhomestead taxes below, or look them up on the VT Dept of Taxes site.
+              </p>
+            </div>
+            <button onClick={()=>setWarn(false)} className="text-ink-3 hover:text-ink text-sm">Dismiss</button>
+          </div>
+        )}
+
+        <FormSection title="Location" subtitle="Where the property sits.">
+          <Field label="Address" scraped value={p.address} />
+          <Field label="City" scraped value={p.city} />
+          <Field label="State" scraped value={p.state} />
+          <Field label="Zip" scraped value={p.zip} />
+        </FormSection>
+
+        <FormSection title="Details" subtitle="Physical attributes from the listing.">
+          <Field label="Bedrooms" scraped value={p.beds} />
+          <Field label="Bathrooms" scraped value={p.baths} />
+          <Field label="Square feet" scraped value={p.sqft.toLocaleString()} />
+          <Field label="Year built" scraped value={p.year} />
+          <Field label="Property type" value={p.type} />
+          <Field label="Rental type" value={p.rentalType} />
+        </FormSection>
+
+        <FormSection title="Financials" subtitle="Baseline numbers used across scenarios.">
+          <Field label="Listing price" scraped value={'$' + p.price.toLocaleString()} />
+          <Field label="Estimated value" placeholder="Not found — enter manually" />
+          <Field label="Annual taxes (listing)" scraped value="$7,963.03" />
+          <Field label="Non-homestead annual taxes" placeholder="$ —" />
+          <Field label="HOA (monthly)" placeholder="Not found — enter manually" />
+          <Field label="Source URL" value="redfin.com/VT/Winooski/31-West-Ln" />
+        </FormSection>
+
+        <FormSection title="Notes" subtitle="Free-form observations.">
+          <div className="col-span-2">
+            <textarea defaultValue={p.notes} placeholder="Thoughts on this property…"
+              className="w-full field min-h-[120px] py-2" />
+          </div>
+        </FormSection>
+      </div>
+
+      {/* Side panel: scrape status */}
+      <aside className="space-y-6">
+        <div className="bg-paper border border-rule rounded-2xl p-5">
+          <div className="caps text-ink-3 mb-2">Import status</div>
+          <div className="flex items-center gap-2 mb-4">
+            <span className="w-2 h-2 rounded-full bg-accent"></span>
+            <span className="text-[14px]">Populated from Redfin</span>
+          </div>
+          <div className="text-[13px] text-ink-2 leading-relaxed mb-4">
+            11 of 14 fields auto-filled. Review highlighted fields before calculating.
+          </div>
+          <div className="space-y-2 text-[13px]">
+            <ScrapeRow label="Address"     ok/>
+            <ScrapeRow label="Beds/baths"  ok/>
+            <ScrapeRow label="Listing price" ok/>
+            <ScrapeRow label="Annual taxes" ok />
+            <ScrapeRow label="Estimated value" ok={false} />
+            <ScrapeRow label="HOA" ok={false}/>
+          </div>
+          <a href="#" onClick={(e)=>e.preventDefault()} className="mt-4 inline-block text-[13px] text-accent underline underline-offset-2">View source listing →</a>
+        </div>
+
+        <div className="bg-paper border border-rule rounded-2xl p-5">
+          <div className="caps text-ink-3 mb-2">Shortcut</div>
+          <div className="text-[14px] leading-relaxed">Happy with the info? Jump to <button className="underline underline-offset-2">Financing</button> to build scenarios.</div>
+        </div>
+      </aside>
+    </div>
+  );
+}
+
+function ScrapeRow({label, ok}){
+  return (
+    <div className="flex items-center justify-between">
+      <span className="text-ink-2">{label}</span>
+      <span className={ok ? 'text-accent' : 'text-[color:var(--warn)]'}>
+        {ok ? '✓ imported' : '○ missing'}
+      </span>
+    </div>
+  );
+}
+
+function FormSection({title, subtitle, children}){
+  return (
+    <section className="grid grid-cols-1 md:grid-cols-[200px_minmax(0,1fr)] gap-8">
+      <div>
+        <h3 className="serif text-[22px] leading-none mb-2">{title}</h3>
+        {subtitle && <p className="text-ink-3 text-[13px] leading-snug">{subtitle}</p>}
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-5">
+        {children}
+      </div>
+    </section>
+  );
+}
+
+function Field({label, value='', placeholder='', scraped=false, hint, suffix, prefix, onChange}){
+  const [v, setV] = useState(value);
+  useEffect(()=>setV(value), [value]);
+  return (
+    <div className={scraped ? 'scraped' : ''}>
+      <label className="field-label">{label}</label>
+      <div className="flex items-center">
+        {prefix && <span className="text-ink-3 mono text-[15px] mr-1">{prefix}</span>}
+        <input className="field" value={v} placeholder={placeholder}
+          onChange={(e)=>{ setV(e.target.value); onChange?.(e.target.value); }}/>
+        {suffix && <span className="text-ink-3 mono text-[15px] ml-1">{suffix}</span>}
+      </div>
+      {hint && <div className="text-ink-3 text-[12px] mt-1">{hint}</div>}
+    </div>
+  );
+}
+
+/* ---------- Financing Tab ---------- */
+function FinancingTab({p, onUpdate}){
+  const [activeId, setActiveId] = useState(p.scenarios.find(s=>s.active)?.id || p.scenarios[0].id);
+  const [scenarios, setScenarios] = useState(p.scenarios);
+  const active = scenarios.find(s => s.id === activeId) || scenarios[0];
+
+  const update = (patch) => {
+    setScenarios(prev => prev.map(s => s.id === active.id ? {...s, ...patch} : s));
+  };
+
+  const loanAmount = Math.round(active.price * (1 - active.down/100));
+  const monthlyPI = useMemo(()=>{
+    const r = active.rate/100/12;
+    const n = active.term*12;
+    if (r===0) return loanAmount/n;
+    return loanAmount * r / (1 - Math.pow(1+r, -n));
+  }, [active, loanAmount]);
+  const cashInvested = Math.round(active.price*active.down/100 + active.price*active.closing/100 + active.reno + active.furniture);
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-[280px_minmax(0,1fr)] gap-10">
+      {/* Scenario list */}
+      <aside>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="caps text-ink-3">Scenarios</h3>
+          <button
+            onClick={()=>{
+              const nid = 's'+Date.now();
+              const base = { ...active, id: nid, name: 'New scenario', active: false };
+              setScenarios([...scenarios, base]); setActiveId(nid);
+            }}
+            className="text-[12px] text-accent">+ New</button>
+        </div>
+        <div className="space-y-2">
+          {scenarios.map(s => (
+            <button key={s.id}
+              onClick={()=>setActiveId(s.id)}
+              className={`w-full text-left p-4 rounded-xl border transition-colors ${s.id===active.id ? 'border-[color:var(--ink)] bg-paper' : 'border-rule hover:border-rule-strong'}`}>
+              <div className="flex items-center justify-between mb-1">
+                <span className="font-semibold text-[14px]">{s.name}</span>
+                {s.active && <span className="caps text-accent">Primary</span>}
+              </div>
+              <div className="text-ink-3 text-[12px] tnum">
+                {s.down}% down · {s.rate}% · {s.term}y
+              </div>
+            </button>
+          ))}
+        </div>
+      </aside>
+
+      {/* Scenario editor */}
+      <div className="space-y-8">
+        <div className="flex items-baseline justify-between border-b border-rule pb-4">
+          <div>
+            <input value={active.name}
+              onChange={(e)=>update({name:e.target.value})}
+              className="serif text-[28px] leading-none bg-transparent border-0 focus:outline-none" />
+            <p className="text-ink-3 text-[13px] mt-1">Adjust assumptions to see the live impact on key metrics.</p>
+          </div>
+          <button
+            onClick={()=>{
+              setScenarios(scenarios.map(s => ({...s, active: s.id===active.id})));
+            }}
+            className={`h-9 px-4 rounded-full text-[13px] font-medium ${active.active ? 'bg-paper border border-rule-strong text-ink-2' : 'bg-[color:var(--ink)] text-[color:var(--canvas)]'}`}>
+            {active.active ? 'Primary scenario' : 'Make primary'}
+          </button>
+        </div>
+
+        {/* Live mini summary */}
+        <div className="grid grid-cols-4 gap-0 border border-rule rounded-2xl overflow-hidden bg-paper">
+          <LiveStat label="Loan amount" value={fmt$(loanAmount)} />
+          <LiveStat label="Monthly P&I" value={fmt$(Math.round(monthlyPI))} border/>
+          <LiveStat label="Cash in" value={fmt$(cashInvested)} border/>
+          <LiveStat label="LTV" value={(100-active.down).toFixed(0)+'%'} border/>
+        </div>
+
+        <FormSection title="Loan terms">
+          <SliderField label="Down payment" value={active.down} min={5} max={50} step={1} suffix="%" onChange={(v)=>update({down:v})} sub={fmt$(Math.round(active.price*active.down/100))}/>
+          <SliderField label="Interest rate" value={active.rate} min={3} max={12} step={0.05} suffix="%" onChange={(v)=>update({rate:parseFloat(v.toFixed(2))})}/>
+          <SliderField label="Term (years)" value={active.term} min={10} max={30} step={5} onChange={(v)=>update({term:v})}/>
+          <SliderField label="Closing costs" value={active.closing} min={0} max={6} step={0.25} suffix="%" onChange={(v)=>update({closing:v})}/>
+        </FormSection>
+
+        <FormSection title="Upfront costs" subtitle="Outside the loan.">
+          <Field label="Purchase price" prefix="$" value={active.price.toLocaleString()} />
+          <Field label="Renovation" prefix="$" value={active.reno.toLocaleString()} />
+          <Field label="Furniture" prefix="$" value={active.furniture.toLocaleString()} />
+          <Field label="Other upfront" prefix="$" placeholder="0" />
+        </FormSection>
+
+        {/* Amortization visual */}
+        <section className="grid grid-cols-1 md:grid-cols-[200px_minmax(0,1fr)] gap-8">
+          <div>
+            <h3 className="serif text-[22px] leading-none mb-2">Amortization</h3>
+            <p className="text-ink-3 text-[13px] leading-snug">How principal and interest evolve over the term.</p>
+          </div>
+          <AmortChart principal={loanAmount} rate={active.rate} term={active.term} />
+        </section>
+      </div>
+    </div>
+  );
+}
+
+function LiveStat({label, value, border}){
+  return (
+    <div className={`p-5 ${border?'border-l border-rule':''}`}>
+      <div className="caps text-ink-3 mb-1">{label}</div>
+      <div className="text-[22px] font-semibold tnum tracking-tight">{value}</div>
+    </div>
+  );
+}
+
+function SliderField({label, value, min, max, step, suffix='', sub, onChange}){
+  return (
+    <div>
+      <div className="flex items-baseline justify-between mb-1">
+        <label className="field-label">{label}</label>
+        <span className="mono text-[14px] tnum">{value}{suffix}</span>
+      </div>
+      <input type="range" min={min} max={max} step={step} value={value}
+        onChange={(e)=>onChange(parseFloat(e.target.value))}
+        className="w-full accent-[color:var(--ink)]" />
+      {sub && <div className="text-ink-3 text-[12px] mt-1 mono">{sub}</div>}
+    </div>
+  );
+}
+
+function AmortChart({principal, rate, term}){
+  const data = useMemo(()=>{
+    const r = rate/100/12; const n = term*12;
+    const pmt = r===0 ? principal/n : principal*r/(1-Math.pow(1+r,-n));
+    let bal = principal;
+    const rows = [];
+    let cumPrincipal = 0, cumInterest = 0;
+    for (let m=1; m<=n; m++){
+      const interest = bal*r;
+      const prin = pmt - interest;
+      bal -= prin;
+      cumPrincipal += prin;
+      cumInterest += interest;
+      if (m%12===0 || m===1){
+        rows.push({year: Math.ceil(m/12), balance: Math.max(0,bal), cumPrincipal, cumInterest});
+      }
+    }
+    return rows;
+  }, [principal, rate, term]);
+
+  const W = 640, H = 200;
+  const maxY = Math.max(principal, ...data.map(d=>d.cumInterest));
+  const x = (i) => (i/(data.length-1))*W;
+  const y = (v) => H - (v/maxY)*H;
+
+  const balPath = data.map((d,i) => `${i===0?'M':'L'} ${x(i)} ${y(d.balance)}`).join(' ');
+  const intPath = data.map((d,i) => `${i===0?'M':'L'} ${x(i)} ${y(d.cumInterest)}`).join(' ');
+
+  return (
+    <div>
+      <div className="relative h-[200px] w-full">
+        <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-full sparkline" preserveAspectRatio="none">
+          {[0.25,0.5,0.75].map(t =>
+            <line key={t} x1="0" x2={W} y1={H*t} y2={H*t} stroke="var(--rule)" strokeWidth="1" strokeDasharray="2 3"/>
+          )}
+          <path d={balPath} fill="none" stroke="var(--ink)" strokeWidth="1.5"/>
+          <path d={intPath} fill="none" stroke="var(--accent)" strokeWidth="1.5" strokeDasharray="4 3"/>
+        </svg>
+      </div>
+      <div className="flex gap-6 text-[12px] mt-3">
+        <span className="inline-flex items-center gap-2"><span className="w-3 h-px bg-[color:var(--ink)]"/> Balance</span>
+        <span className="inline-flex items-center gap-2"><span className="w-3 h-px bg-[color:var(--accent)]" style={{borderTop:'1px dashed'}}/> Cumulative interest</span>
+        <span className="ml-auto text-ink-3 tnum">Total interest: {fmt$(Math.round(data.at(-1).cumInterest))}</span>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Revenue & Expenses ---------- */
+function RevenueTab({p, onUpdate}){
+  const [rev, setRev] = useState(p.revenue);
+  const [exp, setExp] = useState(p.expenses);
+
+  const monthlyRevenue = useMemo(()=>{
+    const nightly = rev.avgNightly * 30 * (rev.occupancy/100);
+    return Math.round(nightly);
+  }, [rev]);
+
+  const monthlyExpenses = useMemo(()=>{
+    const opex = exp.utilities + exp.supplies + exp.lawn + exp.software + exp.marketing + (exp.insurance/12) + (exp.accounting/12) + (exp.legal/12);
+    const reserves = monthlyRevenue * (exp.maintenance + exp.capex + exp.damage)/100;
+    return Math.round(opex + reserves);
+  }, [exp, monthlyRevenue]);
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px] gap-10">
+      <div className="space-y-10">
+        <FormSection title="Revenue assumptions" subtitle="Expected STR income at steady-state.">
+          <Field label="Avg nightly rate" prefix="$" value={rev.avgNightly} onChange={(v)=>setRev({...rev, avgNightly:parseFloat(v)||0})}/>
+          <Field label="Occupancy" suffix="%" value={rev.occupancy} onChange={(v)=>setRev({...rev, occupancy:parseFloat(v)||0})}/>
+          <Field label="Avg stay length" suffix="nights" value={rev.stayLength} />
+          <Field label="Platform fee" suffix="%" value={rev.platformFee} />
+          <Field label="Cleaning fee / stay" prefix="$" value={rev.cleaningFee} />
+          <Field label="Cleaning cost / turn" prefix="$" value={rev.cleaningCost} />
+        </FormSection>
+
+        <FormSection title="Seasonal occupancy" subtitle="Peak vs off-peak modelling.">
+          <div className="col-span-2 flex items-center gap-4 py-2">
+            <Toggle value={rev.seasonal} onChange={(v)=>setRev({...rev, seasonal:v})}/>
+            <span className="text-[14px]">Model seasonal occupancy</span>
+          </div>
+          {rev.seasonal && <>
+            <SliderField label="Peak months" value={rev.peakMonths} min={1} max={12} step={1} onChange={(v)=>setRev({...rev, peakMonths:v})}/>
+            <SliderField label="Peak occupancy" value={rev.peakOcc} min={0} max={100} step={1} suffix="%" onChange={(v)=>setRev({...rev, peakOcc:v})}/>
+            <SliderField label="Off-peak occupancy" value={rev.offPeakOcc} min={0} max={100} step={1} suffix="%" onChange={(v)=>setRev({...rev, offPeakOcc:v})}/>
+            <div className="col-span-2">
+              <SeasonalBars peak={rev.peakOcc} off={rev.offPeakOcc} peakMonths={rev.peakMonths}/>
+            </div>
+          </>}
+        </FormSection>
+
+        <FormSection title="Operating expenses" subtitle="Monthly unless noted.">
+          <Field label="Utilities / mo" prefix="$" value={exp.utilities} onChange={(v)=>setExp({...exp, utilities:parseFloat(v)||0})}/>
+          <Field label="Insurance / yr" prefix="$" value={exp.insurance} onChange={(v)=>setExp({...exp, insurance:parseFloat(v)||0})}/>
+          <Field label="Supplies / mo" prefix="$" value={exp.supplies}/>
+          <Field label="Lawn & snow / mo" prefix="$" value={exp.lawn}/>
+          <Field label="Software / mo" prefix="$" value={exp.software}/>
+          <Field label="Marketing / mo" prefix="$" value={exp.marketing}/>
+          <Field label="Accounting / yr" prefix="$" value={exp.accounting}/>
+          <Field label="Legal / yr" prefix="$" value={exp.legal}/>
+        </FormSection>
+
+        <FormSection title="Reserves" subtitle="% of gross revenue set aside.">
+          <SliderField label="Maintenance" value={exp.maintenance} min={0} max={15} step={0.5} suffix="%" onChange={(v)=>setExp({...exp, maintenance:v})}/>
+          <SliderField label="Capex" value={exp.capex} min={0} max={15} step={0.5} suffix="%" onChange={(v)=>setExp({...exp, capex:v})}/>
+          <SliderField label="Damage" value={exp.damage} min={0} max={10} step={0.5} suffix="%" onChange={(v)=>setExp({...exp, damage:v})}/>
+        </FormSection>
+
+        <details className="border border-rule rounded-xl">
+          <summary className="p-4 flex items-center justify-between hover:bg-paper">
+            <div>
+              <div className="font-semibold">Vermont tax configuration</div>
+              <div className="text-ink-3 text-[12px]">State rooms tax, STR surcharge, local option, registration.</div>
+            </div>
+            <span className="text-ink-3">Expand ↓</span>
+          </summary>
+          <div className="p-5 border-t border-rule grid md:grid-cols-2 gap-5">
+            <Field label="State rooms tax" suffix="%" value={9} />
+            <Field label="STR surcharge" suffix="%" value={3} />
+            <Field label="Local option tax" suffix="%" value={1} />
+            <Field label="Local registration fee" prefix="$" value={250} />
+          </div>
+        </details>
+      </div>
+
+      {/* Sticky preview */}
+      <aside className="lg:sticky lg:top-24 h-fit">
+        <div className="bg-paper border border-rule-strong rounded-2xl p-6">
+          <div className="caps text-ink-3 mb-4">Live preview</div>
+          <div className="mb-6">
+            <div className="caps text-ink-3 mb-1">Monthly revenue</div>
+            <div className="metric-lg text-ink">{fmt$(monthlyRevenue)}</div>
+          </div>
+          <div className="grid grid-cols-2 gap-0 border-t border-rule">
+            <div className="py-4">
+              <div className="caps text-ink-3 mb-1">Monthly expenses</div>
+              <div className="text-[20px] font-semibold tnum">{fmt$(monthlyExpenses)}</div>
+            </div>
+            <div className="py-4 pl-5 border-l border-rule">
+              <div className="caps text-ink-3 mb-1">Estimated cashflow</div>
+              <div className={`text-[20px] font-semibold tnum ${signClass(monthlyRevenue - monthlyExpenses - 3800)}`}>
+                {fmt$(monthlyRevenue - monthlyExpenses - 3800, {signed:true})}
+              </div>
+            </div>
+          </div>
+          <div className="mt-5 text-[12px] text-ink-3">
+            Housing cost assumed ≈ $3,800/mo for preview. Full results in the Results tab.
+          </div>
+        </div>
+      </aside>
+    </div>
+  );
+}
+
+function Toggle({value, onChange}){
+  return (
+    <button onClick={()=>onChange(!value)}
+      className={`w-11 h-6 rounded-full p-0.5 transition-colors ${value ? 'bg-[color:var(--ink)]' : 'bg-[color:var(--rule-strong)]'}`}>
+      <span className={`block w-5 h-5 rounded-full bg-[color:var(--canvas)] transition-transform ${value ? 'translate-x-5' : ''}`}/>
+    </button>
+  );
+}
+
+function SeasonalBars({peak, off, peakMonths}){
+  const months = ['J','F','M','A','M','J','J','A','S','O','N','D'];
+  // peak assumed centered on summer: Jun..(Jun+peakMonths-1)
+  const start = 5; // June index
+  const peakSet = new Set();
+  for (let i=0;i<peakMonths;i++) peakSet.add((start+i)%12);
+  return (
+    <div>
+      <div className="caps text-ink-3 mb-3">Occupancy by month</div>
+      <div className="flex items-end gap-1 h-[90px]">
+        {months.map((m,i) => {
+          const v = peakSet.has(i) ? peak : off;
+          return (
+            <div key={i} className="flex-1 flex flex-col items-center gap-1">
+              <div className="w-full rounded-sm relative" style={{height:`${v}%`, background: peakSet.has(i) ? 'var(--ink)' : 'var(--accent-soft)'}}>
+                {peakSet.has(i) && <span className="absolute -top-4 left-1/2 -translate-x-1/2 text-[9px] mono tnum text-ink-3">{v}</span>}
+              </div>
+              <span className="text-[10px] text-ink-3 mono">{m}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Results Tab ---------- */
+function ResultsTab({p}){
+  const years = useMemo(()=>{
+    const out = [];
+    let rev = 84000, opex = 26000, value = p.price, loan = p.price*0.75, cashInv = 217000;
+    for (let y=1; y<=10; y++){
+      rev *= 1.03; opex *= 1.025; value *= 1.035; loan *= 0.983;
+      const noi = rev - opex;
+      const mortgage = 42000; // approx annualized P&I
+      const cf = noi - mortgage;
+      out.push({ year: y, noi: Math.round(noi), cf: Math.round(cf), equity: Math.round(value-loan), coc: (cf/cashInv)*100 });
+    }
+    return out;
+  }, [p]);
+
+  const maxCF = Math.max(...years.map(d=>Math.abs(d.cf)));
+  const maxEq = Math.max(...years.map(d=>d.equity));
+
+  return (
+    <div className="space-y-10">
+      {/* Headline */}
+      <section className="grid grid-cols-1 md:grid-cols-3 gap-0 border-t border-b border-rule-strong">
+        <div className="py-8 px-6">
+          <div className="caps text-ink-3 mb-3">Annual cashflow · Year 1</div>
+          <div className={`metric-xl ${signClass(p.monthlyCashflow*12)}`}>{fmt$(p.monthlyCashflow*12, {signed:true})}</div>
+          <div className="text-ink-3 text-[13px] mt-2">{fmt$(p.monthlyCashflow,{signed:true})} per month</div>
+        </div>
+        <div className="py-8 px-6 border-l border-rule">
+          <div className="caps text-ink-3 mb-3">IRR · 10 yr</div>
+          <div className="metric-xl text-ink">{(p.cocReturn + 4.2).toFixed(1)}%</div>
+          <div className="text-ink-3 text-[13px] mt-2">Equity multiple 1.6×</div>
+        </div>
+        <div className="py-8 px-6 border-l border-rule">
+          <div className="caps text-ink-3 mb-3">Break-even occupancy</div>
+          <div className="metric-xl text-ink">{p.breakEvenOcc}%</div>
+          <div className="text-ink-3 text-[13px] mt-2">You project {p.revenue.occupancy}%</div>
+        </div>
+      </section>
+
+      {/* 10 year table */}
+      <section className="grid grid-cols-1 md:grid-cols-[200px_minmax(0,1fr)] gap-8">
+        <div>
+          <h3 className="serif text-[22px] leading-none mb-2">10-year projection</h3>
+          <p className="text-ink-3 text-[13px] leading-snug">NOI grows with rate inflation, expenses follow a steady curve.</p>
+        </div>
+        <div>
+          <table className="w-full text-[13px] tnum">
+            <thead>
+              <tr className="caps text-ink-3 border-b border-rule">
+                <th className="text-left py-2 font-medium">Year</th>
+                <th className="text-right py-2 font-medium">NOI</th>
+                <th className="text-right py-2 font-medium">Cashflow</th>
+                <th className="text-right py-2 font-medium">Equity</th>
+                <th className="text-right py-2 font-medium">CoC</th>
+                <th className="py-2"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {years.map(d=>(
+                <tr key={d.year} className="border-b border-rule">
+                  <td className="py-3">Year {d.year}</td>
+                  <td className="text-right">{fmt$(d.noi)}</td>
+                  <td className={`text-right ${signClass(d.cf)}`}>{fmt$(d.cf, {signed:true})}</td>
+                  <td className="text-right">{fmt$(d.equity)}</td>
+                  <td className={`text-right ${signClass(d.coc)}`}>{fmtPct(d.coc)}</td>
+                  <td className="pl-4 py-3" style={{width:'34%'}}>
+                    <div className="flex items-center gap-2 h-3">
+                      <div className="relative h-full w-full">
+                        <div className="absolute inset-y-0 left-1/2 w-px bg-[color:var(--rule-strong)]"/>
+                        <div
+                          className={`absolute inset-y-0 ${d.cf>=0 ? 'left-1/2 bg-accent' : 'right-1/2 bg-[color:var(--negative)]'}`}
+                          style={{width: `${(Math.abs(d.cf)/maxCF)*50}%`}}
+                        />
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      {/* Sensitivity */}
+      <section className="grid grid-cols-1 md:grid-cols-[200px_minmax(0,1fr)] gap-8">
+        <div>
+          <h3 className="serif text-[22px] leading-none mb-2">Sensitivity</h3>
+          <p className="text-ink-3 text-[13px] leading-snug">How cashflow shifts with occupancy and nightly rate.</p>
+        </div>
+        <div className="grid md:grid-cols-2 gap-6">
+          <SensitivityCard label="Occupancy" unit="%" center={p.revenue.occupancy} steps={[-20,-10,0,10,20]} value={p.monthlyCashflow}/>
+          <SensitivityCard label="Nightly rate" unit="$" center={p.revenue.avgNightly} steps={[-40,-20,0,20,40]} value={p.monthlyCashflow}/>
+        </div>
+      </section>
+
+      {/* Expense breakdown */}
+      <section className="grid grid-cols-1 md:grid-cols-[200px_minmax(0,1fr)] gap-8">
+        <div>
+          <h3 className="serif text-[22px] leading-none mb-2">Where the money goes</h3>
+          <p className="text-ink-3 text-[13px] leading-snug">Monthly expense composition.</p>
+        </div>
+        <ExpenseBreakdown/>
+      </section>
+    </div>
+  );
+}
+
+function SensitivityCard({label, unit, center, steps, value}){
+  return (
+    <div className="bg-paper border border-rule rounded-2xl p-5">
+      <div className="caps text-ink-3 mb-3">{label}</div>
+      <div className="space-y-2">
+        {steps.map(s=>{
+          const impact = Math.round(value + s*12);
+          return (
+            <div key={s} className="grid grid-cols-[80px_1fr_80px] items-center gap-3 tnum text-[13px]">
+              <span className="mono text-ink-3">{unit==='%' ? `${center+s}%` : fmt$(center+s)}</span>
+              <div className="relative h-[6px] bg-[color:var(--rule)] rounded-full">
+                <div className="absolute inset-y-0 left-1/2 w-px bg-[color:var(--ink)]"/>
+                <div className={`absolute top-0 bottom-0 rounded-full ${impact>=0?'left-1/2 bg-accent':'right-1/2 bg-[color:var(--negative)]'}`}
+                  style={{width: `${Math.min(50, Math.abs(impact)/50)}%`}}/>
+              </div>
+              <span className={`text-right ${signClass(impact)}`}>{fmt$(impact, {signed:true})}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function ExpenseBreakdown(){
+  const rows = [
+    { label: 'Mortgage (P&I)', value: 3489, color: 'var(--ink)' },
+    { label: 'Property taxes', value: 880,  color: 'oklch(0.45 0.08 175)' },
+    { label: 'Insurance',     value: 267,  color: 'oklch(0.58 0.06 175)' },
+    { label: 'Utilities',     value: 320,  color: 'oklch(0.68 0.05 175)' },
+    { label: 'Mgmt & Software', value: 110,  color: 'oklch(0.78 0.035 175)' },
+    { label: 'Reserves (maint/capex)', value: 420, color: 'oklch(0.82 0.03 175)' },
+    { label: 'Cleaning/turn',  value: 180, color: 'oklch(0.86 0.02 175)' },
+  ];
+  const total = rows.reduce((a,b)=>a+b.value,0);
+  return (
+    <div>
+      <div className="flex h-3 rounded-full overflow-hidden border border-rule mb-5">
+        {rows.map((r,i)=>(
+          <div key={i} style={{width: `${(r.value/total)*100}%`, background: r.color}} title={`${r.label} — ${fmt$(r.value)}`}/>
+        ))}
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
+        {rows.map((r,i)=>(
+          <div key={i} className="flex items-center justify-between text-[13px] tnum">
+            <span className="inline-flex items-center gap-2 text-ink-2"><span className="w-2.5 h-2.5 rounded-sm" style={{background:r.color}}/>{r.label}</span>
+            <span className="mono">{fmt$(r.value)}</span>
+          </div>
+        ))}
+      </div>
+      <div className="border-t border-rule mt-4 pt-3 flex items-center justify-between text-[13px] font-semibold tnum">
+        <span>Total monthly</span><span className="mono">{fmt$(total)}</span>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Compare ---------- */
+function Compare({ids=[]}){
+  const { properties, setRoute } = useContext(Ctx);
+  const picks = properties.filter(p => ids.includes(p.id));
+  const metrics = [
+    ['Monthly cashflow', (p)=>fmt$(p.monthlyCashflow, {signed:true}), (p)=>p.monthlyCashflow],
+    ['Cash-on-Cash',     (p)=>fmtPct(p.cocReturn),  (p)=>p.cocReturn],
+    ['Cap rate',         (p)=>fmtPct(p.capRate),    (p)=>p.capRate],
+    ['DSCR',             (p)=>p.dscr.toFixed(2),    (p)=>p.dscr],
+    ['Break-even occ',   (p)=>p.breakEvenOcc+'%',   (p)=>-p.breakEvenOcc],
+    ['Gross yield',      (p)=>fmtPct(p.grossYield), (p)=>p.grossYield],
+  ];
+  return (
+    <div className="fade-up">
+      <button onClick={()=>setRoute({view:'dashboard'})} className="text-ink-3 hover:text-ink text-[13px] mb-4 inline-flex items-center gap-1.5"><IconArrowLeft/> All properties</button>
+      <h1 className="serif text-[56px] leading-[0.98] mb-10">Side by side</h1>
+      <div className="overflow-x-auto">
+        <table className="w-full tnum">
+          <thead>
+            <tr>
+              <th className="text-left caps text-ink-3 pb-4 w-[220px]"></th>
+              {picks.map(p=>(
+                <th key={p.id} className="text-left pb-4 min-w-[200px]">
+                  <div className="serif text-[26px] leading-none">{p.name}</div>
+                  <div className="text-ink-3 text-[12px] mt-1">{p.city}, {p.state}</div>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {metrics.map(([label,fmt,score],i)=>{
+              const best = picks.reduce((b,p)=>score(p)>score(b)?p:b, picks[0]);
+              return (
+                <tr key={i} className="border-t border-rule">
+                  <td className="caps text-ink-3 py-4">{label}</td>
+                  {picks.map(p=>(
+                    <td key={p.id} className={`py-4 text-[17px] ${p.id===best.id ? 'font-semibold' : ''}`}>
+                      {fmt(p)}
+                      {p.id===best.id && <span className="ml-2 caps text-accent">Best</span>}
+                    </td>
+                  ))}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Glossary ---------- */
+const GLOSSARY = [
+  { term:'Accounting Costs', cat:'Expenses', body:'Annual tax prep, bookkeeping, and financial reporting. STR taxes are more complex than W-2. Typical: $1,000–$3,000/yr.' },
+  { term:'Annual Cashflow', cat:'Metrics', formula:'Monthly Cashflow × 12', body:'Your annual profit after all operating expenses, debt service, and reserves.', related:['Monthly Cashflow','Cash-on-Cash Return'] },
+  { term:'Annual Taxes', cat:'Tax', body:'Property taxes shown on the listing. Investment STR properties in Vermont are taxed at the higher nonhomestead rate.' },
+  { term:'Average Nightly Rate', cat:'Revenue', body:'Your expected average rate across seasons. Research comparable STR listings on Airbnb/VRBO for bed count, amenities, location.' },
+  { term:'Average Stay Length', cat:'Revenue', body:'Average nights per booking. Urban: 2–3, vacation: 4–7. Longer stays mean fewer turnovers.' },
+  { term:'Break-Even Occupancy', cat:'Metrics', formula:'(Total Annual Costs) / (Gross Revenue at 100% Occupancy)', body:'The minimum occupancy to cover all costs. A good STR breaks even at 40–55%.' },
+  { term:'Cap Rate', cat:'Metrics', formula:'NOI / Purchase Price', body:'Net Operating Income divided by purchase price — a financing-independent measure of value. Good STR cap rates: 6–10%.' },
+  { term:'CapEx Reserve', cat:'Expenses', body:'Percentage of gross revenue reserved for major capital expenditures. 5% is standard.' },
+  { term:'Cash-on-Cash Return', cat:'Metrics', formula:'Annual Cashflow / Total Cash Invested', body:'Return on cash actually invested. A key decision metric for leveraged buys.' },
+  { term:'Debt Service Coverage', cat:'Metrics', formula:'NOI / Annual Debt Service', body:'How comfortably NOI covers the loan. Lenders typically want ≥1.20.' },
+  { term:'DSCR Loan', cat:'Financing', body:'Loan qualified by property NOI rather than personal income. Higher rates but easier to scale.' },
+  { term:'Gross Yield', cat:'Metrics', formula:'Annual Gross Revenue / Price', body:'A quick sniff test for rent-vs-price.' },
+  { term:'Homestead Tax', cat:'Tax', body:'Vermont residential rate for primary residences. Investment STRs usually use the nonhomestead rate.' },
+  { term:'Local Option Tax', cat:'Tax', body:'Additional 1% tax levied by some Vermont municipalities.' },
+  { term:'Monthly Cashflow', cat:'Metrics', body:'Gross revenue minus operating expenses and mortgage.' },
+  { term:'Nonhomestead Taxes', cat:'Tax', body:'Higher Vermont property tax for non-primary residences. Typically 0.5–0.8% above homestead.' },
+  { term:'NOI', cat:'Metrics', body:'Net Operating Income. Revenue minus operating expenses, excluding debt.' },
+  { term:'Occupancy Rate', cat:'Revenue', body:'% of available nights booked. Varies by season; 55–65% is typical for well-run STRs.' },
+  { term:'Platform Fee', cat:'Revenue', body:'Cut kept by Airbnb/VRBO. Airbnb host-only: ~3%. Guest-absorbed: 14–16% effective.' },
+  { term:'Purchase Price', cat:'Financing', body:'Contract price — basis for down payment, closing costs, cap rate.' },
+  { term:'Turnover', cat:'Revenue', body:'Each guest departure. Each turnover carries cleaning cost and a vacant night.' },
+];
+
+function Glossary(){
+  const [cat, setCat] = useState('All');
+  const [query, setQuery] = useState('');
+  const cats = ['All','Metrics','Revenue','Expenses','Financing','Tax'];
+  const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+
+  const filtered = useMemo(()=>{
+    return GLOSSARY.filter(g => {
+      if (cat !== 'All' && !g.cat.startsWith(cat)) return false;
+      if (query.trim()) return (g.term+g.body).toLowerCase().includes(query.toLowerCase());
+      return true;
+    });
+  }, [cat, query]);
+
+  const byLetter = useMemo(()=>{
+    const out = {};
+    for (const l of letters) out[l] = [];
+    filtered.forEach(g => {
+      const letter = g.term[0].toUpperCase();
+      if (out[letter]) out[letter].push(g);
+    });
+    return out;
+  }, [filtered]);
+
+  const availableLetters = new Set(letters.filter(l => byLetter[l].length));
+
+  return (
+    <div className="fade-up">
+      <div className="flex items-end justify-between mb-8">
+        <div>
+          <p className="caps text-ink-3 mb-3">Reference</p>
+          <h1 className="serif text-[56px] leading-[0.98] mb-2">Glossary</h1>
+          <p className="text-ink-2 text-[15px] max-w-xl">Definitions for every metric and term used throughout the calculator.</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <IconSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-3"/>
+            <input value={query} onChange={(e)=>setQuery(e.target.value)} placeholder="Search terms"
+              className="pl-9 pr-3 h-9 rounded-full bg-paper border border-rule-strong text-[13px] focus-ring w-[260px]"/>
+          </div>
+        </div>
+      </div>
+
+      <div className="seg mb-6">
+        {cats.map(c => <button key={c} data-active={cat===c} onClick={()=>setCat(c)}>{c}</button>)}
+      </div>
+
+      <div className="border-t border-b border-rule py-3 mb-10 flex flex-wrap gap-1">
+        {letters.map(l => {
+          const has = availableLetters.has(l);
+          return (
+            <button key={l}
+              onClick={()=>has && document.getElementById(`sec-${l}`)?.scrollIntoView({block:'start', behavior:'smooth'})}
+              className={`w-8 h-8 rounded-full text-[12px] mono tnum ${has ? 'text-ink hover:bg-[color:var(--rule)]' : 'text-[color:var(--rule-strong)] cursor-not-allowed'}`}>
+              {l}
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="space-y-10">
+        {letters.filter(l => byLetter[l].length).map(l => (
+          <section key={l} id={`sec-${l}`}>
+            <div className="grid grid-cols-[80px_minmax(0,1fr)] gap-8">
+              <div className="serif text-[64px] leading-none text-ink-3">{l}</div>
+              <div className="divide-y divide-[color:var(--rule)]">
+                {byLetter[l].map(g => (
+                  <article key={g.term} className="py-5 grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_160px] gap-6">
+                    <div>
+                      <h3 className="font-semibold text-[16px] mb-1.5">{g.term}</h3>
+                      <p className="text-ink-2 text-[14px] leading-relaxed mb-3">{g.body}</p>
+                      {g.formula && (
+                        <div className="bg-paper border border-rule rounded-lg px-4 py-3 inline-block">
+                          <div className="caps text-ink-3 mb-1">Formula</div>
+                          <div className="mono text-[13px]">{g.formula}</div>
+                        </div>
+                      )}
+                      {g.related && (
+                        <div className="flex flex-wrap gap-2 mt-3 text-[12px] text-ink-3">
+                          <span>Related:</span>
+                          {g.related.map(r => <a key={r} href="#" onClick={(e)=>e.preventDefault()} className="text-accent underline underline-offset-2">{r}</a>)}
+                        </div>
+                      )}
+                    </div>
+                    <div className="md:text-right">
+                      <span className="caps text-ink-3">{g.cat}</span>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </div>
+          </section>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Settings ---------- */
+function Settings(){
+  const { tweaks, applyTweak } = useContext(Ctx);
+  const [peakMonths, setPeakMonths] = useState(6);
+  const [peak, setPeak] = useState(80);
+  const [off, setOff] = useState(45);
+
+  return (
+    <div className="fade-up">
+      <p className="caps text-ink-3 mb-3">Workspace</p>
+      <h1 className="serif text-[56px] leading-[0.98] mb-10">Settings</h1>
+
+      <div className="space-y-12">
+        <FormSection title="Appearance" subtitle="Tune the look of the calculator. Affects every view.">
+          <div className="col-span-2 flex items-center gap-4">
+            <span className="text-[14px]">Theme</span>
+            <div className="seg">
+              <button data-active={tweaks.theme==='light'} onClick={()=>applyTweak({theme:'light'})}>Light</button>
+              <button data-active={tweaks.theme==='dark'} onClick={()=>applyTweak({theme:'dark'})}>Dark</button>
+            </div>
+          </div>
+          <div className="col-span-2 flex items-center gap-4 flex-wrap">
+            <span className="text-[14px]">Accent</span>
+            <div className="flex gap-2">
+              {[
+                ['teal','oklch(0.46 0.085 175)'],
+                ['indigo','oklch(0.48 0.14 275)'],
+                ['ember','oklch(0.56 0.15 45)'],
+                ['ink','oklch(0.22 0.01 255)'],
+              ].map(([k,c]) => (
+                <button key={k} className="swatch" style={{background:c}} data-active={tweaks.accent===k} onClick={()=>applyTweak({accent:k})} title={k}/>
+              ))}
+            </div>
+          </div>
+          <div className="col-span-2 flex items-center gap-4">
+            <span className="text-[14px]">Density</span>
+            <div className="seg">
+              <button data-active={tweaks.density==='comfortable'} onClick={()=>applyTweak({density:'comfortable'})}>Comfortable</button>
+              <button data-active={tweaks.density==='compact'} onClick={()=>applyTweak({density:'compact'})}>Compact</button>
+            </div>
+          </div>
+          <div className="col-span-2 flex items-center gap-4">
+            <span className="text-[14px]">Properties view</span>
+            <div className="seg">
+              <button data-active={tweaks.listView==='rows'} onClick={()=>applyTweak({listView:'rows'})}>List</button>
+              <button data-active={tweaks.listView==='cards'} onClick={()=>applyTweak({listView:'cards'})}>Cards</button>
+            </div>
+          </div>
+        </FormSection>
+
+        <FormSection title="Seasonal occupancy defaults" subtitle="Applied when creating new STR properties. Existing properties aren't changed.">
+          <SliderField label="Peak months / year" value={peakMonths} min={1} max={12} step={1} onChange={setPeakMonths}/>
+          <SliderField label="Peak occupancy" value={peak} min={0} max={100} step={1} suffix="%" onChange={setPeak}/>
+          <SliderField label="Off-peak occupancy" value={off} min={0} max={100} step={1} suffix="%" onChange={setOff}/>
+          <div className="col-span-2">
+            <SeasonalBars peak={peak} off={off} peakMonths={peakMonths}/>
+          </div>
+        </FormSection>
+
+        <FormSection title="Vermont tax defaults" subtitle="Applied to new STR properties.">
+          <Field label="State rooms tax" suffix="%" value="9.0" />
+          <Field label="STR surcharge" suffix="%" value="3.0" />
+          <Field label="Local option tax" suffix="%" value="1.0" />
+          <Field label="Local registration fee" prefix="$" value="250" />
+        </FormSection>
+
+        <div className="flex items-center gap-3">
+          <button className="h-10 px-5 rounded-full bg-[color:var(--ink)] text-[color:var(--canvas)] text-[13px] font-medium">Save settings</button>
+          <button className="h-10 px-5 rounded-full bg-paper border border-rule-strong text-[13px] font-medium">Reset to defaults</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Tweaks panel ---------- */
+function Tweaks({tweaks, onChange, onClose}){
+  return (
+    <div className="tweaks fade-up">
+      <div className="flex items-center justify-between mb-3">
+        <div className="serif text-[22px] leading-none">Tweaks</div>
+        <button onClick={onClose} className="text-ink-3 text-[12px]">Hide</button>
+      </div>
+      <div className="space-y-4 text-[13px]">
+        <div>
+          <div className="caps text-ink-3 mb-2">Theme</div>
+          <div className="seg w-full">
+            <button className="flex-1" data-active={tweaks.theme==='light'} onClick={()=>onChange({theme:'light'})}>Light</button>
+            <button className="flex-1" data-active={tweaks.theme==='dark'} onClick={()=>onChange({theme:'dark'})}>Dark</button>
+          </div>
+        </div>
+        <div>
+          <div className="caps text-ink-3 mb-2">Accent</div>
+          <div className="flex gap-2">
+            {[['teal','oklch(0.46 0.085 175)'],['indigo','oklch(0.48 0.14 275)'],['ember','oklch(0.56 0.15 45)'],['ink','oklch(0.22 0.01 255)']].map(([k,c])=>(
+              <button key={k} className="swatch" style={{background:c}} data-active={tweaks.accent===k} onClick={()=>onChange({accent:k})}/>
+            ))}
+          </div>
+        </div>
+        <div>
+          <div className="caps text-ink-3 mb-2">Density</div>
+          <div className="seg w-full">
+            <button className="flex-1" data-active={tweaks.density==='comfortable'} onClick={()=>onChange({density:'comfortable'})}>Comfort</button>
+            <button className="flex-1" data-active={tweaks.density==='compact'} onClick={()=>onChange({density:'compact'})}>Compact</button>
+          </div>
+        </div>
+        <div>
+          <div className="caps text-ink-3 mb-2">Properties view</div>
+          <div className="seg w-full">
+            <button className="flex-1" data-active={tweaks.listView==='rows'} onClick={()=>onChange({listView:'rows'})}>List</button>
+            <button className="flex-1" data-active={tweaks.listView==='cards'} onClick={()=>onChange({listView:'cards'})}>Cards</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Icons ---------- */
+function IconMoon(){ return <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M12 9a5 5 0 0 1-6-6 5 5 0 1 0 6 6z" stroke="currentColor" strokeWidth="1.3"/></svg>; }
+function IconSun(){ return <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="3" stroke="currentColor" strokeWidth="1.3"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3 3l1.5 1.5M11.5 11.5L13 13M3 13l1.5-1.5M11.5 4.5L13 3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg>; }
+function IconSearch({className=''}){ return <svg className={className} width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="4.5" stroke="currentColor" strokeWidth="1.3"/><path d="M11 11l3 3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg>; }
+function IconArrowLeft(){ return <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8l5 5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg>; }
+function IconStar(){ return <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 2l1.8 3.8L14 6.4l-3 2.9.7 4.1L8 11.5 4.3 13.4 5 9.3 2 6.4l4.2-.6L8 2z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/></svg>; }
+function IconStarFill(){ return <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M8 2l1.8 3.8L14 6.4l-3 2.9.7 4.1L8 11.5 4.3 13.4 5 9.3 2 6.4l4.2-.6L8 2z"/></svg>; }
+function IconAlert(){ return <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2l7 12H1L8 2z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/><path d="M8 6v3.5M8 11.5v.2" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg>; }
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
