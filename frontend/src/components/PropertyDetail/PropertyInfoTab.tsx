@@ -246,8 +246,9 @@ export function PropertyInfoTab({ property, onUpdate }: PropertyInfoTabProps) {
             tag={tag("year_built")}
           />
           <div>
-            <label className="field-label">Property Type</label>
+            <label htmlFor="property-type" className="field-label">Property Type</label>
             <select
+              id="property-type"
               value={form.property_type}
               onChange={(e) => updateField("property_type", e.target.value)}
               className="field cursor-pointer"
@@ -360,7 +361,7 @@ export function PropertyInfoTab({ property, onUpdate }: PropertyInfoTabProps) {
       {/* Aside */}
       <aside className="space-y-6 lg:sticky lg:top-4 lg:self-start">
         <div className="border border-rule-strong rounded p-5">
-          <h4 className="caps mb-3">Import status</h4>
+          <p className="caps mb-3">Import status</p>
           {snapshot ? (
             <ul className="space-y-2 text-[13px]">
               {IMPORT_STATUS_FIELDS.map(({ key, label }) => {
@@ -387,7 +388,7 @@ export function PropertyInfoTab({ property, onUpdate }: PropertyInfoTabProps) {
         </div>
 
         <div className="border border-rule-strong rounded p-5">
-          <h4 className="caps mb-3">Shortcuts</h4>
+          <p className="caps mb-3">Shortcuts</p>
           <ul className="space-y-2 text-[13px]">
             <li>
               <a

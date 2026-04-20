@@ -14,6 +14,8 @@ import {
 } from "../../api/client.ts";
 import { RentalBadge } from "../shared/RentalBadge.tsx";
 import { MetricCell, MetricStrip } from "../shared/MetricCell.tsx";
+import { Skeleton, SkeletonLine } from "../shared/Skeleton.tsx";
+import { PageHeader } from "../shared/PageHeader.tsx";
 import { PropertyInfoTab } from "./PropertyInfoTab.tsx";
 import { FinancingTab } from "./FinancingTab.tsx";
 import { RevenueExpensesTab } from "./RevenueExpensesTab.tsx";
@@ -28,6 +30,49 @@ const TABS = [
   "Sensitivity",
 ] as const;
 type TabName = (typeof TABS)[number];
+
+function addressLine(property: Property): string | null {
+  if (!property.address) return null;
+  return `${property.address}, ${property.city}, ${property.state} ${property.zip_code}`;
+}
+
+function headerForTab(
+  tab: TabName,
+  property: Property,
+): { eyebrow: string; title: string; subtitle: string | null } {
+  switch (tab) {
+    case "Property Info":
+      return {
+        eyebrow: "Property · Information",
+        title: property.name,
+        subtitle: addressLine(property),
+      };
+    case "Financing":
+      return {
+        eyebrow: property.name,
+        title: "Financing",
+        subtitle: "Loan terms, upfront costs, amortization.",
+      };
+    case "Revenue & Expenses":
+      return {
+        eyebrow: property.name,
+        title: "Revenue & expenses",
+        subtitle: "Assumptions, occupancy, operating costs.",
+      };
+    case "Results":
+      return {
+        eyebrow: property.name,
+        title: "Results",
+        subtitle: "Projected returns over the hold period.",
+      };
+    case "Sensitivity":
+      return {
+        eyebrow: property.name,
+        title: "Sensitivity",
+        subtitle: "How inputs move the bottom line.",
+      };
+  }
+}
 
 interface HeadlineMetrics {
   monthly_cashflow: number;
@@ -154,25 +199,12 @@ export function PropertyDetail({
         ← All properties
       </button>
 
-      {/* Header row */}
-      <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-6">
-        <div className="min-w-0">
-          <div className="flex items-center gap-3 mb-1 flex-wrap">
-            <RentalBadge
-              type={property.active_rental_type === "ltr" ? "LTR" : "STR"}
-            />
-            <h1 className="font-serif text-[40px] leading-tight text-ink">
-              {property.name}
-            </h1>
-          </div>
-          {property.address && (
-            <p className="text-[14px] text-ink-3">
-              {property.address}, {property.city}, {property.state}{" "}
-              {property.zip_code}
-            </p>
-          )}
-        </div>
-        <div className="flex items-center gap-3 shrink-0">
+      {/* Meta row — persistent badge + export action */}
+      <div className="flex items-center justify-between gap-3 mb-6">
+        <RentalBadge
+          type={property.active_rental_type === "ltr" ? "LTR" : "STR"}
+        />
+        <div className="flex items-center gap-3">
           {exportError && (
             <span className="text-[13px] text-negative">Export failed</span>
           )}
@@ -200,6 +232,12 @@ export function PropertyDetail({
           </button>
         </div>
       </div>
+
+      {/* Per-tab page header */}
+      <PageHeader
+        {...headerForTab(activeTab, property)}
+        className="mb-8"
+      />
 
       {/* Metric strip */}
       {metrics && (
@@ -229,8 +267,12 @@ export function PropertyDetail({
 
       {/* Underlined tab bar */}
       <div className="border-b border-rule-strong mb-6 overflow-x-auto">
-        <nav className="flex gap-6 min-w-max" role="tablist">
-          {TABS.map((tab) => {
+        <nav
+          className="flex gap-6 min-w-max"
+          role="tablist"
+          aria-label="Property detail sections"
+        >
+          {TABS.map((tab, i) => {
             const active = activeTab === tab;
             return (
               <button
@@ -238,7 +280,24 @@ export function PropertyDetail({
                 type="button"
                 role="tab"
                 aria-selected={active}
+                tabIndex={active ? 0 : -1}
                 onClick={() => setActiveTab(tab)}
+                onKeyDown={(e) => {
+                  let next: number | null = null;
+                  if (e.key === "ArrowRight") next = (i + 1) % TABS.length;
+                  else if (e.key === "ArrowLeft")
+                    next = (i - 1 + TABS.length) % TABS.length;
+                  else if (e.key === "Home") next = 0;
+                  else if (e.key === "End") next = TABS.length - 1;
+                  if (next === null) return;
+                  e.preventDefault();
+                  setActiveTab(TABS[next]);
+                  const buttons =
+                    e.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>(
+                      '[role="tab"]',
+                    );
+                  buttons?.[next]?.focus();
+                }}
                 className={`pb-3 -mb-px text-[14px] whitespace-nowrap border-b-2 transition-colors ${
                   active
                     ? "text-ink border-ink font-medium"
@@ -259,7 +318,18 @@ export function PropertyDetail({
         )}
         {activeTab === "Financing" &&
           (scenariosLoading ? (
-            <div className="text-center py-12 text-ink-3">Loading scenarios…</div>
+            <div className="grid grid-cols-[280px_1fr] gap-8" role="status" aria-label="Loading scenarios">
+              <div className="space-y-3">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <Skeleton key={i} className="h-16" />
+                ))}
+              </div>
+              <div className="space-y-6">
+                <Skeleton className="h-10 w-2/3" />
+                <Skeleton className="h-24" />
+                <Skeleton className="h-48" />
+              </div>
+            </div>
           ) : (
             <FinancingTab
               propertyId={property.id}
@@ -274,7 +344,24 @@ export function PropertyDetail({
           ))}
         {activeTab === "Revenue & Expenses" &&
           (assumptionsLoading || ltrLoading ? (
-            <div className="text-center py-12 text-ink-3">Loading assumptions…</div>
+            <div className="space-y-8" role="status" aria-label="Loading assumptions">
+              {Array.from({ length: 3 }).map((_, section) => (
+                <div key={section} className="grid grid-cols-[200px_1fr] gap-8">
+                  <div className="space-y-2">
+                    <SkeletonLine className="w-32" />
+                    <SkeletonLine className="w-24" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-x-8 gap-y-5">
+                    {Array.from({ length: 4 }).map((_, i) => (
+                      <div key={i} className="space-y-2">
+                        <SkeletonLine className="w-20" />
+                        <Skeleton className="h-8" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
           ) : assumptions ? (
             <RevenueExpensesTab
               propertyId={property.id}

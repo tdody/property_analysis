@@ -7,6 +7,7 @@ import { Segmented } from "../components/shared/Segmented.tsx";
 import { CurrencyInput } from "../components/shared/CurrencyInput.tsx";
 import { PercentInput } from "../components/shared/PercentInput.tsx";
 import { SeasonalBars } from "../components/shared/SeasonalBars.tsx";
+import { PageHeader } from "../components/shared/PageHeader.tsx";
 import { useTheme } from "../context/useTheme.ts";
 
 type Density = "comfortable" | "compact";
@@ -281,17 +282,11 @@ export function SettingsPage() {
 
   return (
     <div className="space-y-10 pb-16">
-      <header>
-        <p className="caps text-ink-3 mb-2">Workspace</p>
-        <h1 className="font-serif text-[44px] leading-tight text-ink">
-          Settings
-        </h1>
-        <p className="text-[14px] text-ink-3 mt-2 max-w-2xl">
-          Defaults and appearance for this workspace. Seasonal occupancy and
-          lender-packet branding persist on the server; appearance and tax
-          defaults are stored locally.
-        </p>
-      </header>
+      <PageHeader
+        eyebrow="Workspace"
+        title="Settings"
+        subtitle="Defaults and appearance for this workspace. Seasonal occupancy and lender-packet branding persist on the server; appearance and tax defaults are stored locally."
+      />
 
       {error && (
         <div className="border border-negative bg-negative-soft text-negative text-[13px] rounded px-4 py-3 max-w-2xl">
@@ -487,6 +482,7 @@ export function SettingsPage() {
           )}
           <input
             type="file"
+            aria-label="Upload company logo"
             accept=".png,.jpg,.jpeg"
             onChange={(e) => void handleLogoUpload(e)}
             disabled={uploading}

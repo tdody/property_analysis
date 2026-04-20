@@ -230,7 +230,7 @@ export function RevenueExpensesTab({
       {/* Sticky preview aside */}
       <aside className="lg:sticky lg:top-4 lg:self-start space-y-6">
         <div className="border border-rule-strong rounded p-5">
-          <h4 className="caps mb-4">Live preview</h4>
+          <h3 className="caps mb-4">Live preview</h3>
           {preview ? (
             <div className="space-y-4">
               <PreviewRow label="Monthly revenue" value={preview.revenue} />
@@ -379,9 +379,9 @@ function STRSections({
       {/* Occupancy panel */}
       <section className="grid grid-cols-1 md:grid-cols-[200px_minmax(0,1fr)] gap-8">
         <div>
-          <h3 className="font-serif text-[22px] leading-none mb-2">
+          <h2 className="h2 mb-2">
             Occupancy
-          </h3>
+          </h2>
           <p className="text-ink-3 text-[13px] leading-snug">
             Pick a flat rate, a peak / off-peak split, or month-level
             overrides.

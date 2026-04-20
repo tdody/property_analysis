@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useId } from "react";
 import { TooltipIcon } from "./TooltipIcon";
 
 export type FieldTag = "redfin" | "redfin-edited" | "missing" | null;
@@ -40,10 +40,11 @@ export function CurrencyInput({
     tag === "redfin" ? "text-accent" : tag === "redfin-edited" ? "text-ink-3" : "";
 
   const missing = tag === "missing";
+  const inputId = useId();
 
   return (
     <div className={`relative ${className}`}>
-      <label className="field-label flex items-center gap-1">
+      <label htmlFor={inputId} className="field-label flex items-center gap-1">
         <span>{label}</span>
         {tooltip && <TooltipIcon text={tooltip} />}
       </label>
@@ -57,6 +58,7 @@ export function CurrencyInput({
       <div className="flex items-baseline">
         <span className="text-ink-3 font-mono text-[15px] mr-1">$</span>
         <input
+          id={inputId}
           type="number"
           value={value || ""}
           onChange={handleChange}

@@ -1,3 +1,4 @@
+import { useId } from "react";
 import type { ReactNode } from "react";
 
 interface SliderFieldProps {
@@ -25,16 +26,18 @@ export function SliderField({
   className = "",
   disabled = false,
 }: SliderFieldProps) {
+  const inputId = useId();
   return (
     <div className={className}>
       <div className="flex items-baseline justify-between mb-1">
-        <label className="field-label mb-0">{label}</label>
+        <label htmlFor={inputId} className="field-label mb-0">{label}</label>
         <span className="font-mono text-[14px] tabular-nums text-ink">
           {value}
           {suffix}
         </span>
       </div>
       <input
+        id={inputId}
         type="range"
         min={min}
         max={max}

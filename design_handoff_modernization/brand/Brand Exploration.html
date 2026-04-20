@@ -1,0 +1,446 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Property Analysis — Brand Exploration</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+  :root{
+    --canvas: oklch(0.985 0.004 85);
+    --paper: oklch(0.995 0.003 85);
+    --ink: oklch(0.18 0.015 255);
+    --ink-2: oklch(0.38 0.012 255);
+    --ink-3: oklch(0.62 0.010 255);
+    --rule: oklch(0.90 0.008 255);
+    --rule-strong: oklch(0.82 0.010 255);
+    --accent: oklch(0.46 0.085 175);
+    --accent-soft: oklch(0.93 0.035 175);
+    --warm: oklch(0.78 0.09 60);
+  }
+  body { font-family: 'Inter', sans-serif; margin: 0; }
+  .serif { font-family: 'Instrument Serif', serif; font-weight: 400; letter-spacing: -0.01em; }
+  .mono { font-family: 'JetBrains Mono', monospace; }
+  .caps { text-transform: uppercase; letter-spacing: 0.14em; font-size: 11px; font-weight: 500; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" data-presets="react">
+const INK = 'oklch(0.18 0.015 255)';
+const PAPER = 'oklch(0.995 0.003 85)';
+const CANVAS = 'oklch(0.985 0.004 85)';
+const ACCENT = 'oklch(0.46 0.085 175)';
+const ACCENT_SOFT = 'oklch(0.93 0.035 175)';
+const INK_3 = 'oklch(0.55 0.012 255)';
+const RULE = 'oklch(0.88 0.008 255)';
+
+// ─────────────── MARKS ───────────────
+
+// 1. Roofline bars — rooflines forming ascending bar chart
+function MarkRoofline({ size=120, color=INK, accent=ACCENT }){
+  const s = size/120;
+  return (
+    <svg width={size} height={size} viewBox="0 0 120 120">
+      <g>
+        {/* three houses as ascending bars */}
+        <path d={`M 18 90 L 18 72 L 34 58 L 50 72 L 50 90 Z`} fill={color}/>
+        <path d={`M 52 90 L 52 58 L 68 42 L 84 58 L 84 90 Z`} fill={color}/>
+        <path d={`M 86 90 L 86 44 L 102 28 L 118 44 L 118 90 Z`} fill={accent}/>
+        <rect x="6" y="90" width="112" height="2" fill={color}/>
+      </g>
+    </svg>
+  );
+}
+
+// 2. Ledger rule / gable — horizontal rules intersected by a gable peak
+function MarkLedgerGable({ size=120, color=INK, accent=ACCENT }){
+  return (
+    <svg width={size} height={size} viewBox="0 0 120 120">
+      <g stroke={color} strokeWidth="3" fill="none">
+        <line x1="10" y1="40" x2="110" y2="40"/>
+        <line x1="10" y1="60" x2="110" y2="60"/>
+        <line x1="10" y1="80" x2="110" y2="80"/>
+      </g>
+      {/* Gable triangle cutting through */}
+      <path d="M 40 88 L 60 24 L 80 88 Z" fill={PAPER} stroke={color} strokeWidth="3" strokeLinejoin="miter"/>
+      <circle cx="60" cy="62" r="3" fill={accent}/>
+    </svg>
+  );
+}
+
+// 3. P monogram as roofline
+function MarkMonogramP({ size=120, color=INK, accent=ACCENT }){
+  return (
+    <svg width={size} height={size} viewBox="0 0 120 120">
+      {/* Stem */}
+      <rect x="24" y="18" width="14" height="84" fill={color}/>
+      {/* Bowl with a gable peak on top */}
+      <path d="M 38 18 L 72 18 Q 96 18 96 40 Q 96 62 72 62 L 38 62" fill="none" stroke={color} strokeWidth="14" strokeLinejoin="miter" strokeLinecap="butt"/>
+      {/* Chimney dot */}
+      <rect x="86" y="10" width="6" height="14" fill={accent}/>
+    </svg>
+  );
+}
+
+// 4. Sparkline roof — a line chart whose high point becomes a rooftop
+function MarkSparkRoof({ size=120, color=INK, accent=ACCENT }){
+  return (
+    <svg width={size} height={size} viewBox="0 0 120 120">
+      <path d="M 12 82 L 30 74 L 46 78 L 60 34 L 74 78 L 90 62 L 108 70"
+        fill="none" stroke={color} strokeWidth="4" strokeLinejoin="round" strokeLinecap="round"/>
+      {/* House outline anchored to the peak */}
+      <path d="M 44 86 L 44 64 L 60 34 L 76 64 L 76 86 Z" fill="none" stroke={color} strokeWidth="3" strokeLinejoin="miter"/>
+      <circle cx="60" cy="34" r="4" fill={accent}/>
+    </svg>
+  );
+}
+
+// 5. Grid + gable — graph-paper square whose interior forms a roof
+function MarkGridGable({ size=120, color=INK, accent=ACCENT }){
+  return (
+    <svg width={size} height={size} viewBox="0 0 120 120">
+      <rect x="16" y="16" width="88" height="88" fill="none" stroke={color} strokeWidth="3"/>
+      {/* Interior grid */}
+      <g stroke={color} strokeWidth="1" opacity="0.25">
+        <line x1="38" y1="16" x2="38" y2="104"/>
+        <line x1="60" y1="16" x2="60" y2="104"/>
+        <line x1="82" y1="16" x2="82" y2="104"/>
+        <line x1="16" y1="38" x2="104" y2="38"/>
+        <line x1="16" y1="60" x2="104" y2="60"/>
+        <line x1="16" y1="82" x2="104" y2="82"/>
+      </g>
+      {/* Gable fitted to grid */}
+      <path d="M 28 82 L 60 38 L 92 82 Z" fill={accent} opacity="0.9"/>
+      <path d="M 28 82 L 60 38 L 92 82" fill="none" stroke={color} strokeWidth="3" strokeLinejoin="miter"/>
+    </svg>
+  );
+}
+
+// 6. Hearth — stacked chevrons (gables) nested like a Vermont hillside
+function MarkHearth({ size=120, color=INK, accent=ACCENT }){
+  return (
+    <svg width={size} height={size} viewBox="0 0 120 120">
+      <path d="M 10 96 L 38 60 L 58 82 L 82 44 L 110 96 Z" fill={color}/>
+      <path d="M 46 96 L 62 74 L 76 96 Z" fill={accent}/>
+      <line x1="6" y1="102" x2="114" y2="102" stroke={color} strokeWidth="3"/>
+    </svg>
+  );
+}
+
+const MARKS = [
+  { id:'roofline', name:'Roofline bars', concept:'Three gables rising like a bar chart — growth in a portfolio of homes.', Comp: MarkRoofline },
+  { id:'ledger',   name:'Ledger gable',  concept:'Accountant\'s horizontal rules pierced by a gable. Numbers meet houses.', Comp: MarkLedgerGable },
+  { id:'mono',     name:'P monogram',    concept:'The P of "Property" built from a stem + roof-like bowl. Pure letter-mark.', Comp: MarkMonogramP },
+  { id:'spark',    name:'Sparkline roof',concept:'A data line peaks, and the peak becomes a house. Performance = home.', Comp: MarkSparkRoof },
+  { id:'grid',     name:'Grid gable',    concept:'Spreadsheet cell contains a gable. Calm, methodical, geometric.', Comp: MarkGridGable },
+  { id:'hearth',   name:'Hearth',        concept:'Vermont hillside of rooflines. Warmth, place, multiple properties.', Comp: MarkHearth },
+];
+
+// ─────────────── NAME CANDIDATES ───────────────
+const NAMES = [
+  { name:'Gable',    pitch:'A roofline primitive; short, warm, Vermont-in-the-word.' },
+  { name:'Northfield', pitch:'Evokes a New England town; a place for investors to work.' },
+  { name:'Rooftally',pitch:'Quietly utilitarian: counting what each roof returns.' },
+];
+
+// ─────────────── COMPONENTS ───────────────
+
+function Wordmark({ mark, name='Gable', small=false, light=false, color }){
+  const Mark = mark;
+  const c = color || (light ? PAPER : INK);
+  const size = small ? 28 : 44;
+  return (
+    <div style={{display:'flex', alignItems:'center', gap: small?10:14, color: c}}>
+      <Mark size={size} color={c} accent={light ? 'oklch(0.78 0.09 175)' : ACCENT}/>
+      <span className="serif" style={{fontSize: small?24:36, letterSpacing:-0.01, lineHeight:1}}>{name}</span>
+    </div>
+  );
+}
+
+function FullLockup({MarkComp, name}){
+  return (
+    <div style={{width:'100%', height:'100%', display:'grid', placeItems:'center'}}>
+      <Wordmark mark={MarkComp} name={name}/>
+    </div>
+  );
+}
+
+/* ─── App ─── */
+function App(){
+  const chosenName = 'Gable';
+  const HERO = MARKS[0]; // Roofline bars
+
+  return (
+    <DesignCanvas>
+      {/* Title */}
+      <div style={{padding:'0 60px 60px', maxWidth: 900}}>
+        <div className="caps" style={{color:INK_3, marginBottom:12}}>Brand Exploration · Property Analysis app</div>
+        <div className="serif" style={{fontSize: 72, lineHeight:0.95, letterSpacing:-0.015, color:INK, marginBottom: 18}}>
+          Six marks, one working name.
+        </div>
+        <div style={{fontSize:16, lineHeight:1.55, color:'oklch(0.38 0.012 255)', maxWidth: 640}}>
+          Audience is real-estate agents advising STR investors in Vermont. Personality leans warm / placeful / precise. All marks use the in-app palette: near-black ink, warm off-white canvas, deep teal accent. Pick any mark to carry forward — I'll build the full system around it.
+        </div>
+      </div>
+
+      {/* Names */}
+      <DCSection title="Working names" subtitle="Three candidates. I've used 'Gable' as the stand-in through the rest of the sheet — swap later in one place.">
+        {NAMES.map((n,i) => (
+          <DCArtboard key={n.name} label={`Name ${String.fromCharCode(65+i)}`} width={360} height={200}>
+            <div style={{padding:32, height:'100%', display:'flex', flexDirection:'column', justifyContent:'space-between', background: i===0 ? ACCENT_SOFT : PAPER}}>
+              <div>
+                <div className="serif" style={{fontSize:56, lineHeight:1, letterSpacing:-0.02, color:INK}}>{n.name}</div>
+                {i===0 && <div className="caps" style={{color:ACCENT, marginTop:8}}>Recommended</div>}
+              </div>
+              <div style={{fontSize:13, color:'oklch(0.38 0.012 255)', lineHeight:1.5}}>{n.pitch}</div>
+            </div>
+          </DCArtboard>
+        ))}
+      </DCSection>
+
+      {/* Mark exploration */}
+      <DCSection title="Mark directions" subtitle="Six routes, symbol-only. Each sits in a 120×120 grid for comparable weight.">
+        {MARKS.map((m, i) => (
+          <DCArtboard key={m.id} label={`0${i+1} · ${m.name}`} width={260} height={340}>
+            <div style={{padding:24, height:'100%', display:'flex', flexDirection:'column', background: PAPER}}>
+              <div style={{flex:1, display:'grid', placeItems:'center', border:`1px solid ${RULE}`, borderRadius:2, marginBottom:16}}>
+                <m.Comp size={140}/>
+              </div>
+              <div className="serif" style={{fontSize:22, lineHeight:1, marginBottom:6, color:INK}}>{m.name}</div>
+              <div style={{fontSize:12, lineHeight:1.5, color:'oklch(0.45 0.012 255)'}}>{m.concept}</div>
+            </div>
+          </DCArtboard>
+        ))}
+      </DCSection>
+
+      {/* Favicon comparison grid */}
+      <DCSection title="At favicon scale (32px)" subtitle="Which marks hold up at 32 and 16 pixels? The simplest silhouettes win.">
+        <DCArtboard label="Favicon comparison" width={900} height={220}>
+          <div style={{padding:28, background:PAPER, height:'100%'}}>
+            <div style={{display:'grid', gridTemplateColumns:'repeat(6, 1fr)', gap:24}}>
+              {MARKS.map(m => (
+                <div key={m.id} style={{display:'flex', flexDirection:'column', alignItems:'center', gap:8}}>
+                  <div style={{width:64, height:64, background:INK, borderRadius:12, display:'grid', placeItems:'center'}}>
+                    <m.Comp size={44} color={PAPER} accent={'oklch(0.78 0.09 175)'}/>
+                  </div>
+                  <div style={{display:'flex', gap:8, alignItems:'center'}}>
+                    <div style={{width:32, height:32, background:INK, borderRadius:6, display:'grid', placeItems:'center'}}>
+                      <m.Comp size={22} color={PAPER} accent={'oklch(0.78 0.09 175)'}/>
+                    </div>
+                    <div style={{width:16, height:16, background:INK, borderRadius:3, display:'grid', placeItems:'center'}}>
+                      <m.Comp size={12} color={PAPER} accent={'oklch(0.78 0.09 175)'}/>
+                    </div>
+                  </div>
+                  <div className="caps" style={{color:INK_3, fontSize:9}}>0{MARKS.indexOf(m)+1}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </DCArtboard>
+      </DCSection>
+
+      {/* Variants of recommended */}
+      <DCSection title={`Full system — ${HERO.name}`} subtitle="Assuming direction 01. Swap the symbol once and everything below updates.">
+        <DCArtboard label="Primary" width={360} height={220}>
+          <div style={{height:'100%', background:CANVAS, display:'grid', placeItems:'center'}}>
+            <Wordmark mark={HERO.Comp} name={chosenName}/>
+          </div>
+        </DCArtboard>
+        <DCArtboard label="Reverse (dark)" width={360} height={220}>
+          <div style={{height:'100%', background:INK, display:'grid', placeItems:'center'}}>
+            <Wordmark mark={HERO.Comp} name={chosenName} light/>
+          </div>
+        </DCArtboard>
+        <DCArtboard label="Mono — ink only" width={360} height={220}>
+          <div style={{height:'100%', background:CANVAS, display:'grid', placeItems:'center'}}>
+            <Wordmark mark={(p)=> <HERO.Comp {...p} accent={p.color}/>} name={chosenName} color={INK}/>
+          </div>
+        </DCArtboard>
+        <DCArtboard label="Mono — reverse" width={360} height={220}>
+          <div style={{height:'100%', background:INK, display:'grid', placeItems:'center'}}>
+            <Wordmark mark={(p)=> <HERO.Comp {...p} accent={p.color}/>} name={chosenName} color={PAPER}/>
+          </div>
+        </DCArtboard>
+        <DCArtboard label="Stacked" width={260} height={260}>
+          <div style={{height:'100%', background:CANVAS, display:'grid', placeItems:'center'}}>
+            <div style={{display:'flex', flexDirection:'column', alignItems:'center', gap:14}}>
+              <HERO.Comp size={64}/>
+              <div className="serif" style={{fontSize:38, letterSpacing:-0.01, color:INK, lineHeight:1}}>{chosenName}</div>
+            </div>
+          </div>
+        </DCArtboard>
+      </DCSection>
+
+      {/* Favicon family */}
+      <DCSection title="App icon family">
+        <DCArtboard label="iOS / rounded (1024)" width={280} height={280}>
+          <div style={{height:'100%', background:'oklch(0.96 0.015 85)', display:'grid', placeItems:'center'}}>
+            <div style={{width:200, height:200, borderRadius:44, background:INK, display:'grid', placeItems:'center', boxShadow:'inset 0 0 0 1px oklch(0.3 0.015 255)'}}>
+              <HERO.Comp size={140} color={PAPER} accent={'oklch(0.78 0.09 175)'}/>
+            </div>
+          </div>
+        </DCArtboard>
+        <DCArtboard label="Favicon — ink on paper" width={280} height={280}>
+          <div style={{height:'100%', background:CANVAS, display:'grid', placeItems:'center'}}>
+            <div style={{width:200, height:200, borderRadius:12, background:PAPER, display:'grid', placeItems:'center', border:`1px solid ${RULE}`}}>
+              <HERO.Comp size={140}/>
+            </div>
+          </div>
+        </DCArtboard>
+        <DCArtboard label="Accent fill" width={280} height={280}>
+          <div style={{height:'100%', background:CANVAS, display:'grid', placeItems:'center'}}>
+            <div style={{width:200, height:200, borderRadius:44, background:ACCENT, display:'grid', placeItems:'center'}}>
+              <HERO.Comp size={140} color={PAPER} accent={PAPER}/>
+            </div>
+          </div>
+        </DCArtboard>
+      </DCSection>
+
+      {/* Palette + type */}
+      <DCSection title="Palette & typography">
+        <DCArtboard label="Color tokens" width={520} height={260}>
+          <div style={{padding:24, height:'100%', background:PAPER, display:'flex', flexDirection:'column', gap:14}}>
+            <div className="caps" style={{color:INK_3}}>Palette</div>
+            <div style={{display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:10}}>
+              {[
+                ['Canvas', CANVAS, 'oklch(0.985 0.004 85)'],
+                ['Paper',  PAPER,  'oklch(0.995 0.003 85)'],
+                ['Ink',    INK,    'oklch(0.18 0.015 255)'],
+                ['Accent', ACCENT, 'oklch(0.46 0.085 175)'],
+                ['Accent soft', ACCENT_SOFT,'oklch(0.93 0.035 175)'],
+              ].map(([n,c,v])=>(
+                <div key={n}>
+                  <div style={{height:72, background:c, border:`1px solid ${RULE}`, borderRadius:2}}/>
+                  <div style={{fontSize:11, fontWeight:600, marginTop:8, color:INK}}>{n}</div>
+                  <div className="mono" style={{fontSize:9, color:INK_3, marginTop:2}}>{v}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </DCArtboard>
+        <DCArtboard label="Type pairing" width={520} height={260}>
+          <div style={{padding:24, height:'100%', background:PAPER}}>
+            <div className="caps" style={{color:INK_3, marginBottom:10}}>Typography</div>
+            <div className="serif" style={{fontSize:44, lineHeight:1, letterSpacing:-0.015, color:INK, marginBottom:6}}>Instrument Serif</div>
+            <div style={{fontSize:11, color:INK_3, marginBottom:18}}>Display · headlines · metrics</div>
+            <div style={{fontSize:20, color:INK, marginBottom:2, fontWeight:500}}>Inter Medium</div>
+            <div style={{fontSize:11, color:INK_3, marginBottom:18}}>UI · body · labels</div>
+            <div className="mono" style={{fontSize:15, color:INK, marginBottom:2}}>JetBrains Mono</div>
+            <div style={{fontSize:11, color:INK_3}}>Tabular data · formulas</div>
+          </div>
+        </DCArtboard>
+      </DCSection>
+
+      {/* Marketing Hero */}
+      <DCSection title="Marketing hero mockup" subtitle="Landing page preview using the chosen mark and palette.">
+        <DCArtboard label="Homepage hero — 1280×720" width={1280} height={720}>
+          <div style={{height:'100%', background:CANVAS, position:'relative', display:'flex', flexDirection:'column'}}>
+            {/* Top nav */}
+            <div style={{padding:'24px 56px', borderBottom:`1px solid ${RULE}`, display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+              <Wordmark mark={HERO.Comp} name={chosenName} small/>
+              <nav style={{display:'flex', gap:40, fontSize:13, color:'oklch(0.38 0.012 255)'}}>
+                <span>Product</span><span>For agents</span><span>Pricing</span><span>Glossary</span>
+              </nav>
+              <div style={{display:'flex', gap:10}}>
+                <button style={{height:36, padding:'0 16px', borderRadius:999, border:'none', background:'transparent', fontSize:13, color:INK}}>Sign in</button>
+                <button style={{height:36, padding:'0 18px', borderRadius:999, border:'none', background:INK, color:CANVAS, fontSize:13, fontWeight:500}}>Start free trial</button>
+              </div>
+            </div>
+
+            {/* Hero body */}
+            <div style={{flex:1, padding:'64px 56px', display:'grid', gridTemplateColumns:'1.1fr 1fr', gap:60, alignItems:'center'}}>
+              <div>
+                <div className="caps" style={{color:ACCENT, marginBottom:20}}>For real-estate agents advising STR investors</div>
+                <div className="serif" style={{fontSize:84, lineHeight:0.95, letterSpacing:-0.02, color:INK, marginBottom:24}}>
+                  Underwrite the <em style={{fontStyle:'italic'}}>whole</em> portfolio, not just the listing.
+                </div>
+                <div style={{fontSize:17, lineHeight:1.5, color:'oklch(0.32 0.012 255)', maxWidth:500, marginBottom:32}}>
+                  Import a Redfin link, model short- or long-term rentals side by side, and walk your clients through cashflow, cap rate, and break-even — in plain numbers.
+                </div>
+                <div style={{display:'flex', gap:12}}>
+                  <button style={{height:48, padding:'0 24px', borderRadius:999, border:'none', background:INK, color:CANVAS, fontSize:14, fontWeight:500}}>Start free trial</button>
+                  <button style={{height:48, padding:'0 24px', borderRadius:999, border:`1px solid ${'oklch(0.82 0.010 255)'}`, background:'transparent', fontSize:14, fontWeight:500, color:INK}}>Watch 90-second tour</button>
+                </div>
+                <div style={{marginTop:36, display:'flex', gap:32, fontSize:12, color:INK_3}}>
+                  <span>○ No credit card</span>
+                  <span>○ Vermont tax rules built in</span>
+                </div>
+              </div>
+
+              {/* Product card mockup */}
+              <div style={{background:PAPER, border:`1px solid ${RULE}`, borderRadius:20, padding:28, boxShadow:'0 20px 60px -20px rgba(0,0,0,0.08)'}}>
+                <div className="caps" style={{color:INK_3, marginBottom:10}}>31 West Ln · Winooski, VT</div>
+                <div className="serif" style={{fontSize:40, lineHeight:1, letterSpacing:-0.02, color:'oklch(0.54 0.155 30)', marginBottom:4}}>−$1,672<span style={{color:INK_3, fontFamily:'Inter', fontSize:18}}>/mo</span></div>
+                <div style={{fontSize:12, color:INK_3, marginBottom:24}}>Year 1 estimated cashflow</div>
+                <div style={{borderTop:`1px solid ${RULE}`, borderBottom:`1px solid ${RULE}`, display:'grid', gridTemplateColumns:'1fr 1fr 1fr', padding:'16px 0'}}>
+                  <div>
+                    <div className="caps" style={{color:INK_3, marginBottom:4}}>Cap rate</div>
+                    <div style={{fontSize:20, fontWeight:600, color:INK, fontVariantNumeric:'tabular-nums'}}>3.4%</div>
+                  </div>
+                  <div style={{borderLeft:`1px solid ${RULE}`, paddingLeft:14}}>
+                    <div className="caps" style={{color:INK_3, marginBottom:4}}>DSCR</div>
+                    <div style={{fontSize:20, fontWeight:600, color:'oklch(0.54 0.155 30)', fontVariantNumeric:'tabular-nums'}}>0.71</div>
+                  </div>
+                  <div style={{borderLeft:`1px solid ${RULE}`, paddingLeft:14}}>
+                    <div className="caps" style={{color:INK_3, marginBottom:4}}>Break-even</div>
+                    <div style={{fontSize:20, fontWeight:600, color:INK, fontVariantNumeric:'tabular-nums'}}>72%</div>
+                  </div>
+                </div>
+                {/* Sparkline */}
+                <svg width="100%" height="60" viewBox="0 0 300 60" style={{marginTop:18, display:'block'}}>
+                  <path d="M 0 40 L 40 38 L 80 42 L 120 30 L 160 32 L 200 22 L 240 24 L 300 12" fill="none" stroke={ACCENT} strokeWidth="2"/>
+                  <path d="M 0 40 L 40 38 L 80 42 L 120 30 L 160 32 L 200 22 L 240 24 L 300 12 L 300 60 L 0 60 Z" fill={ACCENT_SOFT}/>
+                </svg>
+                <div style={{display:'flex', justifyContent:'space-between', fontSize:10, color:INK_3, marginTop:6}}>
+                  <span>Y1</span><span>Y5</span><span>Y10</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </DCArtboard>
+      </DCSection>
+
+      {/* Social header */}
+      <DCSection title="Social header & one-liner">
+        <DCArtboard label="LinkedIn banner — 1584×396" width={1200} height={300}>
+          <div style={{height:'100%', background:INK, display:'flex', alignItems:'center', padding:'0 80px', gap:60, position:'relative'}}>
+            <div style={{flexShrink:0}}>
+              <div style={{width:140, height:140, borderRadius:28, background:PAPER, display:'grid', placeItems:'center'}}>
+                <HERO.Comp size={100}/>
+              </div>
+            </div>
+            <div>
+              <div className="caps" style={{color:'oklch(0.78 0.09 175)', marginBottom:12}}>{chosenName}</div>
+              <div className="serif" style={{fontSize:54, color:PAPER, lineHeight:0.98, letterSpacing:-0.02, maxWidth:700}}>
+                The underwriting desk, tuned for short-term rentals.
+              </div>
+            </div>
+            {/* Decorative roofline strip */}
+            <svg width="300" height="60" viewBox="0 0 300 60" style={{position:'absolute', bottom:30, right:40, opacity:0.35}}>
+              <path d="M 0 60 L 30 30 L 60 60 L 100 20 L 140 60 L 180 40 L 220 60 L 260 10 L 300 60" fill="none" stroke={PAPER} strokeWidth="2"/>
+            </svg>
+          </div>
+        </DCArtboard>
+      </DCSection>
+
+      <DCPostIt top={280} right={60} rotate={3} width={200}>
+        Six mark directions. My bet is 01 (Roofline bars) for how well it scales + how cleanly it reads as "rental portfolio."
+      </DCPostIt>
+      <DCPostIt top={760} right={80} rotate={-4} width={180}>
+        04 (Sparkline roof) is the runner-up — more distinctive, a little busier at 16px.
+      </DCPostIt>
+    </DesignCanvas>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
