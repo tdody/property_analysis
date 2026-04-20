@@ -10,14 +10,14 @@ Status: `todo` · `in-progress` · `review` · `done`
 
 | # | PR | Status | Branch / PR link | Notes |
 |---|---|---|---|---|
-| 1 | Design tokens + font loading | todo | — | CSS variables, Google Fonts, no component changes |
-| 2 | Shared primitives | todo | — | `PageHeader`, `Card`, `MetricCell`, `Button`, `Tabs` |
-| 3 | Dashboard view | todo | — | Property list cards using new primitives |
-| 4 | Property Info view | todo | — | Two-column form + preview |
-| 5 | Financing view | todo | — | Amortization chart + term selector |
-| 6 | Results view | todo | — | Metric strip + 10-year projection + expense breakdown |
-| 7 | Glossary & Settings | todo | — | The quieter views |
-| 8 | Polish pass | todo | — | Hover/focus, empty states, skeletons, a11y audit |
+| 1 | Design tokens + font loading | done | THI-45 / 8956e23 (#16) | Pre-dated this tracker; confirmed no drift vs spec on 2026-04-19 |
+| 2 | Shared primitives | done | THI-46 / 14729af (#17) | Pre-dated this tracker |
+| 3 | Dashboard view | done | THI-47 / ecb7f4e (#23) | Pre-dated this tracker |
+| 4 | Property Info view | done | THI-48 shell / 0dc7edb (#18) + THI-49 info / 98bb894 (#19) | Shell + tab landed as two PRs |
+| 5 | Financing view | done | THI-50 / 32b4662 (#20) | Pre-dated this tracker |
+| 6 | Results view | done | THI-51 rev&exp / 3558ca7 (#21) + THI-52 results / 2619bd7 (#22) | Revenue+Expenses and Results landed as two PRs |
+| 7 | Glossary & Settings | done | THI-53 / 078e8bd (#24) + THI-54 / 6f10594 (#25) | Glossary+Compare and Settings landed as two PRs |
+| 8 | Polish pass | in-progress | #26, #27, #28 | Heading dark mode, toggle accent, tornado chart done; empty states / skeletons / a11y audit still open. Audit of residual non-token classes in `QuickTest.tsx`, `SnapshotButton.tsx`, `HistoryDrawer.tsx`, `MetricCard.tsx`, `PropertyTypeIcon.tsx`, `App.tsx` recorded in commit marking PR 1 done (2026-04-19) |
 
 ## Phase 3 — Refinements (from `Font & Chart Proposals.html`)
 
