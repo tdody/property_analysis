@@ -736,7 +736,7 @@ function AddPropertyForm({
   return (
     <div className="border border-rule-strong rounded p-6 space-y-6">
       <div className="flex items-center justify-between">
-        <h3 className="font-serif text-[22px] text-ink">New property</h3>
+        <h2 className="font-serif text-[22px] text-ink">New property</h2>
         <button
           type="button"
           onClick={onCancel}

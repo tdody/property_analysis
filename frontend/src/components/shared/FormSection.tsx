@@ -20,7 +20,7 @@ export function FormSection({
       className={`grid grid-cols-1 md:grid-cols-[200px_minmax(0,1fr)] gap-8 ${className}`}
     >
       <div>
-        <h3 className="font-serif text-[22px] leading-none mb-2 text-ink">{title}</h3>
+        <h2 className="font-serif text-[22px] leading-none mb-2 text-ink">{title}</h2>
         {subtitle && (
           <div className="text-ink-3 text-[13px] leading-snug">{subtitle}</div>
         )}

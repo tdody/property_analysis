@@ -487,6 +487,7 @@ export function SettingsPage() {
           )}
           <input
             type="file"
+            aria-label="Upload company logo"
             accept=".png,.jpg,.jpeg"
             onChange={(e) => void handleLogoUpload(e)}
             disabled={uploading}

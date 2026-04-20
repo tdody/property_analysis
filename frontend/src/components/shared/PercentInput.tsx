@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useId } from "react";
 import { TooltipIcon } from "./TooltipIcon";
 
 interface PercentInputProps {
@@ -24,14 +24,16 @@ export function PercentInput({
     [onChange]
   );
 
+  const inputId = useId();
   return (
     <div className={`relative ${className}`}>
-      <label className="field-label flex items-center gap-1">
+      <label htmlFor={inputId} className="field-label flex items-center gap-1">
         <span>{label}</span>
         {tooltip && <TooltipIcon text={tooltip} />}
       </label>
       <div className="flex items-baseline">
         <input
+          id={inputId}
           type="number"
           step="0.1"
           value={value || ""}

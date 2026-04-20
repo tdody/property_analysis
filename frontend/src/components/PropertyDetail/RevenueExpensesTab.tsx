@@ -230,7 +230,7 @@ export function RevenueExpensesTab({
       {/* Sticky preview aside */}
       <aside className="lg:sticky lg:top-4 lg:self-start space-y-6">
         <div className="border border-rule-strong rounded p-5">
-          <h4 className="caps mb-4">Live preview</h4>
+          <h3 className="caps mb-4">Live preview</h3>
           {preview ? (
             <div className="space-y-4">
               <PreviewRow label="Monthly revenue" value={preview.revenue} />

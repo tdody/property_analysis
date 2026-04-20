@@ -1,3 +1,4 @@
+import { useId } from "react";
 import type { ChangeEvent, InputHTMLAttributes, ReactNode } from "react";
 
 export type FieldTag = "redfin" | "redfin-edited" | "missing" | null;
@@ -37,10 +38,12 @@ export function Field({
   const missing = tag === "missing";
   const resolvedHint =
     hint ?? (missing ? "Not found — enter manually" : undefined);
+  const generatedId = useId();
+  const inputId = inputProps.id ?? generatedId;
 
   return (
     <div className={`relative ${className}`}>
-      <label className="field-label">{label}</label>
+      <label htmlFor={inputId} className="field-label">{label}</label>
       {showBadge && (
         <span
           className={`absolute top-0 right-0 text-[9px] tracking-[0.1em] uppercase font-semibold ${badgeClass}`}
@@ -57,6 +60,7 @@ export function Field({
           className="field"
           style={missing ? { borderBottomColor: "var(--warn)" } : undefined}
           {...inputProps}
+          id={inputId}
         />
         {suffix && (
           <span className="text-ink-3 font-mono text-[15px] ml-1">{suffix}</span>

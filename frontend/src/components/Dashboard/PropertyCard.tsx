@@ -92,9 +92,9 @@ export function PropertyCard({
 
       <div className="p-5 flex flex-col gap-3 flex-1">
         <div>
-          <h3 className="font-serif text-[20px] leading-tight text-ink truncate">
+          <h2 className="font-serif text-[20px] leading-tight text-ink truncate">
             {property.name}
-          </h3>
+          </h2>
           <p className="text-[13px] text-ink-3 truncate">
             {property.city}, {property.state}
           </p>
