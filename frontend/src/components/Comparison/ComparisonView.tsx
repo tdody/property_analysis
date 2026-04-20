@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { compareProperties } from "../../api/client.ts";
 import type { ComparisonProperty } from "../../types/index.ts";
 import { Skeleton, SkeletonLine } from "../shared/Skeleton.tsx";
+import { PageHeader } from "../shared/PageHeader.tsx";
 
 interface ComparisonViewProps {
   propertyIds: string[];
@@ -209,12 +210,10 @@ export function ComparisonView({ propertyIds }: ComparisonViewProps) {
   return (
     <div className="space-y-6">
       <Breadcrumb onClick={() => navigate("/")} />
-      <div>
-        <p className="caps text-ink-3 mb-2">Compare · {properties.length}</p>
-        <h1 className="font-serif text-[44px] leading-tight text-ink">
-          Side by side
-        </h1>
-      </div>
+      <PageHeader
+        eyebrow={`Compare · ${properties.length}`}
+        title="Side by side"
+      />
 
       <div className="border border-rule-strong rounded overflow-auto">
         <table className="w-full text-[13px]">

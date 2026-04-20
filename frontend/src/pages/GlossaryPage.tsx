@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { GLOSSARY } from "../data/glossary.ts";
 import type { GlossaryEntry } from "../data/glossary.ts";
 import { Segmented } from "../components/shared/Segmented.tsx";
+import { PageHeader } from "../components/shared/PageHeader.tsx";
 
 type CategoryFilter = "all" | GlossaryEntry["category"];
 
@@ -81,33 +82,33 @@ export function GlossaryPage() {
   return (
     <div className="space-y-8">
       {/* Editorial header */}
-      <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
-        <div>
-          <p className="caps text-ink-3 mb-2">Glossary</p>
-          <h1 className="font-serif text-[44px] leading-tight text-ink">
-            Every term, defined.
-          </h1>
-          <p className="text-[14px] text-ink-3 mt-2">
+      <PageHeader
+        eyebrow="Glossary"
+        title="Every term, defined."
+        subtitle={
+          <>
             {totalCount} {totalCount === 1 ? "entry" : "entries"}
             {category !== "all"
               ? ` in ${CATEGORY_LABELS[category as GlossaryEntry["category"]]}`
               : ""}
-          </p>
-        </div>
-        <div className="md:max-w-xs w-full">
-          <label className="field-label" htmlFor="glossary-search">
-            Search
-          </label>
-          <input
-            id="glossary-search"
-            type="search"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Cap rate, DSCR, Redfin…"
-            className="field"
-          />
-        </div>
-      </header>
+          </>
+        }
+        actions={
+          <div className="md:max-w-xs w-full">
+            <label className="field-label" htmlFor="glossary-search">
+              Search
+            </label>
+            <input
+              id="glossary-search"
+              type="search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Cap rate, DSCR, Redfin…"
+              className="field"
+            />
+          </div>
+        }
+      />
 
       {/* Category pill */}
       <div>

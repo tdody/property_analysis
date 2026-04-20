@@ -49,6 +49,13 @@
   --negative-soft: oklch(0.28 0.06 30);
 }
 
+:root {
+  --h1: 48px;
+  --h2: 22px;
+  --hero: 56px;
+  --caps-eyebrow: 10px;
+}
+
 @theme {
   --color-canvas: var(--canvas);
   --color-paper: var(--paper);
@@ -76,6 +83,42 @@
     text-transform: uppercase;
     color: var(--ink-3);
     font-weight: 500;
+  }
+
+  .caps-eyebrow {
+    font-family: "Inter", sans-serif;
+    font-size: var(--caps-eyebrow);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    font-weight: 500;
+  }
+
+  .h1 {
+    font-family: "Instrument Serif", serif;
+    font-size: var(--h1);
+    line-height: 1;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+    font-weight: 400;
+  }
+
+  .h2 {
+    font-family: "Instrument Serif", serif;
+    font-size: var(--h2);
+    line-height: 1;
+    letter-spacing: -0.015em;
+    color: var(--ink);
+    font-weight: 400;
+  }
+
+  .hero {
+    font-family: "Instrument Serif", serif;
+    font-size: var(--hero);
+    line-height: 1;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+    font-weight: 400;
   }
 
   .field-label {

@@ -20,6 +20,7 @@ import { Field } from "../shared/Field.tsx";
 import { CurrencyInput } from "../shared/CurrencyInput.tsx";
 import { EmptyState } from "../shared/EmptyState.tsx";
 import { Skeleton, SkeletonLine } from "../shared/Skeleton.tsx";
+import { PageHeader } from "../shared/PageHeader.tsx";
 
 type SortKey =
   | "default"
@@ -320,14 +321,16 @@ export function Dashboard() {
       {/* Editorial hero */}
       <section>
         <div className="mb-6">
-          <p className="caps text-ink-3 mb-2">Portfolio</p>
-          <h1 className="font-serif text-[44px] leading-tight text-ink">
-            {hasProperties
-              ? `${properties.length} ${
-                  properties.length === 1 ? "property" : "properties"
-                } tracked`
-              : "Start tracking a property"}
-          </h1>
+          <PageHeader
+            eyebrow="Portfolio"
+            title={
+              hasProperties
+                ? `${properties.length} ${
+                    properties.length === 1 ? "property" : "properties"
+                  } tracked`
+                : "Start tracking a property"
+            }
+          />
         </div>
 
         {hasProperties && (
