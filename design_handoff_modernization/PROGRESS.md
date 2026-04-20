@@ -11,7 +11,7 @@ Status: `todo` · `in-progress` · `review` · `done`
 | # | PR | Status | Branch / PR link | Notes |
 |---|---|---|---|---|
 | 1 | Design tokens + font loading | done | THI-45 / 8956e23 (#16) | Pre-dated this tracker; confirmed no drift vs spec on 2026-04-19 |
-| 2 | Shared primitives | done | THI-46 / 14729af (#17) | Pre-dated this tracker |
+| 2 | Shared primitives | done | THI-46 / 14729af (#17) | Shipped set: `Field`, `FormSection`, `MetricCell`, `OccupancyGauge`, `PropertyThumb`, `RentalBadge`, `Segmented`, `SliderField`, `Toggle` (README inventory). `Card` / `Button` / `Tabs` deliberately not extracted — views use inline token-based patterns; extract only on demand. `PageHeader` rolled into Phase 3 PR A. |
 | 3 | Dashboard view | done | THI-47 / ecb7f4e (#23) | Pre-dated this tracker |
 | 4 | Property Info view | done | THI-48 shell / 0dc7edb (#18) + THI-49 info / 98bb894 (#19) | Shell + tab landed as two PRs |
 | 5 | Financing view | done | THI-50 / 32b4662 (#20) | Pre-dated this tracker |
