@@ -201,7 +201,7 @@ function GlossaryEntryBlock({
       className="border-t border-rule pt-6 scroll-mt-24 transition-all"
     >
       <div className="flex items-start justify-between gap-3 mb-3 flex-wrap">
-        <h3 className="font-serif text-[22px] leading-tight text-ink">
+        <h3 className="h2">
           {entry.term}
         </h3>
         <span className="caps px-2 py-0.5 border border-rule-strong rounded">

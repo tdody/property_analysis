@@ -98,9 +98,9 @@ function TornadoChart({
   return (
     <div className="border border-rule-strong rounded p-6">
       <div className="mb-5">
-        <h3 className="font-serif text-[22px] leading-tight text-ink">
+        <h2 className="h2">
           {data.metric_label}
-        </h3>
+        </h2>
         <p className="text-[13px] text-ink-3 mt-1">
           <span className="caps">Baseline</span>{" "}
           <span className="font-mono tabular-nums text-ink ml-1">
@@ -334,9 +334,9 @@ function DrillDownChart({
   return (
     <div className="border border-rule-strong rounded p-6 mt-6">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="font-serif text-[20px] leading-tight text-ink">
+        <h2 className="h2">
           {bar.variable_label} → {metricLabel}
-        </h3>
+        </h2>
         <button
           type="button"
           onClick={onClose}

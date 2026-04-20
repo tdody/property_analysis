@@ -275,7 +275,7 @@ export function FinancingTab({
       {/* Scenario rail */}
       <aside className="space-y-3">
         <div className="flex items-center justify-between mb-1">
-          <h3 className="caps">Scenarios</h3>
+          <p className="caps">Scenarios</p>
           <span className="text-[12px] text-ink-3 font-mono tabular-nums">
             {scenarios.length}
           </span>

@@ -379,9 +379,9 @@ function STRSections({
       {/* Occupancy panel */}
       <section className="grid grid-cols-1 md:grid-cols-[200px_minmax(0,1fr)] gap-8">
         <div>
-          <h3 className="font-serif text-[22px] leading-none mb-2">
+          <h2 className="h2 mb-2">
             Occupancy
-          </h3>
+          </h2>
           <p className="text-ink-3 text-[13px] leading-snug">
             Pick a flat rate, a peak / off-peak split, or month-level
             overrides.

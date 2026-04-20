@@ -361,7 +361,7 @@ export function PropertyInfoTab({ property, onUpdate }: PropertyInfoTabProps) {
       {/* Aside */}
       <aside className="space-y-6 lg:sticky lg:top-4 lg:self-start">
         <div className="border border-rule-strong rounded p-5">
-          <h3 className="caps mb-3">Import status</h3>
+          <p className="caps mb-3">Import status</p>
           {snapshot ? (
             <ul className="space-y-2 text-[13px]">
               {IMPORT_STATUS_FIELDS.map(({ key, label }) => {
@@ -388,7 +388,7 @@ export function PropertyInfoTab({ property, onUpdate }: PropertyInfoTabProps) {
         </div>
 
         <div className="border border-rule-strong rounded p-5">
-          <h3 className="caps mb-3">Shortcuts</h3>
+          <p className="caps mb-3">Shortcuts</p>
           <ul className="space-y-2 text-[13px]">
             <li>
               <a

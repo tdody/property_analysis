@@ -530,7 +530,7 @@ function STRView(props: STRViewProps) {
 
       {/* Revenue breakdown */}
       <section>
-        <h3 className="font-serif text-[22px] mb-4">Revenue breakdown</h3>
+        <h2 className="h2 mb-4">Revenue breakdown</h2>
         <div className="border border-rule-strong rounded overflow-hidden">
           <table className="w-full text-[13px]">
             <tbody>
@@ -599,7 +599,7 @@ function STRView(props: STRViewProps) {
 
       {/* Expense breakdown */}
       <section>
-        <h3 className="font-serif text-[22px] mb-4">Expense breakdown</h3>
+        <h2 className="h2 mb-4">Expense breakdown</h2>
         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] gap-8">
           <div className="border border-rule-strong rounded p-5">
             <ExpenseBreakdown
@@ -750,9 +750,9 @@ function STRView(props: STRViewProps) {
       {results.depreciation &&
         results.depreciation.total_depreciation_annual > 0 && (
           <section>
-            <h3 className="font-serif text-[22px] mb-4">
+            <h2 className="h2 mb-4">
               Tax deductions · non-cash
-            </h3>
+            </h2>
             <div className="border border-rule-strong rounded overflow-hidden">
               <table className="w-full text-[13px]">
                 <tbody>
@@ -812,7 +812,7 @@ function STRView(props: STRViewProps) {
       {/* Sensitivity */}
       {sensitivity && (
         <section>
-          <h3 className="font-serif text-[22px] mb-4">Sensitivity</h3>
+          <h2 className="h2 mb-4">Sensitivity</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <SensitivityCard
               title="Occupancy vs monthly cashflow"
@@ -1290,7 +1290,7 @@ function LTRView({
       )}
 
       <section>
-        <h3 className="font-serif text-[22px] mb-4">Revenue breakdown</h3>
+        <h2 className="h2 mb-4">Revenue breakdown</h2>
         <div className="border border-rule-strong rounded overflow-hidden">
           <table className="w-full text-[13px]">
             <tbody>
@@ -1342,7 +1342,7 @@ function LTRView({
       </section>
 
       <section>
-        <h3 className="font-serif text-[22px] mb-4">Expense breakdown</h3>
+        <h2 className="h2 mb-4">Expense breakdown</h2>
         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] gap-8">
           <div className="border border-rule-strong rounded p-5">
             <ExpenseBreakdown
@@ -1388,7 +1388,7 @@ function LTRView({
 
       {sensitivity && (
         <section>
-          <h3 className="font-serif text-[22px] mb-4">Sensitivity</h3>
+          <h2 className="h2 mb-4">Sensitivity</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <SensitivityCard
               title="Vacancy vs monthly cashflow"
