@@ -230,8 +230,12 @@ export function PropertyDetail({
 
       {/* Underlined tab bar */}
       <div className="border-b border-rule-strong mb-6 overflow-x-auto">
-        <nav className="flex gap-6 min-w-max" role="tablist">
-          {TABS.map((tab) => {
+        <nav
+          className="flex gap-6 min-w-max"
+          role="tablist"
+          aria-label="Property detail sections"
+        >
+          {TABS.map((tab, i) => {
             const active = activeTab === tab;
             return (
               <button
@@ -239,7 +243,24 @@ export function PropertyDetail({
                 type="button"
                 role="tab"
                 aria-selected={active}
+                tabIndex={active ? 0 : -1}
                 onClick={() => setActiveTab(tab)}
+                onKeyDown={(e) => {
+                  let next: number | null = null;
+                  if (e.key === "ArrowRight") next = (i + 1) % TABS.length;
+                  else if (e.key === "ArrowLeft")
+                    next = (i - 1 + TABS.length) % TABS.length;
+                  else if (e.key === "Home") next = 0;
+                  else if (e.key === "End") next = TABS.length - 1;
+                  if (next === null) return;
+                  e.preventDefault();
+                  setActiveTab(TABS[next]);
+                  const buttons =
+                    e.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>(
+                      '[role="tab"]',
+                    );
+                  buttons?.[next]?.focus();
+                }}
                 className={`pb-3 -mb-px text-[14px] whitespace-nowrap border-b-2 transition-colors ${
                   active
                     ? "text-ink border-ink font-medium"

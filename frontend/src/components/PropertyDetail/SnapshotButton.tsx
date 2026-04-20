@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useState, useId } from "react";
 import { createSnapshot } from "../../api/client.ts";
+import { useFocusTrap } from "../shared/useFocusTrap.ts";
+import { useEscapeKey } from "../shared/useEscapeKey.ts";
 
 interface SnapshotButtonProps {
   propertyId: string;
@@ -14,6 +16,11 @@ export function SnapshotButton({ propertyId, scenarioId, dirty = false, onPersis
   const [name, setName] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const titleId = useId();
+  const closeDialog = () => { setShowDialog(false); setName(""); setError(null); };
+  const dialogRef = useFocusTrap<HTMLDivElement>(showDialog);
+  useEscapeKey(closeDialog, showDialog);
 
   const handleSave = async () => {
     try {
@@ -49,9 +56,16 @@ export function SnapshotButton({ propertyId, scenarioId, dirty = false, onPersis
       </button>
 
       {showDialog && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowDialog(false)}>
-          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl p-6 w-96" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-2">Save Snapshot</h3>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={closeDialog}>
+          <div
+            ref={dialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={titleId}
+            className="bg-white dark:bg-slate-800 rounded-xl shadow-xl p-6 w-96"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 id={titleId} className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-2">Save Snapshot</h3>
             <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
               Capture the current scenario configuration.
             </p>

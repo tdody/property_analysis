@@ -1,7 +1,9 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useId } from "react";
 import { listSnapshots, diffSnapshot, restoreSnapshot, deleteSnapshot } from "../../api/client.ts";
 import type { SnapshotListItem, DiffResponse } from "../../types/index.ts";
 import { ConfirmDialog } from "../shared/ConfirmDialog.tsx";
+import { useFocusTrap } from "../shared/useFocusTrap.ts";
+import { useEscapeKey } from "../shared/useEscapeKey.ts";
 
 interface HistoryDrawerProps {
   propertyId: string;
@@ -54,6 +56,10 @@ export function HistoryDrawer({ propertyId, scenarioId, scenarioName, open, onCl
   const [confirmDelete, setConfirmDelete] = useState<SnapshotListItem | null>(null);
   const [restoring, setRestoring] = useState(false);
 
+  const titleId = useId();
+  const drawerRef = useFocusTrap<HTMLDivElement>(open);
+  useEscapeKey(onClose, open);
+
   const loadSnapshots = useCallback(async () => {
     setLoading(true);
     try {
@@ -105,7 +111,13 @@ export function HistoryDrawer({ propertyId, scenarioId, scenarioName, open, onCl
   return (
     <>
       <div className="fixed inset-0 bg-black/30 z-40" onClick={onClose} />
-      <div className="fixed right-0 top-0 h-full w-[480px] max-w-full bg-white dark:bg-slate-800 shadow-2xl z-50 flex flex-col">
+      <div
+        ref={drawerRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        className="fixed right-0 top-0 h-full w-[480px] max-w-full bg-white dark:bg-slate-800 shadow-2xl z-50 flex flex-col"
+      >
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700">
           <div className="flex items-center gap-2">
@@ -114,7 +126,7 @@ export function HistoryDrawer({ propertyId, scenarioId, scenarioName, open, onCl
                 ← Back
               </button>
             )}
-            <h3 className="font-semibold text-slate-900 dark:text-slate-100">
+            <h3 id={titleId} className="font-semibold text-slate-900 dark:text-slate-100">
               {diff ? "Compare" : "Version History"}
             </h3>
           </div>
