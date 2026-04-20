@@ -12,7 +12,7 @@ export function useFocusTrap<T extends HTMLElement>(active: boolean) {
 
     const focusables = () =>
       Array.from(root.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)).filter(
-        (el) => el.offsetParent !== null,
+        (el) => !el.hasAttribute("hidden") && !el.closest("[hidden]"),
       );
 
     if (!root.contains(document.activeElement)) {
