@@ -11,6 +11,7 @@ createRoot(document.getElementById("root")!).render(
 
 if (import.meta.env.DEV) {
   void import("axe-core").then(({ default: axe }) => {
+    (window as unknown as { axe: typeof axe }).axe = axe;
     let timer: number | undefined;
     const runAxe = () => {
       window.clearTimeout(timer);
